@@ -1051,20 +1051,32 @@ function renderCompare(){
   });
 })();
 
-/* ---------- forms (no backend: hand the message back to copy) ---------- */
-function handoff(form, box, build){
-  form.addEventListener('submit',e=>{e.preventDefault(); const name=form.querySelector('input[required]'); if(!name.value.trim()){name.focus();name.style.borderColor='var(--crimson)';return}
-    const txt=build(); box.innerHTML=`<div class="sent"><p><b>This form isn't connected to an inbox yet.</b> Copy your message and send it to <b>${ST.email}</b>, or call <b>${ST.phone}</b>.</p><pre id="${box.id}Txt">${txt.replace(/</g,'&lt;')}</pre><button type="button" class="btn sm">Copy message</button></div>`;
-    const b=box.querySelector('button'), pre=box.querySelector('pre'); b.onclick=()=>{navigator.clipboard.writeText(txt).then(()=>b.textContent='Copied',()=>{const r=document.createRange();r.selectNodeContents(pre);getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Selected: press Ctrl/⌘+C'})}});
+/* ---------- forms: sent to the dealer dashboard (/api/lead); if that fails, hand the message back to copy ---------- */
+function handoff(form, box, build, fields){
+  form.insertAdjacentHTML('beforeend','<input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">');
+  const fallback=txt=>{ box.innerHTML=`<div class="sent"><p><b>We couldn't send this right now.</b> Copy your message and send it to <b>${ST.email}</b>, or call <b>${ST.phone}</b>.</p><pre id="${box.id}Txt">${txt.replace(/</g,'&lt;')}</pre><button type="button" class="btn sm">Copy message</button></div>`;
+    const b=box.querySelector('button'), pre=box.querySelector('pre'); b.onclick=()=>{navigator.clipboard.writeText(txt).then(()=>b.textContent='Copied',()=>{const r=document.createRange();r.selectNodeContents(pre);getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Selected: press Ctrl/⌘+C'})} };
+  form.addEventListener('submit',async e=>{e.preventDefault(); const name=form.querySelector('input[required]'); if(!name.value.trim()){name.focus();name.style.borderColor='var(--crimson)';return}
+    const f=fields(); if(!f.phone&&!f.email){ box.innerHTML='<div class="sent"><p>Add a phone number or an email so we can reach you.</p></div>'; return }
+    const btn=form.querySelector('button.btn'); btn.disabled=true; box.innerHTML='<div class="sent"><p>Sending…</p></div>';
+    try{ const r=await fetch('/api/lead',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...f,website:form.querySelector('[name=website]').value})});
+      if(!r.ok) throw 0;
+      box.innerHTML=`<div class="sent"><p><b>Thanks, ${f.name.split(' ')[0].replace(/</g,'&lt;')}! We got your message.</b> We'll get back to you shortly. In a hurry? Call <b>${ST.phone}</b>.</p></div>`;
+      form.querySelectorAll('input:not([name=website]),textarea').forEach(i=>{if(i.id!=='vin')i.value=''});
+    }catch(_){ fallback(build()) } finally{ btn.disabled=false } });
 }
-handoff($('#contactForm'),$('#contactSent'),()=>`Name: ${$('#cName').value}\nPhone: ${$('#cPhone').value}\nEmail: ${$('#cEmail').value}\n\n${$('#cMsg').value}`);
-handoff($('#tradeForm'),$('#tradeSent'),()=>`Trade-in valuation request\nVIN: ${$('#vin').value||'(not given)'}\nName: ${$('#tName').value}\nPhone: ${$('#tPhone').value}\nEmail: ${$('#tEmail').value}\nMileage: ${$('#tMiles').value}\n\n${$('#tNotes').value}`);
+handoff($('#contactForm'),$('#contactSent'),()=>`Name: ${$('#cName').value}\nPhone: ${$('#cPhone').value}\nEmail: ${$('#cEmail').value}\n\n${$('#cMsg').value}`,
+  ()=>({type:'contact',name:$('#cName').value.trim(),phone:$('#cPhone').value.trim(),email:$('#cEmail').value.trim(),message:$('#cMsg').value.trim()}));
+handoff($('#tradeForm'),$('#tradeSent'),()=>`Trade-in valuation request\nVIN: ${$('#vin').value||'(not given)'}\nName: ${$('#tName').value}\nPhone: ${$('#tPhone').value}\nEmail: ${$('#tEmail').value}\nMileage: ${$('#tMiles').value}\n\n${$('#tNotes').value}`,
+  ()=>({type:'trade',name:$('#tName').value.trim(),phone:$('#tPhone').value.trim(),email:$('#tEmail').value.trim(),miles:$('#tMiles').value.trim(),vin:$('#vin').value.trim(),message:$('#tNotes').value.trim()}));
 $$('.cpy').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='COPIED';setTimeout(()=>b.textContent='COPY',1500)},()=>{}));
 (function hours(){const H=ST.hours;const d=new Date().getDay(), t=d===0?2:d===6?1:0;
   $('#hours').innerHTML=H.map(([k,v],i)=>`<span class="${i===t?'today':''}">${k}${i===t?' · today':''}</span><span class="${v==='Closed'?'closed':''} ${i===t?'today':''}">${v}</span>`).join('')})();
 
 /* ---------- router ---------- */
 let cur='home', first=true;
+if(location.hash==='#admin'){location.replace('/admin/')}
+window.addEventListener('hashchange',()=>{if(location.hash==='#admin')location.href='/admin/'});
 const VIEWS=['home','inventory','compare','heritage','trade','contact','admin'];
 function route(){
   let h=location.hash.slice(1)||'home', v=h, arg='';
