@@ -13,7 +13,7 @@ export default async (req) => {
   }
 
   if (req.method === "PUT") {
-    if (!checkPassword(req)) return json({ error: "unauthorized" }, 401);
+    if (!(await checkPassword(req))) return json({ error: "unauthorized" }, 401);
     let data;
     try { data = await req.json(); } catch { return json({ error: "bad_json" }, 400); }
     if (!data || !Array.isArray(data.cars) || typeof data.settings !== "object") {
