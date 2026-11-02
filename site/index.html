@@ -1,0 +1,1251 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<title>A &amp; S Auto Burley</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a night-time car lot. Sodium-lit asphalt, chrome type, brand crimson as the one loud colour. Full-bleed bands, content on a 1320px rail. */
+:root{
+  --asphalt:#0d0b0b; --tar:#161212; --tar-2:#1f1919; --line:#2e2626;
+  --chrome:#efebe7; --steel:#a39992; --dim:#6f6661;
+  --crimson:#d2161e; --crimson-deep:#7a0e13; --sodium:#f4a43a;
+  --display:"Big Shoulders Display","Oswald","Arial Narrow",Impact,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --rail:1320px; --gut:max(16px,env(safe-area-inset-left,0px)); --gutr:max(16px,env(safe-area-inset-right,0px));
+  --ease:cubic-bezier(.2,.8,.1,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{background:var(--asphalt);color:var(--chrome);font:400 17px/1.55 var(--body);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--asphalt)}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--sodium);outline-offset:3px}
+::selection{background:var(--crimson);color:#fff}
+.rail{max-width:var(--rail);margin-inline:auto;padding-left:var(--gut);padding-right:var(--gutr)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--steel);display:flex;gap:10px;align-items:center}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--crimson)}
+h1,h2,h3{font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0;text-wrap:balance}
+h2{font-size:clamp(44px,7vw,104px)}
+.lede{color:var(--steel);max-width:58ch;font-size:clamp(17px,1.4vw,19px)}
+.num{font-variant-numeric:tabular-nums}
+.grain{position:fixed;inset:-50%;pointer-events:none;z-index:90;opacity:.06;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:grain 1s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-6%,2%)}80%{transform:translate(5%,4%)}}
+
+/* ---------- buttons ---------- */
+.btn{--bg:var(--crimson);position:relative;display:inline-flex;align-items:center;gap:12px;padding:16px 26px;border:0;border-radius:2px;background:var(--bg);color:#fff;font:700 14px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;overflow:hidden;isolation:isolate;transition:transform .35s var(--ease)}
+.btn::after{content:"";position:absolute;inset:0;background:var(--chrome);transform:translateY(101%);transition:transform .45s var(--ease);z-index:-1}
+.btn:hover::after{transform:translateY(0)}
+.btn:hover{color:var(--asphalt)}
+.btn .arr{transition:transform .35s var(--ease)}
+.btn:hover .arr{transform:translateX(5px)}
+.btn.ghost{--bg:transparent;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--chrome)}
+.btn.ghost:hover{color:var(--asphalt)}
+.btn.sm{padding:11px 16px;font-size:12px}
+
+/* ---------- preloader ---------- */
+#boot{position:fixed;inset:0;z-index:100;background:var(--asphalt);display:grid;place-items:center;transition:clip-path .9s var(--ease);clip-path:inset(0 0 0 0)}
+#boot.out{clip-path:inset(0 0 100% 0)}
+#boot .bt{display:grid;justify-items:center;gap:14px}
+#boot svg{width:min(260px,60vw)}
+#boot .rpm{font:500 12px var(--mono);letter-spacing:.2em;color:var(--steel)}
+#bootNeedle{transform-origin:100px 100px;transform:rotate(-135deg)}
+
+/* ---------- cursor ---------- */
+#cur,#dot{position:fixed;left:0;top:0;pointer-events:none;z-index:95;border-radius:50%;mix-blend-mode:difference}
+#cur{width:38px;height:38px;margin:-19px 0 0 -19px;border:1.5px solid #fff;display:grid;place-items:center;transition:width .3s var(--ease),height .3s var(--ease),margin .3s var(--ease),background .3s}
+#cur span{font:700 10px var(--mono);letter-spacing:.14em;color:#000;opacity:0;transition:opacity .2s}
+#cur.big{width:92px;height:92px;margin:-46px 0 0 -46px;background:#fff}
+#cur.big span{opacity:1}
+#dot{width:6px;height:6px;margin:-3px 0 0 -3px;background:#fff}
+@media (hover:none),(pointer:coarse){#cur,#dot{display:none}}
+
+/* ---------- header ---------- */
+header.top{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:50;transition:background .4s,transform .5s var(--ease)}
+header.top.solid{background:color-mix(in srgb,var(--asphalt) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--line)}
+header.top.hide{transform:translateY(-110%)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:20px;height:76px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand img{height:46px;width:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
+.brand b{font:800 20px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.brand small{display:block;font:500 10px/1.4 var(--mono);letter-spacing:.2em;color:var(--steel)}
+.links{display:flex;gap:6px;align-items:center}
+.links a{position:relative;padding:10px 14px;font:600 13px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:var(--steel);transition:color .2s}
+.links a:hover,.links a.on{color:var(--chrome)}
+.links a.on::after{content:"";position:absolute;left:14px;right:14px;bottom:2px;height:2px;background:var(--crimson)}
+.navcta{display:flex;gap:10px;align-items:center}
+.phone{font:500 13px var(--mono);color:var(--chrome);text-decoration:none;letter-spacing:.04em}
+#burger{display:none;background:none;border:0;width:44px;height:44px;cursor:pointer;position:relative}
+#burger i{position:absolute;left:10px;right:10px;height:2px;background:var(--chrome);transition:transform .4s var(--ease),top .4s var(--ease)}
+#burger i:nth-child(1){top:16px}#burger i:nth-child(2){top:26px}
+body.menu #burger i:nth-child(1){top:21px;transform:rotate(45deg)}
+body.menu #burger i:nth-child(2){top:21px;transform:rotate(-45deg)}
+#mnav{position:fixed;inset:0;z-index:45;background:var(--crimson-deep);display:flex;flex-direction:column;justify-content:center;gap:4px;padding:100px max(24px,env(safe-area-inset-right,0px)) 40px max(24px,env(safe-area-inset-left,0px));clip-path:circle(0% at calc(100% - 40px) 40px);transition:clip-path .8s var(--ease)}
+body.menu #mnav{clip-path:circle(150% at calc(100% - 40px) 40px)}
+#mnav a{font:800 clamp(48px,14vw,84px)/1 var(--display);text-transform:uppercase;text-decoration:none;transform:translateY(40px);opacity:0;transition:transform .6s var(--ease),opacity .6s}
+body.menu #mnav a{transform:none;opacity:1}
+#mnav p{margin-top:28px;font:500 14px var(--mono);color:#f3cfcf}
+@media (max-width:980px){.links,.navcta .phone,.navcta .btn{display:none}#burger{display:block}}
+
+/* ---------- views ---------- */
+main>section[data-view]{min-height:60vh}
+.view-enter{animation:viewIn .7s var(--ease)}
+@keyframes viewIn{from{transform:translateY(24px);opacity:.3}to{transform:none;opacity:1}}
+#wipe{position:fixed;inset:0;z-index:70;background:var(--crimson);transform:scaleY(0);transform-origin:bottom;pointer-events:none}
+#wipe.go{animation:wipe .9s var(--ease)}
+@keyframes wipe{0%{transform:scaleY(0);transform-origin:bottom}45%{transform:scaleY(1);transform-origin:bottom}55%{transform:scaleY(1);transform-origin:top}100%{transform:scaleY(0);transform-origin:top}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;height:min(94vh,940px);min-height:660px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding-block:110px 28px}
+#cloud{position:absolute;inset:0;width:100%;height:100%;z-index:0;cursor:pointer;touch-action:pan-y}
+.hero .glow{position:absolute;left:50%;top:40%;width:min(90vw,1100px);aspect-ratio:2.2;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,rgba(210,22,30,.16),transparent 62%);pointer-events:none;z-index:0;animation:breathe 7s ease-in-out infinite alternate}
+@keyframes breathe{from{opacity:.55;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
+.hero .floor{position:absolute;left:0;right:0;top:58%;height:1px;background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);z-index:0;pointer-events:none}
+#cloudFb{position:absolute;left:50%;top:38%;width:min(62vw,820px);transform:translate(-50%,-50%);z-index:0;pointer-events:none;transition:opacity .8s}
+.hgrid{position:relative;z-index:2;width:100%;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:40px;align-items:end;pointer-events:none}
+.hgrid a,.hgrid button{pointer-events:auto}
+.hero h1{font-size:clamp(46px,6.2vw,100px);line-height:.84;font-weight:900;margin-top:16px}
+.hero h1 .ln{display:block;white-space:nowrap;overflow:hidden;padding-bottom:.04em}
+.hero h1 .ch{display:inline-block;transform:translateY(105%) skewY(8deg);animation:chIn 1s var(--ease) forwards}
+.hero h1 .ln:nth-child(3){color:transparent;-webkit-text-stroke:1.5px var(--chrome)}
+@keyframes chIn{to{transform:none}}
+.hero .hl p{margin:18px 0 0;max-width:44ch;color:var(--steel)}
+.hero .hl p b{color:var(--chrome);font-weight:600}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.hr{justify-self:end;width:min(100%,340px);display:grid;gap:4px}
+.hr .hidx{font:500 12px var(--mono);letter-spacing:.16em;color:var(--steel)}
+.hr .hidx b{color:var(--crimson);font-weight:500}
+.hr .hname{font:800 clamp(28px,2.6vw,38px)/.95 var(--display);text-transform:uppercase;margin-top:6px}
+.hr .htrim{font:500 12px var(--mono);color:var(--steel);letter-spacing:.04em;margin-bottom:10px}
+.hr dl{margin:0;display:grid}
+.hr dl div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.hr dt{font:500 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);align-self:center}
+.hr dd{margin:0;text-align:right}
+.hr .hfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px}
+.hr .hprice{font:900 40px/1 var(--display);color:var(--sodium);font-variant-numeric:tabular-nums}
+.hr a{font:600 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--chrome)}
+.hr .swap{transition:opacity .45s,transform .45s var(--ease)}
+.hr.out .swap{opacity:0;transform:translateY(8px)}
+.hbar{position:relative;z-index:2;display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:30px;width:100%}
+.hbar button{background:none;border:0;padding:10px 0 0;text-align:left;cursor:pointer;font:500 10px var(--mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar button::before,.hbar button::after{content:"";position:absolute;left:0;top:0;height:2px;width:100%;background:var(--line)}
+.hbar button::after{background:var(--crimson);transform-origin:left;transform:scaleX(0)}
+.hbar button.done::after{transform:scaleX(1);background:var(--steel)}
+.hbar button.on{color:var(--chrome)}
+.hbar button.on::after{animation:fillbar var(--dur,7s) linear forwards}
+@keyframes fillbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (max-width:860px){
+  .hero{height:auto;min-height:0;padding-top:84px}
+  #cloud{position:relative;inset:auto;height:min(64vw,360px);order:-1}
+  #cloudFb{top:180px;width:88vw}
+  .hero .glow{top:200px}.hero .floor{display:none}
+  .hgrid{grid-template-columns:1fr;gap:28px;margin-top:8px}
+  .hr{justify-self:stretch;width:100%}
+  .hbar{grid-template-columns:repeat(8,1fr);gap:4px}.hbar button{font-size:0;padding-top:6px}
+}
+
+/* ---------- HUD speedo ---------- */
+#hud{position:fixed;z-index:40;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;padding:10px 14px;background:color-mix(in srgb,var(--tar) 85%,transparent);border:1px solid var(--line);border-radius:2px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:500 11px var(--mono);letter-spacing:.14em;color:var(--steel)}
+#hud b{font:800 28px/1 var(--display);color:var(--chrome);min-width:2.2ch;text-align:right;font-variant-numeric:tabular-nums}
+#hud .bar{width:60px;height:4px;background:var(--line);position:relative;overflow:hidden}
+#hud .bar i{position:absolute;inset:0;background:linear-gradient(90deg,var(--sodium),var(--crimson));transform-origin:left;transform:scaleX(0)}
+@media (max-width:760px){#hud{display:none}}
+
+/* ---------- marquee ---------- */
+.marq{border-block:1px solid var(--line);overflow:hidden;padding-block:22px;background:var(--tar)}
+.marq .trk{display:flex;width:max-content;gap:0;will-change:transform}
+.marq span{font:800 clamp(40px,6vw,84px)/1 var(--display);text-transform:uppercase;padding-inline:28px;white-space:nowrap;color:transparent;-webkit-text-stroke:1.5px var(--dim);transition:color .3s,-webkit-text-stroke-color .3s}
+.marq span:nth-child(3n+1){color:var(--chrome);-webkit-text-stroke:0}
+.marq span::after{content:"✦";color:var(--crimson);-webkit-text-stroke:0;font-size:.4em;vertical-align:middle;margin-left:56px}
+.marq span:hover{color:var(--crimson);-webkit-text-stroke-color:var(--crimson)}
+
+/* ---------- horizontal showcase ---------- */
+.show{position:relative}
+.show .pin{overflow:hidden;display:flex;flex-direction:column;gap:34px;padding-block:clamp(70px,9vw,120px)}
+.show .trk{animation:belt 55s linear infinite;width:max-content}
+.show .trk:hover{animation-play-state:paused}
+.show .trk{gap:0;padding-left:0}.show .slide{margin-right:28px}
+@keyframes belt{to{transform:translateX(-50%)}}
+.show .head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.show .prog{font:500 13px var(--mono);color:var(--steel);letter-spacing:.1em}
+.show .prog b{color:var(--chrome)}
+.show .trk{display:flex;gap:28px;padding-left:var(--gut);will-change:transform}
+.slide{flex:0 0 min(30vw,420px);max-width:100%;position:relative;text-decoration:none;display:block}
+.slide .ph{aspect-ratio:3/2;overflow:hidden;position:relative;background:var(--tar);border-radius:2px}
+.slide .ph img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.slide:hover .ph img{transform:scale(1.03)}
+.slide .idx{position:absolute;left:18px;top:14px;font:900 clamp(40px,4vw,64px)/1 var(--display);color:transparent;-webkit-text-stroke:1.2px rgba(255,255,255,.75);mix-blend-mode:difference}
+.slide .meta{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-top:16px;flex-wrap:wrap}
+.slide h3{font-size:clamp(24px,2vw,30px)}
+.slide .sub{font:500 13px var(--mono);color:var(--steel);letter-spacing:.06em;margin-top:6px;display:block}
+.slide .pr{font:800 clamp(24px,2vw,30px)/1 var(--display);color:var(--sodium)}
+@media (max-width:760px){.show .trk{animation-duration:45s}.slide{flex-basis:min(68vw,340px)}}
+
+/* ---------- body list w/ floating image ---------- */
+.bodies{padding-block:clamp(80px,12vw,160px)}
+.bodies .lst{margin-top:48px;border-top:1px solid var(--line)}
+.brow{display:grid;grid-template-columns:70px 1fr auto auto;gap:24px;align-items:center;padding:26px 6px;border-bottom:1px solid var(--line);text-decoration:none;position:relative;overflow:hidden}
+.brow::before{content:"";position:absolute;inset:0;background:var(--crimson);transform:scaleY(0);transform-origin:bottom;transition:transform .5s var(--ease);z-index:-1}
+.brow:hover::before{transform:scaleY(1)}
+.brow{isolation:isolate}
+.brow .n{font:500 13px var(--mono);color:var(--steel)}
+.brow:hover .n,.brow:hover .c{color:#fff}
+.brow b{font:800 clamp(36px,6vw,88px)/.95 var(--display);text-transform:uppercase;transition:transform .5s var(--ease)}
+.brow:hover b{transform:translateX(18px)}
+.brow .c{font:500 13px var(--mono);color:var(--steel);letter-spacing:.08em}
+.brow .go{font:800 32px var(--display);transition:transform .4s var(--ease)}
+.brow:hover .go{transform:rotate(-45deg)}
+#floatImg{position:fixed;left:0;top:0;width:340px;aspect-ratio:3/2;pointer-events:none;z-index:30;overflow:hidden;border-radius:2px;opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg);transition:opacity .3s,transform .5s var(--ease)}
+#floatImg.on{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-3deg)}
+#floatImg img{width:100%;height:100%;object-fit:cover}
+@media (max-width:760px){.brow{grid-template-columns:40px 1fr auto;gap:12px}.brow .c{display:none}#floatImg{display:none}}
+
+/* ---------- heritage band ---------- */
+.her{position:relative;overflow:hidden;padding-block:clamp(90px,12vw,170px)}
+.her .bg{position:absolute;inset:-10% 0;background-size:cover;background-position:center;filter:grayscale(.4) brightness(.32);animation:kb 24s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1.05) translateX(-2%)}to{transform:scale(1.18) translateX(2%)}}
+.her .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--asphalt),transparent 30%,transparent 70%,var(--asphalt))}
+.her .rail{position:relative}
+.her blockquote{margin:28px 0 0;font:700 clamp(30px,4.6vw,66px)/1 var(--display);text-transform:uppercase;max-width:18ch;text-wrap:balance}
+.her blockquote em{font-style:normal;color:var(--crimson)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:70px;border:1px solid var(--line)}
+.stat{background:color-mix(in srgb,var(--asphalt) 80%,transparent);padding:28px 22px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.stat b{display:block;font:900 clamp(48px,6vw,88px)/1 var(--display);font-variant-numeric:tabular-nums}
+.stat span{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+@media (max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+
+/* ---------- rev section ---------- */
+.rev{padding-block:clamp(80px,10vw,150px);border-top:1px solid var(--line);background:radial-gradient(ellipse at 70% 60%,rgba(210,22,30,.16),transparent 60%)}
+.rev .g{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.tach{position:relative;width:min(100%,460px);justify-self:center;aspect-ratio:1;max-width:100%}
+.tach svg{width:100%;height:100%;overflow:visible}
+.tach .read{position:absolute;left:0;right:0;bottom:22%;text-align:center}
+.tach .read b{font:900 64px/1 var(--display);font-variant-numeric:tabular-nums;display:block}
+.tach .read span{font:500 11px var(--mono);letter-spacing:.2em;color:var(--steel)}
+#revBtn{margin-top:30px;user-select:none;-webkit-user-select:none;touch-action:none;padding:22px 34px;font-size:15px}
+#revBtn.held{transform:scale(.96)}
+.tach.shake{animation:shake .08s infinite}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(1px,-1px)}50%{transform:translate(-1px,1px)}75%{transform:translate(1px,1px)}}
+.rev small{display:block;margin-top:14px;font:500 12px var(--mono);color:var(--dim);letter-spacing:.06em}
+@media (max-width:860px){.rev .g{grid-template-columns:1fr}}
+
+/* ---------- cta band ---------- */
+.band{background:var(--crimson);color:#fff;padding-block:clamp(70px,9vw,130px);position:relative;overflow:hidden}
+.band h2{font-size:clamp(52px,10vw,160px);line-height:.85}
+.band .g{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap}
+.band .btn{--bg:var(--asphalt)}
+.band p{margin:0;max-width:40ch;color:#ffe0e0}
+
+/* ---------- footer ---------- */
+footer{padding-block:70px 110px;border-top:1px solid var(--line)}
+footer .g{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+footer h4{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--steel);margin:0 0 14px}
+footer p,footer li{margin:0;color:var(--chrome);font-size:15px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+footer ul a{text-decoration:none;color:var(--steel)}footer ul a:hover{color:var(--chrome)}
+footer .big{font:900 clamp(60px,15vw,240px)/.8 var(--display);text-transform:uppercase;color:var(--tar-2);margin-top:60px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden}
+footer .legal{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:24px;font:500 12px var(--mono);color:var(--dim)}
+@media (max-width:860px){footer .g{grid-template-columns:1fr 1fr}}
+
+/* ---------- page head (sub views) ---------- */
+.phead{padding-block:150px 40px}
+.phead h1{font-size:clamp(60px,10vw,150px);font-weight:900}
+.phead .lede{margin-top:20px}
+
+/* ---------- inventory ---------- */
+.filters{position:sticky;top:calc(76px + env(safe-area-inset-top,0px));z-index:20;background:color-mix(in srgb,var(--asphalt) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-block:1px solid var(--line);padding-block:14px}
+.filters .g{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld label{font:500 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.fld select,.fld input{background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:10px 12px;min-width:0;width:100%;font-size:15px}
+.filters .fld{flex:1 1 140px}
+.filters .fld.q{flex:2 1 220px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid var(--line);background:none;border-radius:99px;padding:7px 14px;font:600 12px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--steel);cursor:pointer;transition:all .25s}
+.chip:hover{color:var(--chrome);border-color:var(--steel)}
+.chip.on{background:var(--chrome);color:var(--asphalt);border-color:var(--chrome)}
+.count{font:500 13px var(--mono);color:var(--steel);padding-block:26px 18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.count b{color:var(--chrome)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:26px;padding-bottom:100px}
+.card{position:relative;background:var(--tar);border:1px solid var(--line);border-radius:3px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .5s var(--ease),border-color .3s;will-change:transform}
+.card:hover{border-color:#4a3c3c}
+.card .ph{aspect-ratio:3/2;overflow:hidden;position:relative}
+.card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .9s var(--ease)}
+.card:hover .ph img{transform:scale(1.03)}
+.card .glare{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at var(--gx,50%) var(--gy,50%),rgba(255,255,255,.18),transparent 45%);opacity:0;transition:opacity .3s;z-index:2}
+.card:hover .glare{opacity:1}
+.card .yr{position:absolute;left:12px;top:12px;background:var(--asphalt);font:500 12px var(--mono);padding:5px 9px;border-radius:2px;letter-spacing:.06em}
+.card .bd{padding:18px 18px 16px;display:grid;gap:12px;flex:1}
+.card h3{font-size:30px;line-height:.95}
+.card .trim{font:500 12px var(--mono);color:var(--steel);letter-spacing:.04em;display:block;margin-top:6px;min-height:1.2em}
+.card .ft{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.card .pr{font:800 30px/1 var(--display);color:var(--sodium);font-variant-numeric:tabular-nums}
+.specs{display:flex;gap:14px;flex-wrap:wrap;font:500 12px var(--mono);color:var(--steel)}
+.specs b{color:var(--chrome);font-weight:500}
+.cmp{background:none;border:1px solid var(--line);border-radius:2px;padding:8px 10px;font:600 11px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--steel);cursor:pointer;transition:all .2s;position:relative;z-index:3}
+.cmp:hover{color:var(--chrome);border-color:var(--steel)}
+.cmp.on{background:var(--sodium);color:var(--asphalt);border-color:var(--sodium)}
+.empty{grid-column:1/-1;padding:60px 0;text-align:center;color:var(--steel)}
+#cmpDock{position:fixed;z-index:41;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(160%);transition:transform .5s var(--ease)}
+#cmpDock.on{transform:none}
+
+/* ---------- detail ---------- */
+.dt{padding-top:110px}
+.dt .crumbs{font:500 12px var(--mono);color:var(--steel);letter-spacing:.08em;display:flex;gap:10px;flex-wrap:wrap}
+.dt .crumbs a{text-decoration:none}.dt .crumbs a:hover{color:var(--chrome)}
+.dt .top{display:grid;grid-template-columns:1.45fr 1fr;gap:40px;margin-top:22px;align-items:start}
+.zoom{position:relative;aspect-ratio:3/2;overflow:hidden;border-radius:3px;background:var(--tar);cursor:zoom-in;max-width:100%}
+.zoom img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
+.zoom.z img{transform:scale(1.4)}
+.zoom .hint{position:absolute;right:12px;bottom:12px;background:var(--asphalt);font:500 11px var(--mono);letter-spacing:.12em;padding:6px 10px;border-radius:2px;color:var(--steel)}
+.dt h1{font-size:clamp(48px,6vw,92px);font-weight:900}
+.dt .trim{font:500 14px var(--mono);color:var(--steel);margin-top:10px;letter-spacing:.04em}
+.dt .price{font:900 clamp(56px,6vw,84px)/1 var(--display);color:var(--sodium);margin-top:22px;font-variant-numeric:tabular-nums}
+.dt .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.dt .desc{color:var(--steel);margin-top:22px;max-width:60ch}
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:44px}
+.gauge{background:var(--asphalt);padding:22px 14px 18px;display:grid;justify-items:center;gap:4px;text-align:center}
+.gauge svg{width:min(140px,100%);height:auto;overflow:visible}
+.gauge b{font:900 40px/1 var(--display);font-variant-numeric:tabular-nums;margin-top:-46px}
+.gauge span{font:500 10px var(--mono);letter-spacing:.16em;color:var(--steel);text-transform:uppercase;margin-top:10px}
+.gauge .na{font-size:26px;color:var(--dim)}
+@media (max-width:760px){.gauges{grid-template-columns:1fr 1fr}}
+.dt .lower{display:grid;grid-template-columns:1.45fr 1fr;gap:40px;align-items:start;margin-top:56px;padding-bottom:110px}
+.sheet{border-top:1px solid var(--line)}
+.sheet h3,.fin h3{font-size:34px;margin:0 0 18px}
+.sheet dl{display:grid;grid-template-columns:repeat(2,1fr);gap:0 32px;margin:0}
+.sheet .r{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid var(--line);min-width:0}
+.sheet dt{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.sheet dd{margin:0;text-align:right;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.sheet dd.ask{color:var(--dim);font-style:italic;font-weight:400}
+.equip{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.equip span{border:1px solid var(--line);padding:7px 12px;border-radius:2px;font-size:14px;color:var(--steel)}
+.fin{background:var(--tar);border:1px solid var(--line);border-radius:3px;padding:26px;position:sticky;top:100px}
+.fin .pm{font:900 64px/1 var(--display);font-variant-numeric:tabular-nums}
+.fin .pm small{font:500 14px var(--mono);color:var(--steel)}
+.fin .sl{display:grid;gap:8px;margin-top:20px}
+.fin .sl label{display:flex;justify-content:space-between;font:500 12px var(--mono);letter-spacing:.08em;color:var(--steel);text-transform:uppercase}
+.fin .sl label b{color:var(--chrome);font-weight:500}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--line);border-radius:2px;outline-offset:6px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--crimson);border:3px solid var(--chrome);cursor:grab}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--crimson);border:3px solid var(--chrome);cursor:grab}
+.terms{display:flex;gap:6px;margin-top:8px}
+.terms button{flex:1;background:none;border:1px solid var(--line);padding:9px 0;border-radius:2px;font:500 13px var(--mono);color:var(--steel);cursor:pointer}
+.terms button.on{background:var(--chrome);color:var(--asphalt);border-color:var(--chrome)}
+.fin .fine{font-size:12px;color:var(--dim);margin-top:16px}
+.pn{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding-block:30px 110px}
+.pn a{text-decoration:none;display:grid;gap:4px}
+.pn a span{font:500 11px var(--mono);letter-spacing:.14em;color:var(--steel)}
+.pn a b{font:800 clamp(24px,3vw,40px)/1 var(--display);text-transform:uppercase;transition:color .2s}
+.pn a:hover b{color:var(--crimson)}
+.pn a:last-child{text-align:right}
+@media (max-width:900px){.dt .top,.dt .lower{grid-template-columns:1fr}.sheet dl{grid-template-columns:1fr}.fin{position:static}}
+
+/* ---------- compare ---------- */
+.cslots{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.cslot{background:var(--tar);border:1px dashed var(--line);border-radius:3px;padding:14px;display:grid;gap:12px;align-content:start;min-width:0}
+.cslot.full{border-style:solid}
+.cslot .ph{aspect-ratio:3/2;overflow:hidden;border-radius:2px;background:var(--asphalt);display:grid;place-items:center;color:var(--dim);font:800 60px var(--display)}
+.cslot .ph img{width:100%;height:100%;object-fit:cover}
+.cslot select{background:var(--asphalt);border:1px solid var(--line);padding:10px;border-radius:2px;width:100%}
+.ctab{width:100%;border-collapse:collapse;margin-top:30px;min-width:620px}
+.ctab th,.ctab td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.ctab th{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);width:22%}
+.ctab td{font-weight:500;width:26%}
+.ctab td.best{color:var(--sodium)}
+.ctab td.best::after{content:" ●";font-size:10px;vertical-align:middle}
+.ctab td.na{color:var(--dim)}
+.scrollx{overflow-x:auto;padding-bottom:100px}
+@media (max-width:760px){.cslots{grid-template-columns:1fr}}
+
+/* ---------- forms ---------- */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fgrid .full{grid-column:1/-1}
+.form .fld input,.form .fld textarea,.form .fld select{background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:14px;font-size:16px;width:100%;transition:border-color .2s}
+.form .fld input:focus,.form .fld textarea:focus{border-color:var(--crimson);outline:none}
+.form textarea{min-height:140px;resize:vertical}
+.split{display:grid;grid-template-columns:1fr 1.2fr;gap:56px;padding-bottom:110px;align-items:start}
+@media (max-width:860px){.split{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
+.info{display:grid;gap:30px}
+.info h4{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+.info p{margin:0;font-size:20px}
+.info .big{font:800 clamp(30px,3.6vw,46px)/1 var(--display);letter-spacing:.01em}
+.copyrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cpy{background:none;border:1px solid var(--line);border-radius:2px;padding:6px 10px;font:500 11px var(--mono);letter-spacing:.1em;color:var(--steel);cursor:pointer}
+.cpy:hover{color:var(--chrome)}
+.hours{display:grid;grid-template-columns:auto auto;gap:4px 24px;font-size:16px;justify-content:start}
+.hours .closed{color:var(--dim)}
+.hours .today{color:var(--sodium)}
+.sent{margin-top:20px;background:var(--tar-2);border-left:3px solid var(--sodium);padding:18px;border-radius:2px}
+.sent p{margin:0 0 10px}
+.sent pre{white-space:pre-wrap;font:14px/1.5 var(--mono);background:var(--asphalt);padding:12px;border-radius:2px;margin:0 0 12px;max-height:220px;overflow:auto}
+.vinbox{display:flex;gap:10px;align-items:stretch}
+.vinbox input{font:500 20px var(--mono)!important;letter-spacing:.18em;text-transform:uppercase}
+.vinmeter{display:grid;grid-template-columns:repeat(17,1fr);gap:3px;margin-top:10px}
+.vinmeter i{height:4px;background:var(--line);transition:background .2s}
+.vinmeter i.f{background:var(--steel)}
+.vinmeter i.ck{background:var(--sodium)}
+.vinout{margin-top:14px;font:500 14px var(--mono);color:var(--steel);min-height:1.5em}
+.vinout .ok{color:#7fd29a}.vinout .bad{color:#ff8a8a}
+.vindec{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:14px}
+.vindec div{background:var(--tar);padding:14px}
+.vindec span{display:block;font:500 10px var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.vindec b{font:800 22px/1.1 var(--display);text-transform:uppercase}
+
+/* ---------- about ---------- */
+.story{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;padding-bottom:90px}
+.story p{color:var(--steel);margin:0 0 18px;max-width:60ch}
+.story p:first-child{font:700 clamp(26px,3vw,38px)/1.1 var(--display);text-transform:uppercase;color:var(--chrome)}
+.story .ph{aspect-ratio:16/9;overflow:hidden;border-radius:3px;max-width:100%}
+.story .ph img{width:100%;height:100%;object-fit:cover}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-block:1px solid var(--line);margin-bottom:110px}
+.pillars div{background:var(--asphalt);padding:34px 26px}
+.pillars h3{font-size:36px;margin-bottom:12px}
+.pillars p{margin:0;color:var(--steel)}
+@media (max-width:860px){.story,.pillars{grid-template-columns:1fr}}
+
+/* reveal: only elements below the fold at load are hidden, and only briefly */
+.rv{transition:transform 1s var(--ease),opacity 1s var(--ease),clip-path 1.1s var(--ease)}
+.rv.pre{transform:translateY(60px);opacity:0}
+.rvi.pre{clip-path:inset(100% 0 0 0)}
+
+/* ---------- admin ---------- */
+.card .sold,.dt .soldtag{position:absolute;right:12px;top:12px;background:var(--crimson);color:#fff;font:700 12px var(--mono);letter-spacing:.14em;padding:5px 9px;border-radius:2px;z-index:3}
+.card.is-sold .ph img{filter:grayscale(.8) brightness(.7)}
+.adm{padding-block:120px 120px}
+.adm h1{font-size:clamp(48px,7vw,96px);font-weight:900}
+.adm-note{color:var(--steel);max-width:60ch;margin-top:18px}
+.adm-bar{position:sticky;top:calc(76px + env(safe-area-inset-top,0px));z-index:20;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:color-mix(in srgb,var(--asphalt) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-block:1px solid var(--line);padding-block:12px;margin-top:28px}
+.adm-bar .st{font:500 12px var(--mono);letter-spacing:.08em;color:var(--steel)}
+.adm-bar .st.dirty{color:var(--sodium)}
+.adm-bar .act{display:flex;gap:8px;flex-wrap:wrap}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.adm h3{font-size:30px;margin:44px 0 16px}
+.adm-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:14px}
+.adm .fld input,.adm .fld select,.adm .fld textarea{background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:10px 12px;font-size:15px;width:100%;min-width:0}
+.adm .fld textarea{min-height:90px;resize:vertical}
+.adm-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px}
+.adm-tab{width:100%;border-collapse:collapse;min-width:860px}
+.adm-tab th{font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-align:left;padding:10px;border-bottom:1px solid var(--line);background:var(--tar)}
+.adm-tab td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:15px}
+.adm-tab tr.hid td{opacity:.5}
+.adm-tab img{width:84px;aspect-ratio:3/2;object-fit:cover;border-radius:2px;display:block;background:var(--tar)}
+.adm-tab .nm b{display:block;font-weight:600}
+.adm-tab .nm small{font:500 11px var(--mono);color:var(--dim)}
+.adm-tab input[type=number]{width:110px;background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:8px}
+.adm-tab select{background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:8px}
+.ib{background:none;border:1px solid var(--line);border-radius:2px;padding:7px 10px;font:600 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--steel);cursor:pointer;white-space:nowrap}
+.ib:hover{color:var(--chrome);border-color:var(--steel)}
+.ib.warn{border-color:var(--crimson);color:#ff9a9a}
+.ib[disabled]{opacity:.3;pointer-events:none}
+.adm-tab td.ops{white-space:nowrap}.adm-tab td.ops .ib+.ib{margin-left:6px}
+.adm-msg{margin-top:14px;padding:12px 14px;border-left:3px solid var(--sodium);background:var(--tar-2);font-size:15px}
+.adm-msg.err{border-color:var(--crimson)}
+#admEd{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.7);display:grid;place-items:start center;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+#admEd .pan{background:var(--asphalt);border:1px solid var(--line);border-radius:4px;width:min(100%,900px);padding:24px}
+#admEd .hd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+#admEd .hd h3{margin:0}
+.ed-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ed-grid .w2{grid-column:span 2}.ed-grid .w3{grid-column:1/-1}
+.ed-pics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.pic{border:1px dashed var(--line);border-radius:3px;padding:12px;display:grid;gap:10px}
+.pic .pv{aspect-ratio:3/2;background:repeating-conic-gradient(var(--tar) 0 25%,var(--tar-2) 0 50%) 0 0/20px 20px;border-radius:2px;display:grid;place-items:center;overflow:hidden;color:var(--dim);font:500 12px var(--mono)}
+.pic .pv img{width:100%;height:100%;object-fit:contain}
+.pic p{margin:0;font-size:13px;color:var(--dim)}
+.pic input[type=file]{font-size:13px;color:var(--steel)}
+.vinst{font:500 12px var(--mono);margin-top:4px;min-height:1.2em}
+.vinst.ok{color:#7fd29a}.vinst.bad{color:#ff8a8a}
+.ed-ft{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--steel)}
+@media (max-width:760px){.ed-grid{grid-template-columns:1fr 1fr}.ed-pics{grid-template-columns:1fr}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .grain{display:none}
+  .hero h1 .ch{transform:none}
+}
+</style>
+
+<div class="grain" aria-hidden="true"></div>
+<div id="boot" aria-hidden="true"><div class="bt">
+  <svg viewBox="0 0 200 140"><g fill="none" stroke-width="3"><path d="M30 130 A80 80 0 1 1 170 130" stroke="#2e2626"/><path d="M152 52 A80 80 0 0 1 170 130" stroke="#d2161e"/></g>
+  <g id="bootNeedle"><line x1="100" y1="100" x2="100" y2="34" stroke="#efebe7" stroke-width="3" stroke-linecap="round"/></g><circle cx="100" cy="100" r="7" fill="#d2161e"/></svg>
+  <div class="rpm"><span id="bootRpm">0</span> RPM · IGNITION</div>
+</div></div>
+<div id="wipe"></div>
+<div id="cur"><span>VIEW</span></div><div id="dot"></div>
+<div id="floatImg"><img alt=""></div>
+
+<header class="top" id="top">
+  <div class="rail nav">
+    <a class="brand" href="#home" data-mag><img src="img/logo.png" alt="A &amp; S Auto Quick Pawn logo"><span><b>A &amp; S Auto</b><small>BURLEY · IDAHO</small></span></a>
+    <nav class="links" aria-label="Main">
+      <a href="#inventory" data-scr>Used cars</a><a href="#compare" data-scr>Compare</a><a href="#heritage" data-scr>Heritage</a><a href="#trade" data-scr>Trade-in</a><a href="#contact" data-scr>Contact</a>
+    </nav>
+    <div class="navcta"><a class="phone" href="tel:+12085550138" data-s="phone">(208) 555-0138</a><a class="btn sm" href="#contact" data-mag>Book a viewing</a><button id="burger" aria-label="Open menu" aria-expanded="false"><i></i><i></i></button></div>
+  </div>
+</header>
+<nav id="mnav" aria-label="Mobile">
+  <a href="#home">Home</a><a href="#inventory">Used cars</a><a href="#compare">Compare</a><a href="#heritage">Heritage</a><a href="#trade">Trade-in</a><a href="#contact">Contact</a>
+  <p>1038 Overland Ave, Burley ID · <span data-s="phone">(208) 555-0138</span></p>
+</nav>
+
+
+
+<main>
+<!-- ================= HOME ================= -->
+<section data-view="home">
+  <div class="hero">
+    <div class="glow" aria-hidden="true"></div><div class="floor" aria-hidden="true"></div>
+    <img id="cloudFb" alt="" hidden>
+    <canvas id="cloud" data-cursor="VIEW" aria-label="Featured car, made of particles. Click to open it."></canvas>
+    <div class="hgrid rail">
+      <div class="hl">
+        <div class="eyebrow">A &amp; S Auto · Quick Pawn · Burley, Idaho</div>
+        <h1 id="heroH"><span class="ln">Drive</span><span class="ln">Something</span><span class="ln">Extraordinary</span></h1>
+        <p><b id="lotCount">27 hand-picked used cars, trucks and SUVs</b> on the lot right now, from <b id="lotFrom">$4,495</b>. Every one inspected, detailed and priced in plain numbers.</p>
+        <div class="ctas"><a class="btn" href="#inventory" data-mag>Browse the lot <span class="arr">→</span></a><a class="btn ghost" href="#trade" data-mag>Value your trade</a></div>
+      </div>
+      <aside class="hr" id="hPanel" aria-live="polite">
+        <div class="hidx swap"><b id="hIdx">01</b> / <span id="hTot">08</span> · FEATURED</div>
+        <div class="hname swap" id="hName"></div>
+        <div class="htrim swap" id="hTrim"></div>
+        <dl class="swap" id="hSpecs"></dl>
+        <div class="hfoot swap"><span class="hprice" id="hPrice"></span><a id="hLink" href="#inventory">View car →</a></div>
+      </aside>
+    </div>
+    <div class="hbar rail" id="hBar"></div>
+  </div>
+
+  <div class="marq" aria-hidden="true"><div class="trk" id="marq"></div></div>
+
+  <div class="show" id="show">
+    <div class="pin">
+      <div class="rail head"><div><div class="eyebrow">Fresh on the lot</div><h2 style="margin-top:14px">Just rolled in</h2></div><div class="prog">HOVER TO PAUSE · TAP TO OPEN</div></div>
+      <div class="trk" id="showTrk"></div>
+    </div>
+  </div>
+
+  <div class="bodies rail">
+    <div class="eyebrow">Shop by body style</div>
+    <h2 style="margin-top:14px" class="rv">What are you hauling?</h2>
+    <div class="lst" id="bodyList"></div>
+  </div>
+
+  <div class="her">
+    <div class="bg" id="herBg" style="background-image:url(img/showroom.webp)"></div>
+    <div class="rail">
+      <div class="eyebrow">Since day one · 1038 Overland Ave</div>
+      <blockquote class="rv">Big-city selection with <em>small-town honesty.</em></blockquote>
+      <div class="stats">
+        <div class="stat"><b data-count="300" data-suf="+">300+</b><span>5-star reviews</span></div>
+        <div class="stat"><b data-count="150">150</b><span>Point inspection</span></div>
+        <div class="stat"><b data-count="100" data-suf="%">100%</b><span>History reports</span></div>
+        <div class="stat"><b data-count="7">7</b><span>Days or less to approval</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rev">
+    <div class="rail g">
+      <div>
+        <div class="eyebrow">5.0L V8 · 2003 Mustang GT</div>
+        <h2 style="margin-top:14px" class="rv">Hold to rev</h2>
+        <p class="lede" style="margin-top:18px">Press and hold the button to open the throttle. Let go and it drops back to idle. Turn your sound on.</p>
+        <button class="btn" id="revBtn" data-mag>Hold to rev <span class="arr">⟶</span></button>
+        <small>Synthesised engine note. The real one is louder. Come hear it on the lot.</small>
+      </div>
+      <div class="tach" id="tach">
+        <svg viewBox="0 0 300 300" id="tachSvg" aria-hidden="true"></svg>
+        <div class="read"><b id="rpmRead">0.8</b><span>× 1000 RPM</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="rail g">
+      <h2>Come see<br>it in person</h2>
+      <div style="display:grid;gap:18px;justify-items:start"><p>Book a private viewing or a test drive. We'll have the car pulled up, cleaned and warmed up when you arrive.</p><a class="btn" href="#contact" data-mag>Book a viewing <span class="arr">→</span></a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INVENTORY ================= -->
+<section data-view="inventory" hidden>
+  <div class="phead rail"><div class="eyebrow">Inventory · Updated weekly</div><h1>On the lot</h1><p class="lede">Every vehicle is on site at 1038 Overland Ave. Prices exclude tax, title and fees. Tap any car for the full spec sheet and a payment estimate.</p></div>
+  <div class="filters"><div class="rail">
+    <div class="g">
+      <div class="fld q"><label for="fQ">Search</label><input id="fQ" type="search" placeholder="Make, model, colour, trim…"></div>
+      <div class="fld"><label for="fMake">Make</label><select id="fMake"></select></div>
+      <div class="fld"><label for="fPrice">Max price</label><select id="fPrice"><option value="">Any price</option><option>5000</option><option>7500</option><option>10000</option><option>15000</option></select></div>
+      <div class="fld"><label for="fSort">Sort</label><select id="fSort"><option value="new">Newest arrivals</option><option value="pa">Price: low to high</option><option value="pd">Price: high to low</option><option value="yd">Year: newest</option><option value="hp">Most horsepower</option></select></div>
+    </div>
+    <div class="chips" id="fBody"></div>
+  </div></div>
+  <div class="rail"><div class="count" id="invCount"></div><div class="grid" id="grid"></div></div>
+</section>
+
+<!-- ================= CAR ================= -->
+<section data-view="car" hidden><div class="rail dt" id="car"></div></section>
+
+<!-- ================= COMPARE ================= -->
+<section data-view="compare" hidden>
+  <div class="phead rail"><div class="eyebrow">Side by side</div><h1>Compare</h1><p class="lede">Pick up to three vehicles. The best figure in each row is marked in amber.</p></div>
+  <div class="rail"><div class="cslots" id="cslots"></div><div class="scrollx"><table class="ctab" id="ctab"></table></div></div>
+</section>
+
+<!-- ================= HERITAGE ================= -->
+<section data-view="heritage" hidden>
+  <div class="phead rail"><div class="eyebrow">Our story</div><h1>Rooted in Burley.<br>Built on trust.</h1></div>
+  <div class="rail story">
+    <div>
+      <p>A &amp; S Auto started with a simple idea: people in Mini-Cassia deserve big-city selection with small-town honesty.</p>
+      <p>From our home at 1038 Overland Ave, we hand-select every vehicle on our lot, from work-ready trucks that can handle an Idaho winter to family SUVs and weekend cars you'd normally drive hours to find.</p>
+      <p>Every car goes through a 150-point inspection and a full detail, and comes with a transparent vehicle history report. No hidden fees, no pressure. Just straight answers and fair prices.</p>
+      <p>Our customers are our neighbours. That's why so many of them come back, and why they send their friends and family our way.</p>
+      <a class="btn" href="#inventory" data-mag style="margin-top:10px">See the inventory <span class="arr">→</span></a>
+    </div>
+    <div class="ph rvi"><img src="img/showroom.webp" alt="A &amp; S Auto building on Overland Ave"></div>
+  </div>
+  <div class="rail"><div class="pillars">
+    <div><h3>Idaho heritage</h3><p>Locally owned and operated in the heart of the Magic Valley.</p></div>
+    <div><h3>Honest deals</h3><p>Transparent pricing and real trade-in values, every single time.</p></div>
+    <div><h3>Customer for life</h3><p>We're here after the sale for questions, service referrals and your next upgrade.</p></div>
+  </div></div>
+</section>
+
+<!-- ================= TRADE ================= -->
+<section data-view="trade" hidden>
+  <div class="phead rail"><div class="eyebrow">Trade-in</div><h1>Value your trade</h1><p class="lede">Type your 17-character VIN. We check it as you type, decode the maker and model year, then you tell us about the condition for a personal offer.</p></div>
+  <div class="rail split">
+    <div>
+      <div class="fld"><label for="vin">Vehicle identification number</label>
+        <div class="vinbox"><input id="vin" maxlength="17" autocomplete="off" spellcheck="false" placeholder="1FTFW1EF5EFA21458"></div></div>
+      <div class="vinmeter" id="vinMeter"></div>
+      <div class="vinout" id="vinOut">0 / 17 characters</div>
+      <div class="vindec" id="vinDec" hidden></div>
+      <p style="color:var(--dim);font-size:14px;margin-top:22px">Find the VIN on the driver-side dashboard (look through the windshield), the door jamb sticker, or your title and insurance card.</p>
+    </div>
+    <form class="form" id="tradeForm" novalidate>
+      <div class="fgrid">
+        <div class="fld"><label for="tName">Full name</label><input id="tName" required></div>
+        <div class="fld"><label for="tPhone">Phone</label><input id="tPhone" type="tel"></div>
+        <div class="fld"><label for="tEmail">Email</label><input id="tEmail" type="email"></div>
+        <div class="fld"><label for="tMiles">Current mileage</label><input id="tMiles" inputmode="numeric"></div>
+        <div class="fld full"><label for="tNotes">Condition notes</label><textarea id="tNotes" placeholder="Dents, warning lights, new tyres, service records…"></textarea></div>
+      </div>
+      <button class="btn" style="margin-top:18px" data-mag>Request valuation <span class="arr">→</span></button>
+      <div id="tradeSent"></div>
+    </form>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section data-view="contact" hidden>
+  <div class="phead rail"><div class="eyebrow">Contact</div><h1>Let's find your<br>next car</h1></div>
+  <div class="rail split">
+    <div class="info">
+      <div><h4>Visit</h4><p class="big">1038 Overland Ave<br>Burley, ID 83318</p><p style="margin-top:10px"><a href="https://www.google.com/maps/search/?api=1&query=1038+Overland+Ave+Burley+ID+83318" target="_blank" rel="noopener" style="color:var(--sodium);font-size:15px">Get directions →</a></p></div>
+      <div><h4>Call</h4><div class="copyrow"><p class="big" data-s="phone">(208) 555-0138</p><button class="cpy" data-s-copy="phone" data-copy="(208) 555-0138">COPY</button></div></div>
+      <div><h4>Email</h4><div class="copyrow"><p style="font-size:20px" data-s="email">sales@asautoburley.com</p><button class="cpy" data-s-copy="email" data-copy="sales@asautoburley.com">COPY</button></div></div>
+      <div><h4>Hours</h4><div class="hours" id="hours"></div></div>
+    </div>
+    <form class="form" id="contactForm" novalidate>
+      <div class="fgrid">
+        <div class="fld"><label for="cName">Name</label><input id="cName" required></div>
+        <div class="fld"><label for="cPhone">Phone</label><input id="cPhone" type="tel"></div>
+        <div class="fld full"><label for="cEmail">Email</label><input id="cEmail" type="email"></div>
+        <div class="fld full"><label for="cMsg">Message</label><textarea id="cMsg" placeholder="Which car, and when would you like to come by?"></textarea></div>
+      </div>
+      <button class="btn" style="margin-top:18px" data-mag>Send message <span class="arr">→</span></button>
+      <div id="contactSent"></div>
+    </form>
+  </div>
+</section>
+<!-- ================= ADMIN ================= -->
+<section data-view="admin" hidden>
+  <div class="rail adm" id="adm">
+    <div class="eyebrow">Staff only</div>
+    <h1 style="margin-top:14px">Lot manager</h1>
+    <p class="adm-note" id="admGate">Checking access…</p>
+    <div id="admBody" hidden></div>
+  </div>
+</section>
+</main>
+
+<a class="btn" id="cmpDock" href="#compare">Compare <span id="cmpN">0</span> <span class="arr">→</span></a>
+
+<footer>
+  <div class="rail">
+    <div class="g">
+      <div><img src="img/logo.png" alt="A &amp; S Auto Quick Pawn" style="height:70px;width:auto"><p style="margin-top:16px;color:var(--steel);max-width:34ch">Hand-picked used cars, trucks and SUVs. Locally owned in Burley, Idaho.</p></div>
+      <div><h4>Lot</h4><p>1038 Overland Ave<br>Burley, ID 83318</p><p style="margin-top:8px" data-s="phone">(208) 555-0138</p></div>
+      <div><h4>Hours</h4><p id="ftHours">Mon–Fri 9:00 AM–7:00 PM<br>Sat 10:00 AM–5:00 PM<br>Sun Closed</p></div>
+      <div><h4>Explore</h4><ul><li><a href="#inventory">Used cars</a></li><li><a href="#compare">Compare</a></li><li><a href="#trade">Trade-in</a></li><li><a href="#heritage">Heritage</a></li><li><a href="#contact">Contact</a></li><li><a href="#admin" style="color:var(--dim)">Staff</a></li></ul></div>
+    </div>
+    <div class="big" aria-hidden="true">A&amp;S Auto</div>
+    <div class="legal"><span>© 2026 A &amp; S Auto · Quick Pawn · Burley, Idaho</span><span>Prices exclude tax, title and fees.</span></div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="application/json" id="site-data">{"settings":{"phone":"(208) 555-0138","email":"sales@asautoburley.com","hours":[["Monday – Friday","9:00 AM – 7:00 PM"],["Saturday","10:00 AM – 5:00 PM"],["Sunday","Closed"]]},"cars":[{"id":"v17","make":"Ford","name":"Ford F-150","trim":"XLT SuperCrew 4x4","year":2014,"price":14495,"miles":142300,"engine":"5.0L V8","hp":360,"tq":380,"zero":6.6,"top":110,"trans":"6-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":"15 / 21","ext":"Oxford White","int":"Steel Gray Cloth","body":"Truck","vin":"1FTFW1EF5EFA21458","equip":["Crew Cab","Tow Package","Bed Liner","Backup Camera","SYNC Bluetooth","Power Windows & Locks"],"desc":"A curated 2014 Ford F-150 XLT SuperCrew 4x4, hand-selected by A & S AUTO. 360 hp, 6.6s to 60 mph and a documented, clean history.","img":"img/v17.webp","cut":"cut/v17.webp","status":"lot","featured":true},{"id":"v18","make":"Ford","name":"Ford Fusion","trim":"SE","year":2015,"price":7495,"miles":118600,"engine":"2.5L I4","hp":175,"tq":175,"zero":8.9,"top":118,"trans":"6-Speed Automatic","drive":"FWD","fuel":"Gasoline","mpg":"22 / 34","ext":"Ruby Red Metallic","int":"Charcoal Black Cloth","body":"Sedan","vin":"3FA6P0H72FR147823","equip":["Backup Camera","SYNC Bluetooth","Alloy Wheels","Keyless Entry","Cruise Control","Dual-Zone Climate"],"desc":"A curated 2015 Ford Fusion SE, hand-selected by A & S AUTO. 175 hp, 8.9s to 60 mph and a documented, clean history.","img":"img/v18.webp","cut":"cut/v18.webp","status":"lot","featured":true},{"id":"v19","make":"Dodge","name":"Dodge Charger","trim":"SXT","year":2008,"price":4995,"miles":151200,"engine":"3.5L V6","hp":250,"tq":250,"zero":7.4,"top":125,"trans":"5-Speed Automatic","drive":"RWD","fuel":"Gasoline","mpg":"17 / 25","ext":"Stone White","int":"Dark Slate Cloth","body":"Sedan","vin":"2B3KA43G58H183746","equip":["Alloy Wheels","Power Driver Seat","Cruise Control","Keyless Entry","CD / AUX Audio","Rear Spoiler"],"desc":"A curated 2008 Dodge Charger SXT, hand-selected by A & S AUTO. 250 hp, 7.4s to 60 mph and a documented, clean history.","img":"img/v19.webp","cut":"","status":"lot","featured":false},{"id":"v20","make":"Ford","name":"Ford Mustang","trim":"GT Coupe","year":2003,"price":7250,"miles":128900,"engine":"4.6L V8","hp":260,"tq":302,"zero":5.9,"top":140,"trans":"5-Speed Manual","drive":"RWD","fuel":"Gasoline","mpg":"17 / 25","ext":"Torch Red","int":"Dark Charcoal Leather","body":"Coupe","vin":"1FAFP42X73F381294","equip":["Leather Seats","Mach Audio","Rear Spoiler","Fog Lamps","Power Windows","17\" Alloy Wheels"],"desc":"A curated 2003 Ford Mustang GT Coupe, hand-selected by A & S AUTO. 260 hp, 5.9s to 60 mph and a documented, clean history.","img":"img/v20.webp","cut":"cut/v20.webp","status":"lot","featured":true},{"id":"v21","make":"Dodge","name":"Dodge Ram 1500","trim":"SLT Quad Cab 4x4","year":2006,"price":7995,"miles":164500,"engine":"4.7L V8","hp":235,"tq":300,"zero":8.8,"top":105,"trans":"5-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":"13 / 18","ext":"Mineral Gray Metallic","int":"Medium Slate Cloth","body":"Truck","vin":"1D7HU18N66S528371","equip":["Quad Cab","Tow Hitch","Running Boards","Bed Liner","Cruise Control","Power Windows & Locks"],"desc":"A curated 2006 Dodge Ram 1500 SLT Quad Cab 4x4, hand-selected by A & S AUTO. 235 hp, 8.8s to 60 mph and a documented, clean history.","img":"img/v21.webp","cut":"cut/v21.webp","status":"lot","featured":true},{"id":"v22","make":"Mazda","name":"Mazda CX-7","trim":"i Sport","year":2011,"price":5795,"miles":132700,"engine":"2.5L I4","hp":161,"tq":161,"zero":9.6,"top":115,"trans":"5-Speed Automatic","drive":"FWD","fuel":"Gasoline","mpg":"20 / 28","ext":"Liquid Silver Metallic","int":"Black Cloth","body":"SUV","vin":"JM3ER2A57B0391746","equip":["Alloy Wheels","Bluetooth","Rear Privacy Glass","Cruise Control","Folding Rear Seats","Roof Rails"],"desc":"A curated 2011 Mazda CX-7 i Sport, hand-selected by A & S AUTO. 161 hp, 9.6s to 60 mph and a documented, clean history.","img":"img/v22.webp","cut":"","status":"lot","featured":false},{"id":"v23","make":"Toyota","name":"Toyota Prius","trim":"Touring Hybrid","year":2008,"price":5295,"miles":176400,"engine":"1.5L I4 Hybrid","hp":110,"tq":82,"zero":10.1,"top":106,"trans":"CVT","drive":"FWD","fuel":"Hybrid","mpg":"48 / 45","ext":"Classic Silver Metallic","int":"Dark Gray Cloth","body":"Sedan","vin":"JTDKB20U387718235","equip":["Hybrid Synergy Drive","Smart Key","Touchscreen Display","Climate Control","Hatchback Cargo","Fog Lamps"],"desc":"A curated 2008 Toyota Prius Touring Hybrid, hand-selected by A & S AUTO. 110 hp, 10.1s to 60 mph and a documented, clean history.","img":"img/v23.webp","cut":"","status":"lot","featured":false},{"id":"v24","make":"GMC","name":"GMC Sierra 1500","trim":"Crew Cab 4x4 (Lifted)","year":2016,"price":15400,"miles":null,"engine":"5.3L EcoTec3 V8","hp":355,"tq":null,"zero":null,"top":null,"trans":"6-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Onyx Black (Custom Gold Accents)","int":"Jet Black Cloth","body":"Truck","vin":null,"equip":["Lifted Suspension","Custom Gold-Accent Grille","Off-Road Wheels & Tires","Crew Cab","Tow Package","Backup Camera"],"desc":"2016 GMC Sierra 1500 Crew Cab 4x4 (Lifted) at A & S AUTO in Burley, Idaho. Onyx Black (Custom Gold Accents) exterior with Jet Black Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v24.webp","cut":"cut/v24.webp","status":"lot","featured":true},{"id":"v25","make":"Jeep","name":"Jeep Wrangler","trim":"JK 4x4 (2-Door)","year":2008,"price":8500,"miles":null,"engine":"3.8L V6","hp":202,"tq":null,"zero":null,"top":null,"trans":"6-Speed Manual","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Billet Silver Metallic (Black Hardtop)","int":"Dark Slate Gray Cloth","body":"SUV","vin":null,"equip":["Removable Black Hardtop","All-Terrain Tires","Side Steps","Fog Lamps","Skid Plates","Clean Title"],"desc":"2008 Jeep Wrangler JK 4x4 (2-Door) at A & S AUTO in Burley, Idaho. Billet Silver Metallic (Black Hardtop) exterior with Dark Slate Gray Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v25.webp","cut":"cut/v25.webp","status":"lot","featured":true},{"id":"v26","make":"Chevrolet","name":"Chevrolet C/K 1500","trim":"Regular Cab (OBS Chevy)","year":1996,"price":5500,"miles":null,"engine":"5.7L Vortec 350 V8","hp":255,"tq":null,"zero":null,"top":null,"trans":"4-Speed Automatic","drive":"RWD","fuel":"Gasoline","mpg":null,"ext":"Teal Green Metallic","int":"Gray Cloth","body":"Truck","vin":null,"equip":["OBS Classic Body","Deep-Dish Chrome Wheels","Custom Hood Accents","Bed Liner","Dual Exhaust","Tow Hitch"],"desc":"1996 Chevrolet C/K 1500 Regular Cab (OBS Chevy) at A & S AUTO in Burley, Idaho. Teal Green Metallic exterior with Gray Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v26.webp","cut":"","status":"lot","featured":false},{"id":"v27","make":"Jeep","name":"Jeep Renegade","trim":"Sport 4x4","year":2016,"price":9495,"miles":null,"engine":"2.4L Tigershark I4","hp":180,"tq":null,"zero":null,"top":null,"trans":"9-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Colorado Red","int":"Black Cloth","body":"SUV","vin":null,"equip":["Selec-Terrain 4WD","Black Trim & Roof Rails","Backup Camera","Bluetooth Audio","Keyless Entry","Alloy Wheels"],"desc":"2016 Jeep Renegade Sport 4x4 at A & S AUTO in Burley, Idaho. Colorado Red exterior with Black Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v27.webp","cut":"","status":"lot","featured":false},{"id":"v28","make":"Ford","name":"Ford E-350","trim":"Super Duty Cutaway Box Van","year":2006,"price":6500,"miles":null,"engine":"5.4L Triton V8","hp":255,"tq":null,"zero":null,"top":null,"trans":"Automatic","drive":"RWD","fuel":"Gasoline","mpg":null,"ext":"Oxford White","int":"Medium Flint Vinyl","body":"Truck","vin":null,"equip":["Commercial Utility Box","Chrome Bumper","Heavy-Duty Suspension","Dual Rear Wheels","Rear Cargo Step","Work-Ready"],"desc":"2006 Ford E-350 Super Duty Cutaway Box Van at A & S AUTO in Burley, Idaho. Oxford White exterior with Medium Flint Vinyl interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v28.webp","cut":"","status":"lot","featured":false},{"id":"v29","make":"Ford","name":"Ford F-250","trim":"Super Duty XL 4x4","year":2013,"price":14995,"miles":null,"engine":"6.2L Boss V8","hp":385,"tq":null,"zero":null,"top":null,"trans":"6-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Oxford White","int":"Steel Gray Vinyl","body":"Truck","vin":null,"equip":["Heavy-Duty XL Work Package","Power Tow Mirrors","Integrated Trailer Brake","Bed Liner","Tow Hitch","Commercial Duty"],"desc":"2013 Ford F-250 Super Duty XL 4x4 at A & S AUTO in Burley, Idaho. Oxford White exterior with Steel Gray Vinyl interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v29.webp","cut":"","status":"lot","featured":false},{"id":"v30","make":"Infiniti","name":"Infiniti QX56","trim":"4WD","year":2012,"price":11995,"miles":null,"engine":"5.6L V8","hp":400,"tq":null,"zero":null,"top":null,"trans":"7-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Black Obsidian","int":"Graphite Leather","body":"SUV","vin":null,"equip":["3-Row Luxury Seating","Factory 20\" Chrome Wheels","Bose Premium Audio","Sunroof","Power Liftgate","Navigation"],"desc":"2012 Infiniti QX56 4WD at A & S AUTO in Burley, Idaho. Black Obsidian exterior with Graphite Leather interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v30.webp","cut":"cut/v30.webp","status":"lot","featured":true},{"id":"v31","make":"Chevrolet","name":"Chevrolet Silverado 1500","trim":"Crew Cab 4x4","year":2010,"price":10995,"miles":null,"engine":"5.3L Vortec V8","hp":315,"tq":null,"zero":null,"top":null,"trans":"6-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Summit White (Custom Red Wheels)","int":"Ebony Cloth","body":"Truck","vin":null,"equip":["Custom Red Accented Wheels","Crew Cab","Z71 Off-Road Package","Tow Package","Bed Liner","Step Bars"],"desc":"2010 Chevrolet Silverado 1500 Crew Cab 4x4 at A & S AUTO in Burley, Idaho. Summit White (Custom Red Wheels) exterior with Ebony Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v31.webp","cut":"cut/v31.webp","status":"lot","featured":true},{"id":"v32","make":"Ford","name":"Ford Expedition","trim":"Eddie Bauer 4x4","year":2005,"price":5495,"miles":null,"engine":"5.4L Triton V8","hp":300,"tq":null,"zero":null,"top":null,"trans":"4-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Pueblo Gold Metallic / Tan Two-Tone","int":"Tan Leather","body":"SUV","vin":null,"equip":["Eddie Bauer Two-Tone","Leather 3-Row Seating","Rear Climate Control","Tow Package","Roof Rack","Alloy Wheels"],"desc":"2005 Ford Expedition Eddie Bauer 4x4 at A & S AUTO in Burley, Idaho. Pueblo Gold Metallic / Tan Two-Tone exterior with Tan Leather interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v32.webp","cut":"","status":"lot","featured":false},{"id":"v33","make":"GMC","name":"GMC Yukon","trim":"SLT 4x4","year":2010,"price":8995,"miles":null,"engine":"5.3L Vortec V8","hp":320,"tq":null,"zero":null,"top":null,"trans":"6-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Onyx Black","int":"Light Titanium Leather","body":"SUV","vin":null,"equip":["Chrome Grille & Accents","Leather Seating","Power Liftgate","Backup Camera","Tow Package","Remote Start"],"desc":"2010 GMC Yukon SLT 4x4 at A & S AUTO in Burley, Idaho. Onyx Black exterior with Light Titanium Leather interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v33.webp","cut":"","status":"lot","featured":false},{"id":"v34","make":"Dodge","name":"Dodge Avenger","trim":"SXT","year":2012,"price":4995,"miles":null,"engine":"2.4L I4","hp":173,"tq":null,"zero":null,"top":null,"trans":"6-Speed Automatic","drive":"FWD","fuel":"Gasoline","mpg":null,"ext":"Bright White","int":"Black Premium Cloth","body":"Sedan","vin":null,"equip":["Alloy Wheels","Power Driver Seat","Automatic Climate","Keyless Entry","Fog Lamps","Cruise Control"],"desc":"2012 Dodge Avenger SXT at A & S AUTO in Burley, Idaho. Bright White exterior with Black Premium Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v34.webp","cut":"","status":"lot","featured":false},{"id":"v35","make":"Ford","name":"Ford Econoline E-350","trim":"Class C Motorhome / RV","year":1994,"price":8995,"miles":null,"engine":"7.5L 460 V8","hp":245,"tq":null,"zero":null,"top":null,"trans":"Automatic","drive":"RWD","fuel":"Gasoline","mpg":null,"ext":"Two-Tone White & Blue","int":"Vintage Camper Woodgrain","body":"Truck","vin":null,"equip":["Class C Camper Body","Overhead Sleeper","Kitchenette & Dinette","Awning","Dual Rear Wheels","Shore Power Hookup"],"desc":"1994 Ford Econoline E-350 Class C Motorhome / RV at A & S AUTO in Burley, Idaho. Two-Tone White & Blue exterior with Vintage Camper Woodgrain interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v35.webp","cut":"","status":"lot","featured":false},{"id":"v36","make":"Chevrolet","name":"Chevrolet Silverado 1500","trim":"Extended Cab 4x4 (Cateye)","year":2004,"price":7495,"miles":null,"engine":"5.3L Vortec V8","hp":295,"tq":null,"zero":null,"top":null,"trans":"4-Speed Automatic","drive":"4WD","fuel":"Gasoline","mpg":null,"ext":"Summit White","int":"Dark Charcoal Cloth","body":"Truck","vin":null,"equip":["Cateye Generation Styling","Extended Cab","Chrome Tow Mirrors","Color-Matched Front Bumper","Tow Package","Bed Liner"],"desc":"2004 Chevrolet Silverado 1500 Extended Cab 4x4 (Cateye) at A & S AUTO in Burley, Idaho. Summit White exterior with Dark Charcoal Cloth interior. Mileage, VIN and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v36.webp","cut":"","status":"lot","featured":false},{"id":"v37","make":"Toyota","name":"Toyota Sequoia","trim":"· Charcoal / Dark Gray Metallic","year":2011,"price":11995,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"Charcoal / Dark Gray Metallic","int":null,"body":"SUV","vin":null,"equip":[],"desc":"2011 Toyota Sequoia at A & S AUTO in Burley, Idaho. Charcoal / Dark Gray Metallic exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v37.webp","cut":"","status":"lot","featured":false},{"id":"v38","make":"Nissan","name":"Nissan Murano","trim":"· Metallic Bronze","year":2011,"price":6995,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"Metallic Bronze","int":null,"body":"SUV","vin":null,"equip":[],"desc":"2011 Nissan Murano at A & S AUTO in Burley, Idaho. Metallic Bronze exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v38.webp","cut":"","status":"lot","featured":false},{"id":"v39","make":"Toyota","name":"Toyota Highlander","trim":"· Slate Blue","year":2005,"price":5495,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"Slate Blue","int":null,"body":"SUV","vin":null,"equip":[],"desc":"2005 Toyota Highlander at A & S AUTO in Burley, Idaho. Slate Blue exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v39.webp","cut":"","status":"lot","featured":false},{"id":"v40","make":"Volkswagen","name":"Volkswagen Jetta","trim":"· Silver","year":2008,"price":4495,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"Silver","int":null,"body":"Sedan","vin":null,"equip":[],"desc":"2008 Volkswagen Jetta at A & S AUTO in Burley, Idaho. Silver exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v40.webp","cut":"","status":"lot","featured":false},{"id":"v41","make":"Dodge","name":"Dodge Grand Caravan","trim":"· White","year":2013,"price":5995,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"White","int":null,"body":"Minivan / Passenger Van","vin":null,"equip":[],"desc":"2013 Dodge Grand Caravan at A & S AUTO in Burley, Idaho. White exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v41.webp","cut":"","status":"lot","featured":false},{"id":"v42","make":"Ford","name":"Ford F-350","trim":"Super Duty Dually","year":2014,"price":16995,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"White","int":null,"body":"Truck","vin":null,"equip":["Dual Rear Wheels","Work Truck"],"desc":"2014 Ford F-350 Super Duty Dually at A & S AUTO in Burley, Idaho. White exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v42.webp","cut":"","status":"lot","featured":false},{"id":"v43","make":"Honda","name":"Honda Civic","trim":"Sedan","year":2008,"price":4995,"miles":null,"engine":null,"hp":null,"tq":null,"zero":null,"top":null,"trans":null,"drive":null,"fuel":null,"mpg":null,"ext":"Light Blue","int":null,"body":"Sedan","vin":null,"equip":["Rear Spoiler"],"desc":"2008 Honda Civic Sedan at A & S AUTO in Burley, Idaho. Light Blue exterior. Mileage, VIN, equipment and vehicle history have not been provided; contact the dealership to confirm.","img":"img/v43.webp","cut":"","status":"lot","featured":false}]}</script>
+<script>
+/* Loads the latest cars and business details saved from the admin page, then starts the site.
+   If the server can't be reached, the copy built into this page is used instead. */
+(()=>{
+  const run=()=>document.querySelectorAll('script.app-src').forEach(s=>{const n=document.createElement('script');n.textContent=s.textContent;s.replaceWith(n)});
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),4000);
+  fetch('/api/data',{cache:'no-store',signal:ctl.signal})
+    .then(r=>r.status===200?r.json():null)
+    .then(d=>{ if(d&&Array.isArray(d.cars)&&d.settings) document.getElementById('site-data').textContent=JSON.stringify(d).replace(/</g,'\\u003c') })
+    .catch(()=>{})
+    .finally(()=>{clearTimeout(t); document.readyState==='loading'?document.addEventListener('DOMContentLoaded',run):run()});
+})();
+</script>
+<script type="text/plain" class="app-src">
+(()=>{
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FINE=matchMedia('(hover:hover) and (pointer:fine)').matches;
+const money=n=>'$'+Math.round(n).toLocaleString('en-US');
+const SITE=JSON.parse(document.getElementById('site-data').textContent); window.SITE=SITE;
+const ST=SITE.settings;
+const CARS=SITE.cars.filter(c=>c.status!=='hidden').sort((a,b)=>(a.status==='sold')-(b.status==='sold'));
+const LOT=CARS.filter(c=>c.status==='lot');
+const byId=Object.fromEntries(CARS.map(c=>[c.id,c]));
+const img=c=>c.img;
+const full=c=>`${c.year} ${c.name}`;
+const ORDER=CARS.map(c=>c.id);
+// business details from the admin settings
+$$('[data-s]').forEach(el=>el.textContent=ST[el.dataset.s]);
+$$('a.phone').forEach(a=>a.href='tel:+1'+ST.phone.replace(/\D/g,'').replace(/^1(?=\d{10}$)/,''));
+$$('.cpy[data-s-copy]').forEach(b=>b.dataset.copy=ST[b.dataset.sCopy]);
+$('#ftHours').innerHTML=ST.hours.map(([d,h])=>`${d.replace('Monday – Friday','Mon–Fri').replace('Saturday','Sat').replace('Sunday','Sun')} ${h}`).join('<br>');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- boot / tach preloader ---------- */
+(function boot(){
+  const el=$('#boot'); if(RM){el.remove();return}
+  const nd=$('#bootNeedle'), r=$('#bootRpm'); const t0=performance.now(), D=1100;
+  (function f(t){const p=Math.min(1,(t-t0)/D); const e=p<.7?p/.7:1-(p-.7)/.3*.75; const rpm=e*7200;
+    nd.style.transform=`rotate(${-135+e*270}deg)`; r.textContent=Math.round(rpm).toLocaleString('en-US');
+    if(p<1)requestAnimationFrame(f); else {el.classList.add('out'); setTimeout(()=>el.remove(),900); splitHero()}})(t0);
+})();
+
+/* ---------- hero letters ---------- */
+function splitHero(){
+  if(RM)return; let i=0;
+  $$('#heroH .ln').forEach(ln=>{const t=ln.textContent; ln.textContent=''; [...t].forEach(ch=>{const s=document.createElement('span');s.className='ch';s.textContent=ch;s.style.animationDelay=(i++*0.035)+'s';ln.appendChild(s)})});
+}
+if(RM) splitHero();
+
+/* ---------- particle car hero: each featured car dissolves and rebuilds itself as the next one ---------- */
+const FEAT=LOT.filter(c=>c.featured&&c.cut).slice(0,8).map(c=>c.id);
+const HOLD=4600, MORPH=2600;
+let hi=0;
+$('#hTot').textContent=String(FEAT.length).padStart(2,'0'); $('#hBar').style.gridTemplateColumns=`repeat(${FEAT.length},1fr)`;
+if(!FEAT.length){$('#cloud').hidden=true;$('#hPanel').hidden=true;$('#hBar').hidden=true}
+$('#hBar').innerHTML=FEAT.map((id,i)=>`<button data-i="${i}" aria-label="Show ${full(byId[id])}">${byId[id].name}</button>`).join('');
+function heroPanel(i){
+  const c=byId[FEAT[i]], p=$('#hPanel'); p.classList.add('out');
+  setTimeout(()=>{
+    $('#hIdx').textContent=String(i+1).padStart(2,'0');
+    $('#hName').textContent=`${c.year} ${c.name}`; $('#hTrim').textContent=[c.trim,c.ext].filter(Boolean).join(' · ');
+    $('#hSpecs').innerHTML=[['Engine',c.engine],['Power',c.hp&&c.hp+' hp'],['Drive',c.drive],['Miles',c.miles&&c.miles.toLocaleString()]].filter(r=>r[1]).slice(0,3).map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+    $('#hPrice').textContent=money(c.price); $('#hLink').href='#car-'+c.id; p.classList.remove('out');
+  },RM?0:450);
+  $$('#hBar button').forEach((b,j)=>{b.classList.toggle('done',j<i);b.classList.remove('on')});
+  const b=$$('#hBar button')[i]; void b.offsetWidth; b.style.setProperty('--dur',(HOLD+MORPH)/1000+'s'); b.classList.add('on');
+}
+$('#lotCount').textContent=`${LOT.length} hand-picked used cars, trucks and SUVs`;
+$('#lotFrom').textContent=LOT.length?money(Math.min(...LOT.map(c=>c.price))):'';
+
+(function cloud(){
+  const cv=$('#cloud'), fb=$('#cloudFb');
+  let jump=null; $$('#hBar button').forEach(b=>b.onclick=()=>{jump=+b.dataset.i});
+  cv.addEventListener('click',()=>location.hash='car-'+FEAT[hi]);
+  if(!FEAT.length)return;
+  const imgs=FEAT.map(id=>{const im=new Image(); im.src=byId[id].cut; return im});
+  // Fallback when WebGL is missing: plain cutouts crossfading on the same clock
+  function fallback(){ cv.hidden=true; fb.hidden=false; const show=i=>{fb.style.opacity=0; setTimeout(()=>{fb.src=imgs[i].src;fb.alt=full(byId[FEAT[i]]);fb.style.opacity=1},400)};
+    heroPanel(0); show(0); setInterval(()=>{ if(cur!=='home')return; hi=jump!=null?jump:(hi+1)%FEAT.length; jump=null; heroPanel(hi); show(hi)},HOLD+MORPH); }
+  let renderer; try{ if(!window.THREE)throw 0; renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false,alpha:true,powerPreference:'high-performance'}) }catch(e){ fallback(); return }
+  const small=innerWidth<860, N=small?18000:42000, WW=4.2;
+  Promise.all(imgs.map(im=>im.decode().catch(()=>null))).then(()=>{
+    // sample N points from each cutout's opaque pixels; colour from the photo, lifted so black paint still reads on asphalt
+    const sets=imgs.map(im=>{
+      const w=300, h=Math.round(im.naturalHeight*w/im.naturalWidth), c=document.createElement('canvas'); c.width=w;c.height=h;
+      const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(im,0,0,w,h); const d=x.getImageData(0,0,w,h).data;
+      const opq=[]; for(let i=0;i<w*h;i++) if(d[i*4+3]>200) opq.push(i);
+      const P=new Float32Array(N*3), C=new Float32Array(N*3), s=WW/w;
+      for(let k=0;k<N;k++){ const i=opq[(Math.random()*opq.length)|0], px=i%w, py=(i/w)|0;
+        const r=d[i*4]/255,g=d[i*4+1]/255,b=d[i*4+2]/255, lum=.3*r+.59*g+.11*b;
+        P[k*3]=(px-w/2+Math.random())*s; P[k*3+1]=-(py-h/2+Math.random())*s; P[k*3+2]=(Math.random()-.5)*.22+(lum-.5)*.25;
+        const lift=lum<.3?.26:.14; C[k*3]=Math.min(1,lift+r*1.08); C[k*3+1]=Math.min(1,lift+g*1.05); C[k*3+2]=Math.min(1,lift*1.1+b*1.05); }
+      return {P,C};
+    });
+    const geo=new THREE.BufferGeometry(), R=new Float32Array(N); for(let i=0;i<N;i++)R[i]=Math.random();
+    const aF=new THREE.BufferAttribute(sets[0].P.slice(),3), aT=new THREE.BufferAttribute(sets[1%sets.length].P.slice(),3), cF=new THREE.BufferAttribute(sets[0].C.slice(),3), cT=new THREE.BufferAttribute(sets[1%sets.length].C.slice(),3);
+    geo.setAttribute('position',aF); geo.setAttribute('aTo',aT); geo.setAttribute('cFrom',cF); geo.setAttribute('cTo',cT); geo.setAttribute('rnd',new THREE.BufferAttribute(R,1));
+    const U={uT:{value:0},uTime:{value:0},uSize:{value:1},uMouse:{value:new THREE.Vector2(99,99)}};
+    const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,
+      vertexShader:`attribute vec3 aTo;attribute vec3 cFrom;attribute vec3 cTo;attribute float rnd;
+        uniform float uT,uTime,uSize;uniform vec2 uMouse;varying vec3 vC;varying float vA;
+        void main(){
+          float xn=clamp((position.x+2.1)/4.2,0.,1.);
+          float w=clamp(uT*1.95-xn*.7-rnd*.25,0.,1.);
+          float e=w*w*(3.-2.*w), burst=sin(3.14159*w);
+          vec3 p=mix(position,aTo,e);
+          vec3 dir=vec3(.9+rnd*1.4, sin(rnd*41.)*.9+.35, cos(rnd*73.)*1.6);
+          p+=dir*burst*(.7+rnd*1.3);
+          p+=.014*vec3(sin(uTime*1.3+rnd*50.),cos(uTime*1.1+rnd*30.),sin(uTime*.9+rnd*20.));
+          vec2 d=p.xy-uMouse; float dl=length(d); p.xy+=d/(dl+.0001)*smoothstep(.6,0.,dl)*.32; p.z+=smoothstep(.6,0.,dl)*.4;
+          vC=mix(cFrom,cTo,e); vA=1.-burst*.55;
+          vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=uSize*(1.+burst*1.2)*(7.5/-mv.z); gl_Position=projectionMatrix*mv;}`,
+      fragmentShader:`varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vC,vA*smoothstep(.5,.15,d));}`});
+    const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(30,1,.1,50); cam.position.z=7.5;
+    const grp=new THREE.Group(); grp.add(new THREE.Points(geo,mat)); scene.add(grp);
+    let visW=1,visH=1,mx=0,my=0,tmx=0,tmy=0, mouseIn=false;
+    function size(){ const w=cv.clientWidth,h=cv.clientHeight,dpr=Math.min(2,devicePixelRatio||1); renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();
+      visH=2*7.5*Math.tan(15*Math.PI/180); visW=visH*cam.aspect; const narrow=w<860;
+      const sc=Math.min(narrow?visW*.86/WW:visW*.5/WW, visH*(narrow?.8:.42)/2); grp.scale.setScalar(sc); grp.position.y=narrow?0:visH*.2; grp.position.x=narrow?0:visW*.06;
+      U.uSize.value=(narrow?1.9:2.2)*dpr*Math.max(.8,sc); }
+    size(); addEventListener('resize',size);
+    cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect(); tmx=(e.clientX-r.left)/r.width*2-1; tmy=-((e.clientY-r.top)/r.height*2-1); mouseIn=true});
+    cv.addEventListener('pointerleave',()=>{mouseIn=false;tmx=0;tmy=0});
+    heroPanel(0);
+    let phase='hold', t0=performance.now(), nextI=1%FEAT.length;
+    function setTarget(i){ nextI=i; aT.array.set(sets[i].P); cT.array.set(sets[i].C); aT.needsUpdate=cT.needsUpdate=true }
+    function frame(now){
+      requestAnimationFrame(frame);
+      if(cur!=='home'||document.hidden){t0=now-(phase==='hold'?Math.min(now-t0,HOLD):0);return}
+      const el=now-t0;
+      if(jump!=null&&phase==='hold'){ if(jump!==hi){setTarget(jump); phase='morph'; t0=now; heroPanel(jump)} jump=null }
+      else if(phase==='hold'&&el>HOLD){ phase='morph'; t0=now; heroPanel(nextI) }
+      if(phase==='morph'){ const p=RM?1:Math.min(1,(now-t0)/MORPH); U.uT.value=p;
+        if(p>=1){ aF.array.set(sets[nextI].P); cF.array.set(sets[nextI].C); aF.needsUpdate=cF.needsUpdate=true; U.uT.value=0; hi=nextI; setTarget((hi+1)%FEAT.length); phase='hold'; t0=now } }
+      mx+=(tmx-mx)*.06; my+=(tmy-my)*.06; const s=now/1000; U.uTime.value=s;
+      grp.rotation.y=(RM?0:Math.sin(s*.35)*.38)+mx*.35; grp.rotation.x=-my*.12+.05;
+      if(mouseIn){ const sc=grp.scale.x; U.uMouse.value.set((mx*visW/2-grp.position.x)/sc, (my*visH/2-grp.position.y)/sc) } else U.uMouse.value.set(99,99);
+      renderer.render(scene,cam);
+    }
+    requestAnimationFrame(frame);
+  });
+})();
+
+/* ---------- scroll velocity → MPH HUD, header, marquee ---------- */
+let mpos=0;
+const marq=$('#marq'); const MAKES=[...new Set(CARS.map(c=>c.make))];
+marq.innerHTML=[...MAKES,...MAKES,...MAKES,...MAKES].map(m=>`<span>${m}</span>`).join('');
+(function loop(){ if(!RM){mpos-=.8; const w=marq.scrollWidth/4; if(mpos<-w)mpos+=w; marq.style.transform=`translateX(${mpos}px)`;} requestAnimationFrame(loop) })();
+addEventListener('scroll',()=>$('#top').classList.toggle('solid',scrollY>40),{passive:true});
+
+/* ---------- horizontal showcase ---------- */
+const showIds=LOT.slice(0,8).map(c=>c.id);
+$('#showTrk').innerHTML=[...showIds,...showIds].map((id,i)=>{const c=byId[id];return `<a class="slide" href="#car-${id}" data-cursor="VIEW"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="idx">${String(i%showIds.length+1).padStart(2,'0')}</span></div><div class="meta"><div><h3>${c.name}</h3><span class="sub">${c.year}${c.trim?' · '+c.trim:''}${c.miles?' · '+c.miles.toLocaleString()+' mi':''}</span></div><span class="pr">${money(c.price)}</span></div></a>`}).join('');
+
+
+/* ---------- body styles list ---------- */
+const BODIES=[['Truck','Trucks'],['SUV','SUVs'],['Sedan','Sedans'],['Coupe','Coupes'],['Minivan / Passenger Van','Minivans']];
+$('#bodyList').innerHTML=BODIES.filter(([b])=>LOT.some(c=>c.body===b)).map(([b,l],i)=>{const cs=LOT.filter(c=>c.body===b);return `<a class="brow" href="#inventory" data-body="${b}" data-img="${img(cs[0])}"><span class="n">0${i+1}</span><b>${l}</b><span class="c">${cs.length} ON THE LOT · FROM ${money(Math.min(...cs.map(c=>c.price)))}</span><span class="go">→</span></a>`}).join('');
+const fi=$('#floatImg'); let fx=0,fy=0,tx=0,ty=0;
+$$('.brow').forEach(a=>{a.addEventListener('mouseenter',()=>{fi.firstElementChild.src=a.dataset.img;fi.classList.add('on')});a.addEventListener('mouseleave',()=>fi.classList.remove('on'));a.addEventListener('click',()=>{filt.body=a.dataset.body})});
+addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY});
+(function ff(){fx+=(tx-fx)*.12;fy+=(ty-fy)*.12;fi.style.left=fx+'px';fi.style.top=fy+'px';requestAnimationFrame(ff)})();
+
+/* ---------- parallax + counters + reveals ---------- */
+
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return; const t=e.target; t.classList.remove('pre');
+  if(t.dataset.count&&!t.done){t.done=1; const to=+t.dataset.count, suf=t.dataset.suf||'', t0=performance.now(); (function f(n){const p=Math.min(1,(n-t0)/1600), v=Math.round(to*(1-Math.pow(1-p,4))); t.textContent=v+suf; if(p<1)requestAnimationFrame(f)})(t0)}
+  io.unobserve(t)}),{threshold:.15});
+function arm(){}
+function countUp(){ if(RM)return; $$('[data-count]').forEach((t,i)=>{const to=+t.dataset.count, suf=t.dataset.suf||''; setTimeout(()=>{const t0=performance.now(); (function f(n){const p=Math.min(1,(n-t0)/2200), v=Math.round(to*(1-Math.pow(1-p,4))); t.textContent=v+suf; if(p<1)requestAnimationFrame(f)})(t0)},1400+i*250)})}
+setInterval(()=>{if(cur==='home')countUp()},14000);
+
+/* ---------- cursor + magnetic ---------- */
+if(FINE&&!RM){
+  const c=$('#cur'), d=$('#dot'); let cx=0,cy=0,px=0,py=0;
+  addEventListener('pointermove',e=>{px=e.clientX;py=e.clientY;d.style.transform=`translate(${px}px,${py}px)`});
+  (function cl(){cx+=(px-cx)*.18;cy+=(py-cy)*.18;c.style.transform=`translate(${cx}px,${cy}px)`;requestAnimationFrame(cl)})();
+  document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-cursor],.card'); c.classList.toggle('big',!!t); if(t)c.firstElementChild.textContent=t.dataset.cursor||'VIEW'});
+  document.addEventListener('pointermove',e=>{$$('[data-mag]').forEach(b=>{const r=b.getBoundingClientRect(),x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2);const dist=Math.hypot(x,y);b.style.transform=dist<90?`translate(${x*.25}px,${y*.35}px)`:''})});
+}
+
+/* ---------- nav scramble ---------- */
+const GL='!<>-_\\/[]{}—=+*^?#ABCDEFGHJKLMNPRSTVWXYZ0123456789';
+$$('[data-scr]').forEach(a=>{const o=a.textContent;a.addEventListener('mouseenter',()=>{if(RM)return;let f=0;const id=setInterval(()=>{a.textContent=[...o].map((ch,i)=>i<f/2||ch===' '?ch:GL[Math.random()*GL.length|0]).join('');if(++f>o.length*2){clearInterval(id);a.textContent=o}},28)})});
+
+/* ---------- mobile menu ---------- */
+$('#burger').onclick=()=>{const on=document.body.classList.toggle('menu');$('#burger').setAttribute('aria-expanded',on)};
+$$('#mnav a').forEach(a=>a.onclick=()=>document.body.classList.remove('menu'));
+
+/* ---------- rev / engine audio ---------- */
+(function tach(){
+  const s=$('#tachSvg'), cx=150, cy=150, R=128; let h='';
+  const ang=v=>(-225+v/8*270)*Math.PI/180;
+  const P=(v,r)=>[cx+Math.cos(ang(v))*r, cy+Math.sin(ang(v))*r];
+  const arc=(a,b,r)=>{const[x1,y1]=P(a,r),[x2,y2]=P(b,r);return `M${x1} ${y1} A${r} ${r} 0 ${(b-a)/8*270>180?1:0} 1 ${x2} ${y2}`};
+  h+=`<path d="${arc(0,8,R)}" fill="none" stroke="#2e2626" stroke-width="4"/>`;
+  h+=`<path d="${arc(6.5,8,R)}" fill="none" stroke="#d2161e" stroke-width="10"/>`;
+  for(let v=0;v<=8;v+=.5){const[x1,y1]=P(v,R-(v%1?8:16)),[x2,y2]=P(v,R-2);h+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${v>=6.5?'#d2161e':'#efebe7'}" stroke-width="${v%1?1.5:3}"/>`; if(v%1===0){const[tx,ty]=P(v,R-36);h+=`<text x="${tx}" y="${ty}" fill="#a39992" font-family="Big Shoulders Display,sans-serif" font-weight="800" font-size="22" text-anchor="middle" dominant-baseline="central">${v}</text>`}}
+  h+=`<path id="tachFill" d="" fill="none" stroke="#f4a43a" stroke-width="4" stroke-linecap="round" opacity=".9"/>`;
+  h+=`<g id="tachNeedle" style="transform-origin:150px 150px"><line x1="150" y1="150" x2="150" y2="38" stroke="#d2161e" stroke-width="4" stroke-linecap="round"/><line x1="150" y1="150" x2="150" y2="172" stroke="#d2161e" stroke-width="6" stroke-linecap="round"/></g><circle cx="150" cy="150" r="11" fill="#efebe7"/><circle cx="150" cy="150" r="4" fill="#0d0b0b"/>`;
+  s.innerHTML=h;
+  const needle=$('#tachNeedle'), fill=$('#tachFill'), read=$('#rpmRead'), tw=$('#tach'), btn=$('#revBtn');
+  let rpm=.8, held=false, ac=null, nodes=null, lastHeld=0;
+  function audio(){
+    if(ac)return; const A=window.AudioContext||window.webkitAudioContext; if(!A)return; ac=new A();
+    const o1=ac.createOscillator(),o2=ac.createOscillator(),o3=ac.createOscillator(); o1.type='sawtooth';o2.type='square';o3.type='sawtooth';
+    const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=6;
+    const ws=ac.createWaveShaper(); const k=new Float32Array(1024); for(let i=0;i<1024;i++){const x=i/512-1;k[i]=Math.tanh(x*3)} ws.curve=k;
+    const g=ac.createGain(); g.gain.value=0; const trem=ac.createOscillator(), tg=ac.createGain(); trem.frequency.value=9; tg.gain.value=.25; trem.connect(tg); const am=ac.createGain(); am.gain.value=.75; tg.connect(am.gain);
+    const m1=ac.createGain(),m2=ac.createGain(),m3=ac.createGain(); m1.gain.value=.5;m2.gain.value=.22;m3.gain.value=.3;
+    o1.connect(m1);o2.connect(m2);o3.connect(m3);[m1,m2,m3].forEach(m=>m.connect(ws)); ws.connect(lp); lp.connect(am); am.connect(g); g.connect(ac.destination);
+    [o1,o2,o3,trem].forEach(o=>o.start()); nodes={o1,o2,o3,lp,g,trem};
+  }
+  function set(){ if(!nodes)return; const f=rpm*1000/60*4, t=ac.currentTime;
+    nodes.o1.frequency.setTargetAtTime(f,t,.03); nodes.o2.frequency.setTargetAtTime(f/2,t,.03); nodes.o3.frequency.setTargetAtTime(f*1.503,t,.03);
+    nodes.lp.frequency.setTargetAtTime(300+rpm*420,t,.04); nodes.trem.frequency.setTargetAtTime(6+rpm*3,t,.05);
+    const on=held||performance.now()-lastHeld<1800; nodes.g.gain.setTargetAtTime(on?.10+rpm*.012:0,t,.12) }
+  const down=e=>{e.preventDefault(); audio(); ac&&ac.resume&&ac.resume(); held=true; btn.classList.add('held')};
+  const up=()=>{if(held)lastHeld=performance.now(); held=false; btn.classList.remove('held')};
+  btn.addEventListener('pointerdown',down); addEventListener('pointerup',up); addEventListener('pointercancel',up); btn.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')down(e)}); btn.addEventListener('keyup',up);
+  (function f(){
+    const target=held?7.6:.8; rpm+= (target-rpm)*(held?(rpm>6.4?.035:.06):.05);
+    if(held&&rpm>7.3) rpm-=Math.random()*.5; // limiter bounce
+    needle.style.transform=`rotate(${-135+rpm/8*270}deg)`; read.textContent=rpm.toFixed(1);
+    const a=Math.max(.01,rpm), [x1,y1]=P(0,R-22),[x2,y2]=P(a,R-22); fill.setAttribute('d',`M${x1} ${y1} A${R-22} ${R-22} 0 ${a/8*270>180?1:0} 1 ${x2} ${y2}`);
+    tw.classList.toggle('shake',held&&rpm>6.2&&!RM); set(); requestAnimationFrame(f)})();
+})();
+
+/* ---------- inventory ---------- */
+const filt={q:'',make:'',price:'',sort:'new',body:''};
+let cmpSel=store.get('as-compare',[]).filter(id=>byId[id]);
+$('#fMake').innerHTML='<option value="">Any make</option>'+MAKES.sort().map(m=>`<option>${m}</option>`).join('');
+$('#fPrice').innerHTML='<option value="">Any price</option>'+[5000,7500,10000,15000].map(p=>`<option value="${p}">Under ${money(p)}</option>`).join('');
+function chips(){ $('#fBody').innerHTML=[['','All'],...BODIES].map(([b,l])=>`<button class="chip ${filt.body===b?'on':''}" data-b="${b}">${l} <span style="opacity:.6">${b?CARS.filter(c=>c.body===b).length:CARS.length}</span></button>`).join(''); $$('#fBody .chip').forEach(c=>c.onclick=()=>{filt.body=c.dataset.b;chips();renderGrid()}) }
+['fQ','fMake','fPrice','fSort'].forEach(id=>$('#'+id).addEventListener('input',e=>{filt[{fQ:'q',fMake:'make',fPrice:'price',fSort:'sort'}[id]]=e.target.value;renderGrid()}));
+function list(){
+  const q=filt.q.trim().toLowerCase();
+  let r=CARS.filter(c=>(!filt.make||c.make===filt.make)&&(!filt.body||c.body===filt.body)&&(!filt.price||c.price<+filt.price)&&(!q||[c.name,c.trim,c.ext,c.year,c.body,c.engine].join(' ').toLowerCase().includes(q)));
+  const s={pa:(a,b)=>a.price-b.price,pd:(a,b)=>b.price-a.price,yd:(a,b)=>b.year-a.year,hp:(a,b)=>(b.hp||0)-(a.hp||0),new:(a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id)}[filt.sort];
+  return r.sort(s);
+}
+function cardHTML(c){return `<a class="card ${c.status==='sold'?'is-sold':''}" href="#car-${c.id}" data-id="${c.id}"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="yr">${c.year}</span>${c.status==='sold'?'<span class="sold">SOLD</span>':''}<div class="glare"></div></div><div class="bd"><div><h3>${c.name}</h3><span class="trim">${[c.trim,c.ext].filter(Boolean).join(' · ')}</span></div><div class="specs"><span>${c.hp?`<b>${c.hp}</b> hp`:'hp on request'}</span><span>${c.miles?`<b>${c.miles.toLocaleString()}</b> mi`:'miles on request'}</span>${c.drive?`<span><b>${c.drive}</b></span>`:''}</div><div class="ft"><span class="pr">${money(c.price)}</span><button class="cmp ${cmpSel.includes(c.id)?'on':''}" data-c="${c.id}" aria-pressed="${cmpSel.includes(c.id)}">${cmpSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button></div></div></a>`}
+function renderGrid(){
+  const g=$('#grid'); const before=new Map($$('.card',g).map(el=>[el.dataset.id,el.getBoundingClientRect()]));
+  const r=list();
+  $('#invCount').innerHTML=`<span><b>${r.length}</b> of ${CARS.length} vehicles</span><span>${r.length?'From '+money(Math.min(...r.map(c=>c.price))):''}</span>`;
+  g.innerHTML=r.length?r.map(cardHTML).join(''):`<div class="empty">No vehicles match. <button class="chip" id="clr">Clear filters</button></div>`;
+  const clr=$('#clr'); if(clr)clr.onclick=()=>{Object.assign(filt,{q:'',make:'',price:'',body:''});$('#fQ').value='';$('#fMake').value='';$('#fPrice').value='';chips();renderGrid()};
+  // FLIP
+  if(!RM)$$('.card',g).forEach((el,i)=>{const b=before.get(el.dataset.id),a=el.getBoundingClientRect(); if(b){el.animate([{transform:`translate(${b.left-a.left}px,${b.top-a.top}px)`},{transform:'none'}],{duration:600,easing:'cubic-bezier(.2,.8,.1,1)'})} else el.animate([{transform:'translateY(40px) scale(.96)',opacity:.2},{transform:'none',opacity:1}],{duration:600,delay:Math.min(i,12)*35,easing:'cubic-bezier(.2,.8,.1,1)',fill:'backwards'})});
+  bindCards(g);
+}
+function bindCards(root){
+  $$('.cmp',root).forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();toggleCmp(b.dataset.c);renderGrid()});
+  if(FINE&&!RM)$$('.card',root).forEach(c=>{
+    c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;c.style.transform=`perspective(900px) rotateY(${(x-.5)*10}deg) rotateX(${(.5-y)*10}deg) translateZ(0)`;c.style.setProperty('--gx',x*100+'%');c.style.setProperty('--gy',y*100+'%')});
+    c.addEventListener('pointerleave',()=>c.style.transform='')});
+}
+function toggleCmp(id){ if(cmpSel.includes(id))cmpSel=cmpSel.filter(x=>x!==id); else {cmpSel.push(id); if(cmpSel.length>3)cmpSel.shift()} store.set('as-compare',cmpSel); dock() }
+function dock(){$('#cmpN').textContent=cmpSel.length; $('#cmpDock').classList.toggle('on',cmpSel.length>0&&cur!=='compare')}
+
+/* ---------- car detail ---------- */
+let pending=''; // prefilled contact message
+function gauge(label,val,unit,frac,fmt){
+  const r=52, C=Math.PI*r*1.5;
+  return `<div class="gauge"><svg viewBox="0 0 140 120"><path d="M22 106 A52 52 0 1 1 118 106" transform="translate(0 -14)" fill="none" stroke="#2e2626" stroke-width="8" stroke-linecap="round"/>
+  <path class="ga" d="M22 106 A52 52 0 1 1 118 106" transform="translate(0 -14)" fill="none" stroke="${frac>.8?'#d2161e':'#f4a43a'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-to="${C*(1-(val==null?0:frac))}"/></svg>
+  ${val==null?'<b class="na">Ask us</b>':`<b data-n="${val}" data-f="${fmt||0}">${(+val).toFixed(fmt||0)}</b>`}<span>${label}${val==null?'':' · '+unit}</span></div>`;
+}
+function renderCar(id){
+  const c=byId[id]; if(!c){location.hash='inventory';return}
+  const i=ORDER.indexOf(id), prev=byId[ORDER[(i-1+ORDER.length)%ORDER.length]], next=byId[ORDER[(i+1)%ORDER.length]];
+  const row=(k,v)=>`<div class="r"><dt>${k}</dt><dd class="${v==null?'ask':''}">${v==null?'Ask us':v}</dd></div>`;
+  const down0=Math.round(c.price*.1/100)*100;
+  $('#car').innerHTML=`
+  <div class="crumbs"><a href="#inventory">← Used cars</a><span>/</span><span>${c.make}</span><span>/</span><span style="color:var(--chrome)">${c.name}</span></div>
+  <div class="top">
+    <div class="zoom" id="zoom" data-cursor="ZOOM"><img src="${img(c)}" alt="${full(c)}"><span class="hint">CLICK TO ZOOM</span></div>
+    <div>
+      <div class="eyebrow">On the lot · ${c.body}</div>
+      <h1 style="margin-top:14px">${c.name}</h1>
+      <div class="trim">${[c.year,c.trim,c.ext].filter(Boolean).join(' · ')}</div>
+      <div class="price">${c.status==='sold'?'Sold':money(c.price)}</div>
+      <p class="desc">${c.desc}</p>
+      <div class="acts"><a class="btn" href="#contact" id="bookBtn" data-mag>Book a viewing <span class="arr">→</span></a><a class="btn ghost" href="#contact" id="testBtn">Schedule test drive</a><button class="btn ghost" id="cmpBtn">${cmpSel.includes(id)?'✓ In compare':'+ Compare'}</button></div>
+    </div>
+  </div>
+  <div class="gauges">
+    ${gauge('Horsepower',c.hp,'hp',(c.hp||0)/450)}
+    ${gauge('0–60 mph',c.zero,'sec',c.zero?(12-c.zero)/8:0,1)}
+    ${gauge('Top speed',c.top,'mph',(c.top||0)/160)}
+    ${gauge('Torque',c.tq,'lb-ft',(c.tq||0)/500)}
+  </div>
+  <div class="lower">
+    <div class="sheet"><h3 style="margin-top:30px">Spec sheet</h3><dl>
+      ${row('Year',c.year)}${row('Mileage',c.miles?c.miles.toLocaleString()+' mi':null)}${row('Engine',c.engine)}${row('Horsepower',c.hp?c.hp+' hp':null)}${row('Torque',c.tq?c.tq+' lb-ft':null)}${row('0–60 mph',c.zero?c.zero+' s':null)}${row('Top speed',c.top?c.top+' mph':null)}${row('Transmission',c.trans)}${row('Drivetrain',c.drive)}${row('Fuel',c.fuel)}${row('MPG city / hwy',c.mpg)}${row('Exterior',c.ext)}${row('Interior',c.int)}${row('Body',c.body)}${row('VIN',c.vin?`<span style="font-family:var(--mono);font-size:14px">${c.vin}</span>`:null)}
+    </dl>${c.equip.length?`<h3 style="margin-top:40px">Equipment</h3><div class="equip">${c.equip.map(e=>`<span>${e}</span>`).join('')}</div>`:''}</div>
+    <div class="fin" id="fin">
+      <h3>Payment estimate</h3>
+      <div class="pm num"><span id="pm">$0</span> <small>/ month</small></div>
+      <div class="sl"><label for="fDown">Down payment <b id="fDownV"></b></label><input type="range" id="fDown" min="0" max="${c.price}" step="100" value="${down0}"></div>
+      <div class="sl"><label for="fApr">APR <b id="fAprV"></b></label><input type="range" id="fApr" min="0" max="24" step=".1" value="9.9"></div>
+      <div class="sl"><label>Term <b id="fTermV"></b></label><div class="terms" id="terms">${[24,36,48,60,72].map(t=>`<button data-t="${t}" class="${t===48?'on':''}">${t}</button>`).join('')}</div></div>
+      <p class="fine">Estimate only. Excludes tax, title and fees. Subject to credit approval.</p>
+    </div>
+  </div>
+  <div class="pn"><a href="#car-${prev.id}"><span>← PREVIOUS</span><b>${prev.year} ${prev.name}</b></a><a href="#car-${next.id}"><span>NEXT →</span><b>${next.year} ${next.name}</b></a></div>`;
+  // zoom
+  const z=$('#zoom'), zi=z.firstElementChild;
+  z.onclick=()=>{z.classList.toggle('z'); z.querySelector('.hint').textContent=z.classList.contains('z')?'CLICK TO CLOSE':'CLICK TO ZOOM'};
+  z.onpointermove=e=>{const r=z.getBoundingClientRect();zi.style.transformOrigin=`${(e.clientX-r.left)/r.width*100}% ${(e.clientY-r.top)/r.height*100}%`};
+  // gauges
+  requestAnimationFrame(()=>{ $$('.ga').forEach(p=>{p.style.transition=RM?'none':'stroke-dashoffset 1.6s cubic-bezier(.2,.8,.1,1)';p.style.strokeDashoffset=p.dataset.to});
+    $$('.gauge b[data-n]').forEach(b=>{const to=+b.dataset.n,f=+b.dataset.f,t0=performance.now(); if(RM)return; (function a(n){const p=Math.min(1,(n-t0)/1600);b.textContent=(to*(1-Math.pow(1-p,4))).toFixed(f);if(p<1)requestAnimationFrame(a)})(t0)})});
+  // finance
+  let term=48; const calc=()=>{const d=+$('#fDown').value, apr=+$('#fApr').value, P=Math.max(0,c.price-d), r=apr/1200; const pm=r?P*r/(1-Math.pow(1+r,-term)):P/term;
+    $('#pm').textContent=money(pm); $('#fDownV').textContent=money(d); $('#fAprV').textContent=apr.toFixed(1)+'%'; $('#fTermV').textContent=term+' months'};
+  $('#fDown').oninput=calc; $('#fApr').oninput=calc; $$('#terms button').forEach(b=>b.onclick=()=>{term=+b.dataset.t;$$('#terms button').forEach(x=>x.classList.toggle('on',x===b));calc()}); calc();
+  $('#bookBtn').onclick=()=>pending=`I'd like to book a private viewing of the ${full(c)} (${money(c.price)}). `;
+  $('#testBtn').onclick=()=>pending=`I'd like to schedule a test drive in the ${full(c)} (${money(c.price)}). `;
+  $('#cmpBtn').onclick=e=>{toggleCmp(id);e.currentTarget.textContent=cmpSel.includes(id)?'✓ In compare':'+ Compare'};
+}
+
+/* ---------- compare ---------- */
+function renderCompare(){
+  const opts=sel=>'<option value="">Add a vehicle…</option>'+ORDER.map(id=>{const c=byId[id];return `<option value="${id}" ${sel===id?'selected':''}>${c.year} ${c.name} · ${money(c.price)}</option>`}).join('');
+  $('#cslots').innerHTML=[0,1,2].map(i=>{const id=cmpSel[i], c=byId[id];return `<div class="cslot ${c?'full':''}"><div class="ph">${c?`<img src="${img(c)}" alt="${full(c)}">`:'+'}</div><label class="fld"><span style="font:500 10px var(--mono);letter-spacing:.16em;color:var(--dim)">VEHICLE ${i+1}</span><select data-i="${i}" id="cs${i}">${opts(id)}</select></label>${c?`<a href="#car-${id}" style="font:500 12px var(--mono);color:var(--sodium);text-decoration:none">FULL SPEC SHEET →</a>`:''}</div>`}).join('');
+  $$('#cslots select').forEach(s=>s.onchange=()=>{const i=+s.dataset.i; const arr=[...cmpSel]; if(s.value)arr[i]=s.value; else arr.splice(i,1); cmpSel=[...new Set(arr.filter(Boolean))].slice(0,3); store.set('as-compare',cmpSel); renderCompare()});
+  const cs=cmpSel.map(id=>byId[id]);
+  const mpgH=c=>c.mpg?+c.mpg.split('/')[1]:null;
+  const rows=[['Price',c=>c.price,money,'min'],['Year',c=>c.year,v=>v,'max'],['Mileage',c=>c.miles,v=>v.toLocaleString()+' mi','min'],['Horsepower',c=>c.hp,v=>v+' hp','max'],['Torque',c=>c.tq,v=>v+' lb-ft','max'],['0–60 mph',c=>c.zero,v=>v+' s','min'],['Top speed',c=>c.top,v=>v+' mph','max'],['Highway MPG',mpgH,v=>v+' mpg','max'],['Engine',c=>c.engine,v=>v],['Drivetrain',c=>c.drive,v=>v],['Transmission',c=>c.trans,v=>v],['Body',c=>c.body,v=>v],['Exterior',c=>c.ext,v=>v]];
+  if(!cs.length){$('#ctab').innerHTML=`<tr><td style="color:var(--steel);padding:30px 0" colspan="4">Pick a vehicle above, or tap “+ Compare” on any car in the <a href="#inventory" style="color:var(--sodium)">inventory</a>.</td></tr>`;return}
+  $('#ctab').innerHTML=`<thead><tr><th></th>${cs.map(c=>`<th style="color:var(--chrome);font:800 22px/1 var(--display);letter-spacing:0">${c.year} ${c.name}</th>`).join('')}</tr></thead><tbody>`+rows.map(([k,f,fmt,best])=>{const vs=cs.map(f); const nums=vs.filter(v=>v!=null); const b=best&&nums.length>1?(best==='min'?Math.min(...nums):Math.max(...nums)):null;
+    return `<tr><th>${k}</th>${vs.map(v=>v==null?'<td class="na">Ask us</td>':`<td class="${b!=null&&v===b?'best':''}">${fmt(v)}</td>`).join('')}</tr>`}).join('')+'</tbody>';
+}
+
+/* ---------- VIN ---------- */
+(function vin(){
+  const inp=$('#vin'), m=$('#vinMeter'), out=$('#vinOut'), dec=$('#vinDec'); m.innerHTML='<i></i>'.repeat(17);
+  const TR={A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,J:1,K:2,L:3,M:4,N:5,P:7,R:9,S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9}, WT=[8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
+  const YC='ABCDEFGHJKLMNPRSTVWXY123456789';
+  const WMI=[['1FT','Ford (truck)'],['1FD','Ford (truck)'],['1FM','Ford (SUV)'],['1FA','Ford'],['1FB','Ford (van)'],['1F','Ford'],['2F','Ford'],['3F','Ford'],['1GC','Chevrolet (truck)'],['1GN','Chevrolet (SUV)'],['1G1','Chevrolet'],['1GT','GMC (truck)'],['1GK','GMC (SUV)'],['2GT','GMC (truck)'],['3GT','GMC (truck)'],['1G','General Motors'],['2G','General Motors'],['3G','General Motors'],['1C4','Jeep / Chrysler'],['1J4','Jeep'],['1J8','Jeep'],['1C6','Ram'],['3C6','Ram'],['1D7','Dodge (truck)'],['3D7','Dodge (truck)'],['2C3','Dodge / Chrysler'],['2D4','Dodge'],['1B3','Dodge'],['2C4','Dodge / Chrysler'],['1C3','Chrysler / Dodge'],['ZAC','Jeep (Italy)'],['JT','Toyota'],['4T','Toyota'],['5T','Toyota'],['2T','Toyota'],['JH','Honda / Acura'],['1HG','Honda'],['2HG','Honda'],['5FN','Honda'],['5J6','Honda'],['JN8','Nissan (SUV)'],['JN1','Nissan'],['1N4','Nissan'],['5N1','Nissan (SUV)'],['JNR','Infiniti'],['JNK','Infiniti'],['5N3','Infiniti'],['JM','Mazda'],['3VW','Volkswagen'],['WVW','Volkswagen'],['1VW','Volkswagen'],['WBA','BMW'],['WDD','Mercedes-Benz'],['KM','Hyundai'],['KN','Kia'],['5NP','Hyundai'],['JF','Subaru'],['4S','Subaru'],['WAU','Audi'],['YV','Volvo']];
+  const CTRY=c=>/[1-5]/.test(c)?({1:'United States',4:'United States',5:'United States',2:'Canada',3:'Mexico'})[c]:({J:'Japan',K:'South Korea',W:'Germany',S:'United Kingdom',Z:'Italy',Y:'Sweden',V:'France'})[c]||'Unknown';
+  inp.addEventListener('input',()=>{
+    const v=inp.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'').slice(0,17); inp.value=v;
+    $$('i',m).forEach((el,i)=>{el.className=i<v.length?(i===8?'ck':'f'):''});
+    if(v.length<17){out.innerHTML=`${v.length} / 17 characters${/[IOQ]/i.test(inp.value)?' · VINs never use I, O or Q':''}`;dec.hidden=true;return}
+    const sum=[...v].reduce((s,ch,i)=>s+(isNaN(ch)?TR[ch]:+ch)*WT[i],0), r=sum%11, ck=r===10?'X':String(r), ok=ck===v[8];
+    out.innerHTML=ok?`<span class="ok">✓ Check digit ${ck} matches. This VIN is valid.</span>`:`<span class="bad">✗ Check digit should be ${ck}, found ${v[8]}. Double-check for a typo.</span>`;
+    const yi=YC.indexOf(v[9]); let yr='Unknown'; if(yi>=0){yr=1980+yi; while(yr+30<=new Date().getFullYear()+1)yr+=30}
+    const mk=(WMI.find(([p])=>v.startsWith(p))||[,'Other maker'])[1];
+    dec.hidden=false; dec.innerHTML=`<div><span>Maker</span><b>${mk}</b></div><div><span>Model year</span><b>${yr}</b></div><div><span>Built in</span><b>${CTRY(v[0])}</b></div>`;
+  });
+})();
+
+/* ---------- forms (no backend: hand the message back to copy) ---------- */
+function handoff(form, box, build){
+  form.addEventListener('submit',e=>{e.preventDefault(); const name=form.querySelector('input[required]'); if(!name.value.trim()){name.focus();name.style.borderColor='var(--crimson)';return}
+    const txt=build(); box.innerHTML=`<div class="sent"><p><b>This form isn't connected to an inbox yet.</b> Copy your message and send it to <b>${ST.email}</b>, or call <b>${ST.phone}</b>.</p><pre id="${box.id}Txt">${txt.replace(/</g,'&lt;')}</pre><button type="button" class="btn sm">Copy message</button></div>`;
+    const b=box.querySelector('button'), pre=box.querySelector('pre'); b.onclick=()=>{navigator.clipboard.writeText(txt).then(()=>b.textContent='Copied',()=>{const r=document.createRange();r.selectNodeContents(pre);getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Selected: press Ctrl/⌘+C'})}});
+}
+handoff($('#contactForm'),$('#contactSent'),()=>`Name: ${$('#cName').value}\nPhone: ${$('#cPhone').value}\nEmail: ${$('#cEmail').value}\n\n${$('#cMsg').value}`);
+handoff($('#tradeForm'),$('#tradeSent'),()=>`Trade-in valuation request\nVIN: ${$('#vin').value||'(not given)'}\nName: ${$('#tName').value}\nPhone: ${$('#tPhone').value}\nEmail: ${$('#tEmail').value}\nMileage: ${$('#tMiles').value}\n\n${$('#tNotes').value}`);
+$$('.cpy').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='COPIED';setTimeout(()=>b.textContent='COPY',1500)},()=>{}));
+(function hours(){const H=ST.hours;const d=new Date().getDay(), t=d===0?2:d===6?1:0;
+  $('#hours').innerHTML=H.map(([k,v],i)=>`<span class="${i===t?'today':''}">${k}${i===t?' · today':''}</span><span class="${v==='Closed'?'closed':''} ${i===t?'today':''}">${v}</span>`).join('')})();
+
+/* ---------- router ---------- */
+let cur='home', first=true;
+const VIEWS=['home','inventory','compare','heritage','trade','contact','admin'];
+function route(){
+  let h=location.hash.slice(1)||'home', v=h, arg='';
+  if(h.startsWith('car-')){v='car';arg=h.slice(4)} else if(!VIEWS.includes(h)) v='home';
+  const go=()=>{
+    cur=v; $$('main>section[data-view]').forEach(s=>s.hidden=s.dataset.view!==v);
+    $$('.links a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+(v==='car'?'inventory':v)));
+    if(v==='inventory'){ if(filt.body!==undefined){chips()} $('#grid').innerHTML=''; renderGrid() }
+    if(v==='car') renderCar(arg);
+    if(v==='compare') renderCompare();
+    if(v==='admin'&&window.renderAdmin) window.renderAdmin();
+    if(v==='contact'&&pending){$('#cMsg').value=pending;pending=''}
+    if(v==='home') countUp();
+    const sec=$(`section[data-view="${v}"]`); if(!first&&!RM){sec.classList.remove('view-enter');void sec.offsetWidth;sec.classList.add('view-enter')}
+    scrollTo(0,0); arm(sec); dock(); first=false;
+  };
+  if(first||RM) go(); else { const w=$('#wipe'); w.classList.remove('go'); void w.offsetWidth; w.classList.add('go'); setTimeout(go,420) }
+}
+addEventListener('hashchange',route);
+route();
+
+})();
+</script>
+<script type="text/plain" class="app-src">
+/* ---------- admin: edits the site data and republishes the page itself ---------- */
+(()=>{
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'$'+Math.round(n||0).toLocaleString('en-US');
+const clone=x=>JSON.parse(JSON.stringify(x));
+const use=n=>window.claude&&window.claude.use?Promise.resolve(window.claude.use(n)).catch(()=>null):Promise.resolve(null);
+const SKEL_UNUSED='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n';
+const BODY_TYPES=['Truck','SUV','Sedan','Coupe','Minivan / Passenger Van','Convertible','Wagon','Hatchback','Van'];
+let PW='';
+async function login(pw){ try{ const r=await fetch('/api/login',{method:'POST',headers:{'x-admin-password':pw}}); if(r.status===401) return false; return r.ok?true:null }catch(_){ return null } }
+async function api(url,opt){ const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),'x-admin-password':PW}}); let b=null; try{b=await r.json()}catch(_){}
+  if(!r.ok) throw {code:(b&&b.error)||('http_'+r.status)}; return b }
+let art=null, assets=null, started=false, draft=null, dirty=false, busy=false, confirmDel=null, msg=null;
+
+function vinCheck(v){
+  v=(v||'').toUpperCase(); if(!v) return ['',''];
+  if(/[IOQ]/.test(v)) return ['bad','VINs never use I, O or Q'];
+  if(v.length!==17) return ['bad',v.length+' / 17 characters'];
+  const TR={A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,J:1,K:2,L:3,M:4,N:5,P:7,R:9,S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9}, WT=[8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
+  const r=[...v].reduce((s,ch,i)=>s+(isNaN(ch)?TR[ch]:+ch)*WT[i],0)%11, ck=r===10?'X':String(r);
+  return ck===v[8]?['ok','✓ Valid VIN']:['bad',`Check digit should be ${ck}. Probably a typo.`];
+}
+async function shrink(file,max){
+  const bmp=await createImageBitmap(file); const s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas'); c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+  const x=c.getContext('2d'); x.drawImage(bmp,0,0,c.width,c.height);
+  const a=x.getImageData(0,0,c.width,c.height).data; let clear=0; for(let i=3;i<a.length;i+=4*97) if(a[i]<20) clear++;
+  const blob=await new Promise(r=>c.toBlob(r,'image/webp',.84)); return {blob, transparent: clear>8};
+}
+function setDirty(d){ dirty=d; const st=$('#admSt'); if(!st)return; st.textContent=d?'Unsaved changes. Visitors still see the old version.':'Everything is published.'; st.classList.toggle('dirty',d); $('#admSave').disabled=!d||busy; $('#admDiscard').disabled=!d||busy }
+
+async function start(){
+  if(started) return; started=true;
+  const gate=$('#admGate');
+  const enter=()=>{ art=assets=true; draft=clone(window.SITE); gate.hidden=true; $('#admBody').hidden=false; render(); };
+  let saved=''; try{ saved=sessionStorage.getItem('admPw')||'' }catch(_){}
+  if(saved){ PW=saved; if(await login(saved)) return enter(); PW='' }
+  gate.innerHTML=`<span style="display:block;margin-bottom:14px">This page is for A &amp; S Auto staff. Enter the admin password to edit cars and details.</span>
+    <form id="admLogin" style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;max-width:520px">
+      <input type="password" id="admPw" autocomplete="current-password" placeholder="Admin password" aria-label="Admin password" style="flex:1 1 220px;background:var(--tar);border:1px solid var(--line);border-radius:2px;padding:12px 14px;font-size:16px">
+      <button class="btn sm" type="submit">Log in</button></form><span id="admLoginErr" style="display:block;margin-top:10px;color:#ff9a9a"></span>`;
+  $('#admLogin').onsubmit=async ev=>{ ev.preventDefault(); const pw=$('#admPw').value; const er=$('#admLoginErr'); er.textContent='Checking…';
+    const ok=await login(pw);
+    if(ok){ PW=pw; try{sessionStorage.setItem('admPw',pw)}catch(_){}; enter() }
+    else er.textContent=ok===null?'Could not reach the server. Check your connection and try again.':'Wrong password.' };
+  $('#admPw').focus();
+}
+
+function render(){
+  const cs=draft.cars, n=s=>cs.filter(c=>c.status===s).length, S=draft.settings;
+  $('#admBody').innerHTML=`
+  <div class="adm-bar"><span class="st" id="admSt"></span><div class="act"><button class="btn sm ghost" id="admAdd">+ Add car</button><button class="btn sm ghost" id="admDiscard">Discard changes</button><button class="btn sm" id="admSave">Save &amp; publish</button></div></div>
+  ${msg?`<div class="adm-msg ${msg[0]}">${esc(msg[1])}</div>`:''}
+  <h3>Business details</h3>
+  <div class="adm-set">
+    <div class="fld"><label for="sPhone">Phone</label><input id="sPhone" data-set="phone" value="${esc(S.phone)}"></div>
+    <div class="fld"><label for="sEmail">Email</label><input id="sEmail" data-set="email" value="${esc(S.email)}"></div>
+    ${S.hours.map((h,i)=>`<div class="fld"><label for="sH${i}">${esc(h[0])}</label><input id="sH${i}" data-hour="${i}" value="${esc(h[1])}"></div>`).join('')}
+  </div>
+  <h3>Cars <span style="font:500 13px var(--mono);color:var(--steel);letter-spacing:.06em;text-transform:none">${n('lot')} on the lot · ${n('sold')} sold · ${n('hidden')} hidden · ★ = in the particle animation (needs a cut-out photo)</span></h3>
+  <div class="adm-wrap"><table class="adm-tab"><thead><tr><th>Photo</th><th>Car</th><th>Price</th><th>Status</th><th>★</th><th>Order</th><th></th></tr></thead><tbody>
+  ${cs.map((c,i)=>`<tr class="${c.status==='hidden'?'hid':''}" data-id="${c.id}">
+    <td><img src="${esc(c.img)}" alt=""></td>
+    <td class="nm"><b>${esc(c.year)} ${esc(c.name)}</b><small>${esc(c.trim||'')}${c.vin?' · VIN '+esc(c.vin):' · no VIN'}</small></td>
+    <td><input type="number" min="0" step="50" data-f="price" value="${c.price||''}" aria-label="Price"></td>
+    <td><select data-f="status" aria-label="Status"><option value="lot" ${c.status==='lot'?'selected':''}>On the lot</option><option value="sold" ${c.status==='sold'?'selected':''}>Sold</option><option value="hidden" ${c.status==='hidden'?'selected':''}>Hidden</option></select></td>
+    <td><input type="checkbox" data-f="featured" ${c.featured?'checked':''} ${c.cut?'':'disabled title="Upload a cut-out photo first"'} aria-label="Show in particle animation"></td>
+    <td class="ops"><button class="ib" data-mv="-1" ${i?'':'disabled'} aria-label="Move up">↑</button><button class="ib" data-mv="1" ${i<cs.length-1?'':'disabled'} aria-label="Move down">↓</button></td>
+    <td class="ops"><button class="ib" data-ed>Edit</button><button class="ib ${confirmDel===c.id?'warn':''}" data-del>${confirmDel===c.id?'Confirm delete':'Delete'}</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+  setDirty(dirty);
+  $('#admAdd').onclick=()=>edit(null);
+  $('#admDiscard').onclick=()=>{draft=clone(window.SITE);msg=null;confirmDel=null;setDirty(false);render()};
+  $('#admSave').onclick=save;
+  $$('[data-set]').forEach(i=>i.oninput=()=>{S[i.dataset.set]=i.value.trim();setDirty(true)});
+  $$('[data-hour]').forEach(i=>i.oninput=()=>{S.hours[+i.dataset.hour][1]=i.value.trim();setDirty(true)});
+  $$('.adm-tab tr[data-id]').forEach(tr=>{
+    const c=cs.find(x=>x.id===tr.dataset.id);
+    $$('[data-f]',tr).forEach(el=>el.onchange=()=>{const f=el.dataset.f; c[f]=f==='price'?+el.value||0:f==='featured'?el.checked:el.value; setDirty(true); if(f!=='price')render()});
+    $$('[data-mv]',tr).forEach(b=>b.onclick=()=>{const i=cs.indexOf(c), j=i+ +b.dataset.mv; [cs[i],cs[j]]=[cs[j],cs[i]]; setDirty(true); render()});
+    $('[data-ed]',tr).onclick=()=>edit(c);
+    $('[data-del]',tr).onclick=()=>{ if(confirmDel===c.id){draft.cars=cs.filter(x=>x!==c);confirmDel=null;setDirty(true)} else confirmDel=c.id; render() };
+  });
+}
+
+const FIELDS=[['make','Make','text',''],['model','Model','text',''],['year','Year','number',''],['trim','Trim','text',''],['price','Price ($)','number',''],['miles','Mileage','number',''],
+  ['ext','Exterior colour','text',''],['int','Interior','text',''],['body','Body','select',''],['engine','Engine','text',''],['hp','Horsepower','number',''],['tq','Torque (lb-ft)','number',''],
+  ['zero','0–60 mph (s)','number',''],['top','Top speed (mph)','number',''],['trans','Transmission','text',''],['drive','Drivetrain','text',''],['fuel','Fuel','text',''],['mpg','MPG city / hwy','text','e.g. 15 / 21']];
+function edit(c){
+  const isNew=!c; const e=c?clone(c):{id:'c'+Date.now().toString(36),make:'',name:'',year:new Date().getFullYear(),price:0,body:'Truck',equip:[],desc:'',img:'',cut:'',status:'lot',featured:false};
+  e.model=e.name&&e.make&&e.name.startsWith(e.make+' ')?e.name.slice(e.make.length+1):(e.name||'');
+  const ov=document.createElement('div'); ov.id='admEd'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true');
+  const inp=([k,l,t,ph])=>`<div class="fld"><label for="e_${k}">${l}</label>${t==='select'?`<select id="e_${k}">${BODY_TYPES.map(b=>`<option ${e[k]===b?'selected':''}>${b}</option>`).join('')}</select>`:`<input id="e_${k}" type="${t}" ${t==='number'?'step="any" min="0"':''} placeholder="${ph}" value="${esc(e[k]??'')}">`}</div>`;
+  ov.innerHTML=`<div class="pan"><div class="hd"><h3>${isNew?'Add a car':'Edit '+esc(e.year+' '+e.name)}</h3><button class="ib" data-x>Close</button></div>
+    <div class="ed-pics">
+      <div class="pic"><b>Photo</b><div class="pv" id="pvImg">${e.img?`<img src="${esc(e.img)}" alt="">`:'No photo yet'}</div><input type="file" accept="image/*" id="fImg"><p>Shown in the inventory and on the car's page. Landscape works best.</p></div>
+      <div class="pic"><b>Cut-out for the animation</b><div class="pv" id="pvCut">${e.cut?`<img src="${esc(e.cut)}" alt="">`:'No cut-out yet'}</div><input type="file" accept="image/png,image/webp" id="fCut"><p>A PNG with the background removed (for example from remove.bg). Needed to show the car in the particle animation.</p></div>
+    </div>
+    <div class="ed-grid">${FIELDS.map(inp).join('')}
+      <div class="fld w2"><label for="e_vin">VIN</label><input id="e_vin" maxlength="17" value="${esc(e.vin||'')}" style="font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase"><div class="vinst" id="vinSt"></div></div>
+      <div class="fld"><label for="e_status">Status</label><select id="e_status"><option value="lot">On the lot</option><option value="sold">Sold</option><option value="hidden">Hidden</option></select></div>
+      <div class="fld w3"><label for="e_equip">Equipment (one per line)</label><textarea id="e_equip">${esc((e.equip||[]).join('\n'))}</textarea></div>
+      <div class="fld w3"><label for="e_desc">Description</label><textarea id="e_desc">${esc(e.desc||'')}</textarea></div>
+      <label class="chk w3"><input type="checkbox" id="e_feat" ${e.featured?'checked':''}> Show in the particle animation on the home page</label>
+    </div>
+    <div class="adm-msg err" id="edErr" hidden></div>
+    <div class="ed-ft"><button class="btn sm ghost" data-x>Cancel</button><button class="btn sm" id="edOk">${isNew?'Add car':'Apply changes'}</button></div></div>`;
+  document.body.appendChild(ov); document.body.style.overflow='hidden';
+  $('#e_status',ov).value=e.status||'lot';
+  const close=()=>{ov.remove();document.body.style.overflow=''};
+  $$('[data-x]',ov).forEach(b=>b.onclick=close);
+  const vin=$('#e_vin',ov), vs=()=>{vin.value=vin.value.toUpperCase().replace(/[^A-Z0-9]/g,'');const [k,t]=vinCheck(vin.value);$('#vinSt',ov).className='vinst '+k;$('#vinSt',ov).textContent=t}; vin.oninput=vs; vs();
+  const err=t=>{const b=$('#edErr',ov);b.hidden=!t;b.textContent=t||''};
+  const up=(inputId,pvId,max,key)=>{ $('#'+inputId,ov).onchange=async ev=>{
+    const f=ev.target.files[0]; if(!f)return; if(!assets){err('Log in first.');return}
+    $('#'+pvId,ov).textContent='Uploading…'; err('');
+    try{ const {blob,transparent}=await shrink(f,max); const r=await api('/api/upload',{method:'POST',headers:{'content-type':'image/webp'},body:blob}); e[key]=r.url;
+      $('#'+pvId,ov).innerHTML=`<img src="${esc(r.url)}" alt="">`;
+      if(key==='cut'&&!transparent) err('This cut-out has no transparent background, so the particle car will include the background. Use a PNG with the background removed for the best result.');
+    }catch(x){ $('#'+pvId,ov).textContent='Upload failed'; err('Upload failed: '+(x&&x.message||x&&x.code||'unknown error')+'. Try a smaller photo.') } } };
+  up('fImg','pvImg',1600,'img'); up('fCut','pvCut',900,'cut');
+  $('#edOk',ov).onclick=()=>{
+    const g=k=>$('#e_'+k,ov).value.trim(), num=k=>g(k)===''?null:+g(k);
+    if(!g('make')||!g('model')){err('Add the make and the model.');return}
+    if(!(num('year')>1900)){err('Add the model year.');return}
+    if(!(num('price')>0)){err('Add a price.');return}
+    if(!e.img){err('Add a photo of the car.');return}
+    Object.assign(e,{make:g('make'),name:g('make')+' '+g('model'),trim:g('trim')||null,year:num('year'),price:num('price'),miles:num('miles'),ext:g('ext')||null,int:g('int')||null,body:g('body'),
+      engine:g('engine')||null,hp:num('hp'),tq:num('tq'),zero:num('zero'),top:num('top'),trans:g('trans')||null,drive:g('drive')||null,fuel:g('fuel')||null,mpg:g('mpg')||null,vin:g('vin')||null,
+      status:g('status'),featured:$('#e_feat',ov).checked&&!!e.cut,equip:g('equip').split('\n').map(s=>s.trim()).filter(Boolean)});
+    e.desc=g('desc')||`${e.year} ${e.name}${e.trim?' '+e.trim:''} at A & S Auto in Burley, Idaho.`;
+    delete e.model;
+    if(isNew) draft.cars.unshift(e); else draft.cars[draft.cars.findIndex(x=>x.id===e.id)]=e;
+    close(); setDirty(true); render();
+  };
+}
+
+async function save(){
+  if(busy) return; busy=true; setDirty(true); $('#admSt').textContent='Publishing…';
+  try{
+    await api('/api/data',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(draft)});
+    window.SITE=clone(draft); busy=false; dirty=false;
+    msg=['','Saved. The site is updated for everyone. Reloading…']; render();
+    setTimeout(()=>location.reload(),900);
+  }catch(x){
+    busy=false; const c=x&&x.code;
+    if(c==='unauthorized'){try{sessionStorage.removeItem('admPw')}catch(_){}}
+    msg=['err', c==='unauthorized'?'The admin password was changed or is wrong. Reload the page and log in again. Your changes are still here until you reload.'
+      : c==='rate_limited'?'Too many saves in a short time. Wait a minute, then save again.'
+      : c==='too_large'?'The page got too large to save. Remove a few cars or descriptions and try again.'
+      : 'Saving failed ('+(c||'unknown error')+'). Your changes are still here; try again.'];
+    render();
+  }
+}
+window.renderAdmin=start;
+if(location.hash.slice(1)==='admin') start();
+})();
+</script>
+
+</body></html>
