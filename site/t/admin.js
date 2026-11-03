@@ -4,6 +4,7 @@ import * as FEEDS from "../feeds.js";
 import { openStudio } from "../admin/studio.js";
 import { ftpPanel } from "../admin/ftpui.js";
 import { thumb, bindThumbs, openPreview } from "./gallery.js";
+import { openInspection, summary as inspSummary } from "../admin/inspect.js";
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -63,6 +64,9 @@ function route() {
   $("#nav").innerHTML = NAV.map(([k, ic, l]) => `<a href="#/${k}" class="${page === k ? "on" : ""}"><span class="ic">${ic}</span>${l}${k === "messages" && nNew ? `<span class="cnt">${nNew}</span>` : ""}</a>`).join("");
   scrollTo(0, 0);
   const V = $("#view");
+  if (page === "inspect") { const k = TD.cars.find((x) => x.id === id); if (!k) return go("#/cars");
+    return openInspection(V, { car: k, settings: S(), title: k.year + " " + k.name, backLabel: k.year + " " + k.name, onBack: () => go("#/cars/" + id), toast, reportUrl: `/inspection?car=${id}&d=${SLUG}`,
+      onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await save(); } catch (x) { k.inspection = prev; throw x; } } }); }
   ({ cars: id ? carEdit : cars, messages, website, marketing, account }[page] || cars)(V, id);
 }
 const go = (h) => (location.hash === h ? route() : (location.hash = h));
@@ -105,7 +109,7 @@ function carEdit(V, id) {
   const c = isNew ? { id: uid("c"), year: new Date().getFullYear(), body: "Truck", status: "lot", equip: [], img: "", addedAt: new Date().toISOString().slice(0, 10) } : clone(orig);
   const model = c.name && c.make && c.name.startsWith(c.make + " ") ? c.name.slice(c.make.length + 1) : c.name || "";
   V.innerHTML = `<div class="crumb"><a href="#/cars">Cars</a> / ${isNew ? "New car" : esc(c.year + " " + c.name)}</div>
-  <div class="ph"><div><h1>${isNew ? "Add a car" : esc(c.year + " " + c.name)}</h1></div><div class="act">${isNew ? "" : '<button class="b danger" type="button" id="del">Delete</button>'}<button class="b primary" type="button" id="saveCar">Save</button></div></div>
+  <div class="ph"><div><h1>${isNew ? "Add a car" : esc(c.year + " " + c.name)}</h1></div><div class="act">${isNew ? "" : `<a class="b" href="#/inspect/${esc(c.id)}">📋 Inspection${inspSummary(c.inspection).done ? " · " + esc(inspSummary(c.inspection).grade) : ""}</a><button class="b danger" type="button" id="del">Delete</button>`}<button class="b primary" type="button" id="saveCar">Save</button></div></div>
   <div class="split"><div class="card"><h3>Vehicle</h3><div class="fg">
     <div class="f w2"><label for="vin">VIN</label><div style="display:flex;gap:8px"><input id="vin" maxlength="17" value="${esc(c.vin || "")}" style="flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-family:var(--mono);text-transform:uppercase"><button class="b" type="button" id="dec">Decode VIN</button></div></div>
     ${f("year", "Year", c.year, "number")}${f("make", "Make", c.make)}${f("model", "Model", model)}${f("trim", "Trim", c.trim)}${sel("body", "Body", c.body, BODY)}

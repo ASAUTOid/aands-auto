@@ -169,6 +169,7 @@ function detail(c) {
       ${c.desc ? `<p class="muted" style="margin-top:18px">${esc(c.desc)}</p>` : ""}</div>
     <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>${c.status === "pending" ? '<div class="muted" style="margin:-6px 0 14px;font-weight:700">Sale pending · ask us about similar cars</div>' : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a>${c.status === "sold" ? "" : `<a class="btn ghost" href="${applyUrl(c.id)}">Get pre-approved</a>`}</div>
+      ${c.inspection && c.inspection.public !== false && c.inspection.grade ? `<a class="box" style="display:flex;justify-content:space-between;align-items:center;gap:10px;text-decoration:none;margin-bottom:16px" href="/inspection?car=${esc(c.id)}${site.tenant ? "&d=" + esc(site.tenant) : ""}" target="_blank" rel="noopener"><span><b>📋 Inspection report</b><br><span class="muted">${esc(c.inspection.grade)}</span></span><span>View →</span></a>` : ""}
       ${c.status === "sold" ? "" : `<div class="box calc"><h3>Payment estimate</h3>
         <label>Down payment <b id="cDownV"></b></label><input type="range" id="cDown" min="0" max="${Math.round(c.price * 0.5)}" step="250" value="${Math.round(c.price * 0.1 / 250) * 250}">
         <label>Term <b id="cTermV"></b></label><input type="range" id="cTerm" min="12" max="72" step="12" value="48">

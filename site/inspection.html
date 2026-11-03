@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspection report</title><link rel="icon" href="/img/logo.png"></head>
+<body style="font-family:Arial,sans-serif;padding:40px;text-align:center">Loading the inspection report…
+<script type="module">
+import { reportPage } from "/admin/inspect.js";
+const q = new URLSearchParams(location.search), id = q.get("car"), dealer = (q.get("d") || "").replace(/[^a-z0-9-]/g, "");
+let S = {}, cars = [];
+try {
+  if (dealer) { const d = await (await fetch(`/api/t/${dealer}/data`)).json(); S = d.settings || {}; cars = d.cars || []; }
+  else { const r = await fetch("/api/data"); const d = r.status === 200 ? await r.json() : JSON.parse(new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html").getElementById("site-data").textContent); S = { name: "A & S Auto", logo: "/img/logo.png", street: "1038 Overland Ave", city: "Burley", state: "ID", ...d.settings }; cars = d.cars || []; }
+} catch (_) {}
+const c = cars.find((x) => x.id === id && !["draft", "hidden"].includes(x.status));
+if (c && c.inspection && c.inspection.public !== false) { document.open(); document.write(reportPage(c, S)); document.close(); }
+else document.body.textContent = "There's no public inspection report for this car yet. Call us and we'll tell you all about it.";
+</script>
+</body>
+</html>

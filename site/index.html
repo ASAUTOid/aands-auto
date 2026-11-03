@@ -988,7 +988,8 @@ function renderCar(id){
       <div class="trim">${[c.year,c.trim,c.ext].filter(Boolean).join(' · ')}</div>
       <div class="price">${c.status==='sold'?'Sold':money(c.price)}</div>${c.status==='pending'?'<div class="trim" style="color:var(--sodium)">SALE PENDING · ask about similar cars</div>':''}
       <p class="desc">${c.desc}</p>
-      <div class="acts"><a class="btn" href="#contact" id="bookBtn" data-mag>Book a viewing <span class="arr">→</span></a><a class="btn ghost" href="#contact" id="testBtn">Schedule test drive</a><button class="btn ghost" id="cmpBtn">${cmpSel.includes(id)?'✓ In compare':'+ Compare'}</button></div>
+      <div class="acts"><a class="btn" href="#contact" id="bookBtn" data-mag>Book a viewing <span class="arr">→</span></a><a class="btn ghost" href="#contact" id="testBtn">Schedule test drive</a><button class="btn ghost" id="cmpBtn">${cmpSel.includes(id)?'✓ In compare':'+ Compare'}</button><a class="btn ghost" href="/apply?car=${id}">Get pre-approved</a></div>
+      ${c.inspection&&c.inspection.public!==false&&c.inspection.grade?`<a href="/inspection?car=${id}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:18px;padding:14px 16px;border:1px solid var(--line);border-radius:3px;text-decoration:none;background:var(--tar)"><span><b style="font:800 20px/1 var(--display);text-transform:uppercase">📋 Inspection report</b><br><span style="color:var(--steel);font-size:14px">${c.inspection.grade}</span></span><span style="color:var(--sodium)">View →</span></a>`:''}
     </div>
   </div>
   <div class="gauges">

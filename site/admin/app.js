@@ -3,6 +3,7 @@
 import * as FEEDS from "../feeds.js";
 import { openStudio } from "./studio.js";
 import { ftpPanel } from "./ftpui.js";
+import { openInspection, summary as inspSummary } from "./inspect.js";
 import { TEMPLATES } from "../t/templates.js";
 import { thumb, bindThumbs, openPreview, demoUrl } from "../t/gallery.js";
 
@@ -200,7 +201,9 @@ function route() {
   renderNav(page);
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
-    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage };
+    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
+      openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: "/inspection?car=" + id2,
+        onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await saveSite(); } catch (x) { k.inspection = prev; throw x; } } }); } };
   (pages[page] || dashboard)(V, id, q);
 }
 const go = (h) => { if (location.hash === h) route(); else location.hash = h; };
@@ -340,6 +343,7 @@ function inventory(V) {
       { h: "Cost", r: 1, f: (c) => (hasCost(c.id) ? money(carCost(c.id)) : '<span style="color:var(--dim)">—</span>') },
       { h: "Profit", r: 1, f: (c) => (hasCost(c.id) ? `<span style="color:${c.price - carCost(c.id) < 0 ? "var(--bad)" : "var(--ok)"}">${money(c.price - carCost(c.id))}</span>` : '<span style="color:var(--dim)">—</span>') },
       { h: "Days", r: 1, f: (c) => { const d = days(inDate(c)); return d === null ? "—" : d; } },
+      { h: "Inspection", f: (c) => { const s = inspSummary(c.inspection); return s.done ? `<span style="color:${s.color};font-weight:600;font-size:13px">${s.fail ? "✕" : s.att ? "!" : "✓"} ${esc(s.grade)}</span>` : '<span style="color:var(--dim);font-size:13px">—</span>'; } },
       { h: "Status", f: (c) => carStatusPill(c) + (c.featured ? ' <span title="In the home page animation">★</span>' : "") },
     ], list(), (c) => "#/inventory/" + c.id);
     bindRows(V);
@@ -382,7 +386,7 @@ function carEdit(V, id, q) {
   V.innerHTML = `
   <div class="crumb"><a href="#/inventory">Inventory</a> / ${isNew ? "New car" : esc(carTitle(c))}</div>
   <div class="ph"><div><h1>${isNew ? "Add a car" : esc(carTitle(c))}</h1>${isNew ? "" : `<p>${carStatusPill(c)} ${c.stock ? "· Stock #" + esc(c.stock) : ""}</p>`}</div>
-    <div class="act">${isNew ? "" : `<a class="b" href="/?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview</a><button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
+    <div class="act">${isNew ? "" : `<a class="b" href="/?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview</a><button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/inspect/${esc(c.id)}">📋 Inspection</a><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
   <div class="split">
     <div class="grid">
       <div class="card"><h3>Vehicle</h3>
