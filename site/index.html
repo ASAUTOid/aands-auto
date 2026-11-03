@@ -704,7 +704,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),4000);
   fetch('/api/data',{cache:'no-store',signal:ctl.signal})
     .then(r=>r.status===200?r.json():null)
-    .then(d=>{ if(d&&Array.isArray(d.cars)&&d.settings){ document.getElementById('site-data').textContent=JSON.stringify(d).replace(/</g,'\\u003c');
+    .then(d=>{ const pq=new URLSearchParams(location.search).get('template'); if(pq&&pq!=='night'&&!(d&&d.settings)) return swap();
+      if(d&&Array.isArray(d.cars)&&d.settings){ document.getElementById('site-data').textContent=JSON.stringify(d).replace(/</g,'\\u003c');
       const S=d.settings, q=new URLSearchParams(location.search).get('template'), host=location.hostname.replace(/^www\./,'');
       const other=(S.websites||[]).some(w=>w.domain&&w.domain.replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'')===host);
       const tpl=q||S.mainTemplate; if(other||(tpl&&tpl!=='night')) return swap(); } })

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dealer website templates</title>
+<meta name="description" content="Pick a design for your dealership website. Every template comes with inventory, payment calculator, online credit application and a simple admin.">
+<link rel="icon" href="/img/logo.png">
+<style>
+:root{--line:#e4e4e7;--muted:#6b6b72;--accent:#d2161e}
+*{box-sizing:border-box}
+body{margin:0;background:#f6f6f7;color:#18181b;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.w{max-width:1240px;margin:0 auto;padding:0 16px}
+header{background:#111;color:#fff;padding:56px 0 48px}
+header h1{font-size:clamp(34px,5vw,58px);line-height:1.05;margin:0 0 12px}
+header p{color:#c9c9cf;max-width:60ch;margin:0;font-size:18px}
+.feat{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.feat span{border:1px solid #3a3a40;border-radius:99px;padding:6px 12px;font-size:14px;color:#e4e4e7}
+main{padding:36px 0 70px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px}
+.card b{font-size:19px}
+.card small{color:var(--muted)}
+.card .row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 14px/1 Arial,sans-serif;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#18181b;cursor:pointer;text-decoration:none}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="w">
+  <h1>Pick your dealership website</h1>
+  <p>10 designs made for used-car dealers. Click any one to see it full size, on a computer or a phone. Every design comes with the same features.</p>
+  <div class="feat"><span>🚗 Inventory with filters</span><span>📱 Works on phones</span><span>💳 Online credit application</span><span>🧮 Payment calculator</span><span>✉ Messages straight to you</span><span>✨ AI photo studio</span><span>📤 Export to CARFAX, Cars.com, Facebook, TikTok…</span><span>🔑 Simple admin page</span><span>🌐 Your own domain</span></div>
+</div></header>
+<main class="w"><div class="grid" id="grid"></div></main>
+<footer><div class="w">These examples use sample details and real cars. Your website shows your name, logo, phone and your own cars.</div></footer>
+<script type="module">
+import { TEMPLATES, DEALER_TEMPLATES } from "/t/templates.js";
+import { thumb, bindThumbs, openPreview, demoUrl } from "/t/gallery.js";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const g = document.getElementById("grid");
+g.innerHTML = DEALER_TEMPLATES.map((k, i) => `<div class="card">${thumb(demoUrl(k), "Preview " + TEMPLATES[k].name)}<b>${i + 1}. ${esc(TEMPLATES[k].name)}</b><small>${esc(TEMPLATES[k].desc)}</small>
+  <div class="row"><button class="btn p" type="button" data-big="${k}">🔍 See it full size</button><a class="btn" href="${demoUrl(k)}" target="_blank" rel="noopener">Open ↗</a></div></div>`).join("");
+const big = (k) => { const i = DEALER_TEMPLATES.indexOf(k), n = DEALER_TEMPLATES.length;
+  openPreview(demoUrl(k), `${i + 1}. ${TEMPLATES[k].name}`, { prev: () => big(DEALER_TEMPLATES[(i - 1 + n) % n]), next: () => big(DEALER_TEMPLATES[(i + 1) % n]) }); };
+g.querySelectorAll("[data-big]").forEach((b) => (b.onclick = () => big(b.dataset.big)));
+bindThumbs(g, (url) => big(new URLSearchParams(url.split("?")[1]).get("template")));
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { TEMPLATES, DEALER_TEMPLATES } from "./templates.js";
 import * as FEEDS from "../feeds.js";
 import { openStudio } from "../admin/studio.js";
 import { ftpPanel } from "../admin/ftpui.js";
+import { thumb, bindThumbs, openPreview } from "./gallery.js";
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -169,12 +170,18 @@ function website(V) {
     ${f("w_apr", "APR for the payment calculator %", s.apr ?? 12.9, "number")}<div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(s.accent || T(tpl).vars.accent)}" style="height:40px;padding:2px"></div>
     <div class="f" style="align-self:end"><button class="b sm" type="button" id="accReset">Use the template's colour</button></div></div></div>
   <h2 class="sec">Design · choose a template</h2>
-  <div class="grid g3">${DEALER_TEMPLATES.map((k) => `<div class="card tpl ${k === tpl ? "on" : ""}" data-tpl="${k}"><div class="sw">${T(k).swatch.map((c) => `<i style="background:${c}"></i>`).join("")}</div><b>${esc(T(k).name)}</b><small style="color:var(--muted)">${esc(T(k).desc)}</small>
-    <div style="display:flex;gap:6px"><a class="b sm" href="${SITE_URL}?template=${k}" target="_blank" rel="noopener">Preview ↗</a><button class="b sm ${k === tpl ? "" : "primary"}" type="button" data-pick="${k}">${k === tpl ? "Selected" : "Choose"}</button></div></div>`).join("")}</div>`;
+  <div class="grid g3">${DEALER_TEMPLATES.map((k) => `<div class="card tpl ${k === tpl ? "on" : ""}" data-tpl="${k}">${thumb(`${SITE_URL}?template=${k}`, "Preview " + T(k).name)}<b>${esc(T(k).name)}</b><small style="color:var(--muted)">${esc(T(k).desc)}</small>
+    <div style="display:flex;gap:6px"><button class="b sm" type="button" data-big="${k}">🔍 Big preview</button><button class="b sm ${k === tpl ? "" : "primary"}" type="button" data-pick="${k}">${k === tpl ? "Selected" : "Choose"}</button></div></div>`).join("")}</div>`;
   let accTouched = false;
   $("#w_acc").oninput = () => (accTouched = true);
   $("#accReset").onclick = () => { s.accent = ""; accTouched = false; $("#w_acc").value = T(tpl).vars.accent; toast("Template colour selected. Click Save."); };
   $$("[data-pick]").forEach((b) => (b.onclick = () => { tpl = b.dataset.pick; $$("[data-tpl]").forEach((c) => c.classList.toggle("on", c.dataset.tpl === tpl)); $$("[data-pick]").forEach((x) => { x.textContent = x.dataset.pick === tpl ? "Selected" : "Choose"; x.classList.toggle("primary", x.dataset.pick !== tpl); }); if (!accTouched && !s.accent) $("#w_acc").value = T(tpl).vars.accent; }));
+  const pick = (k) => document.querySelector(`[data-pick="${k}"]`).click();
+  const big = (k) => { const i = DEALER_TEMPLATES.indexOf(k), n = DEALER_TEMPLATES.length;
+    openPreview(`${SITE_URL}?template=${k}`, T(k).name + " · with your cars", { onUse: () => { pick(k); toast("Chosen. Click Save to put it on your website."); }, useLabel: "Choose this design",
+      prev: () => big(DEALER_TEMPLATES[(i - 1 + n) % n]), next: () => big(DEALER_TEMPLATES[(i + 1) % n]) }); };
+  $$("[data-big]").forEach((b) => (b.onclick = () => big(b.dataset.big)));
+  bindThumbs(V, (url) => big(new URLSearchParams(url.split("?")[1]).get("template")));
   $("#lgFile").onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; $("#lg").textContent = "Uploading…"; try { logo = await upload(fl, 600); $("#lg").innerHTML = `<img src="${esc(logo)}" alt="" style="object-fit:contain">`; } catch (_) { $("#lg").textContent = "Upload failed"; } };
   if ($("#lgDel")) $("#lgDel").onclick = () => { logo = ""; $("#lg").textContent = "No logo"; };
   $("#saveW").onclick = async () => {

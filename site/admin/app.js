@@ -4,6 +4,7 @@ import * as FEEDS from "../feeds.js";
 import { openStudio } from "./studio.js";
 import { ftpPanel } from "./ftpui.js";
 import { TEMPLATES } from "../t/templates.js";
+import { thumb, bindThumbs, openPreview, demoUrl } from "../t/gallery.js";
 
 /* ================= helpers ================= */
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -927,9 +928,9 @@ function websites(V) {
   const st = S(); st.websites = st.websites || [];
   const main = st.mainTemplate || "night";
   const slugify = (t) => String(t || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-  const tplCard = (id, t, cur) => `<div class="card tpl ${cur ? "on" : ""}"><div class="sw">${t.swatch.map((c) => `<i style="background:${c}"></i>`).join("")}</div>
+  const tplCard = (id, t, cur) => `<div class="card tpl ${cur ? "on" : ""}" data-tcard="${id}">${thumb("/?template=" + id, "Preview " + t.name)}
     <b>${esc(t.name)}</b><small style="color:var(--muted)">${esc(t.desc)}</small>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><a class="b sm" href="/?template=${id}" target="_blank" rel="noopener">Preview ↗</a>${cur ? pill("In use", "ok") : `<button class="b sm primary" type="button" data-use="${id}">Use this</button>`}</div></div>`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="b sm" type="button" data-big="${id}">🔍 Big preview</button>${cur ? pill("In use", "ok") : `<button class="b sm primary" type="button" data-use="${id}">Use this</button>`}</div></div>`;
   const W = siteEdit;
   V.innerHTML = `<div class="ph"><div><h1>Websites</h1><p>Choose the look of ${esc(location.host)}, or create more websites from the same inventory.</p></div></div>
   <h2 class="sec">Main website · ${esc(location.host)}</h2>
@@ -951,6 +952,8 @@ function websites(V) {
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_sold" ${W.showSold ? "checked" : ""}> Also show sold cars</label>
       <div class="formft"><button class="b" type="button" id="wCancel">Cancel</button><button class="b primary" type="button" id="wSave">Save website</button></div></div>` : ""}
   <h2 class="sec">Dealer websites · own cars, own login</h2>
+  <div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Template gallery for dealers</b><br><small style="color:var(--muted)">A public page with all 10 designs. Send it to a dealer so they can pick one.</small><br><code style="font-size:13px">${esc(location.origin)}/templates</code></div>
+    <div style="display:flex;gap:6px"><a class="b" href="/templates" target="_blank" rel="noopener">Open ↗</a><button class="b primary" type="button" id="galCopy">Copy link</button></div></div>
   <div class="banner">A complete website for another dealer: their name, logo, phone and cars, and their own simple admin page (add cars, AI photo studio, messages, exports and FTP). You can open every dealer's admin with your own password too.</div>
   <div class="grid g2">${st.websites.filter((w) => w.tenant).map((w) => `<div class="card" style="display:grid;gap:8px">
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:18px">${esc(w.name)}</b>${pill((TEMPLATES[w.template] || TEMPLATES.classic).name, "info")}</div>
@@ -967,11 +970,15 @@ function websites(V) {
         <div class="formft"><button class="b" type="button" id="domCancel">Close</button><button class="b primary" type="button" id="domSave">Save domain</button></div></div>` : ""}</div>`).join("")}
     <button class="card" type="button" id="newDealer" style="cursor:pointer;display:grid;place-items:center;min-height:160px;font-weight:700;border-style:dashed">+ Create a dealer website</button></div>
   ${dealerNew ? `<div class="card" id="dForm" style="margin-top:14px"><h3>New dealer website</h3><div class="fg">
-      ${fld("n_name", "Dealer name", dealerNew.name, "text", "wide")}${fld("n_slug", "Link name", dealerNew.slug)}${sel("n_tpl", "Template", dealerNew.template, DEALER_TPL.map((k) => [k, TEMPLATES[k].name]))}
+      ${fld("n_name", "Dealer name", dealerNew.name, "text", "wide")}${fld("n_slug", "Link name", dealerNew.slug)}<input type="hidden" id="n_tpl" value="${esc(dealerNew.template)}">
       ${fld("n_phone", "Phone", dealerNew.phone, "tel")}${fld("n_email", "Email", dealerNew.email, "email")}${fld("n_street", "Street", dealerNew.street, "text", "wide")}${fld("n_city", "City", dealerNew.city)}${fld("n_state", "State", dealerNew.state)}${fld("n_zip", "ZIP", dealerNew.zip)}
       ${fld("n_dom", "Domain (optional, can be added later)", dealerNew.domain, "text", 'wide placeholder="joesautos.com"')}${fld("n_pw", "Admin password for the dealer (8+ characters)", "", "text")}
       <div class="f w2"><label>Logo</label><div class="photo" id="n_lg" style="aspect-ratio:3/1">${dealerNew.logo ? `<img src="${esc(dealerNew.logo)}" alt="" style="object-fit:contain">` : "No logo"}</div><input type="file" accept="image/*" id="n_lgf" style="font-size:13px;margin-top:6px"></div></div>
+      <h2 class="sec">Choose the design</h2>
+      <div class="grid g3" id="nPick">${DEALER_TPL.map((k) => `<div class="card tpl ${k === dealerNew.template ? "on" : ""}" data-pk="${k}">${thumb(demoUrl(k), "Preview " + TEMPLATES[k].name)}<b>${esc(TEMPLATES[k].name)}</b><small style="color:var(--muted)">${esc(TEMPLATES[k].desc)}</small>
+        <button class="b sm ${k === dealerNew.template ? "" : "primary"}" type="button" data-choose="${k}">${k === dealerNew.template ? "✓ Chosen" : "Choose"}</button></div>`).join("")}</div>
       <div class="formft"><button class="b" type="button" id="nCancel">Cancel</button><button class="b primary" type="button" id="nSave">Create website</button></div></div>` : ""}`;
+  $("#galCopy").onclick = () => navigator.clipboard?.writeText(location.origin + "/templates").then(() => toast("Link copied"));
   // ----- dealer websites -----
   $("#newDealer").onclick = () => { dealerNew = { name: "", slug: "", template: "classic", state: st.state || "" }; websites(V); $("#dForm").scrollIntoView(); $("#n_name").focus(); };
   if (dealerNew) {
@@ -979,6 +986,12 @@ function websites(V) {
     $("#n_slug").oninput = () => (dealerNew.slugTouched = true);
     $("#n_lgf").onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; $("#n_lg").textContent = "Uploading…"; try { dealerNew.logo = await upload(fl, 600); $("#n_lg").innerHTML = `<img src="${esc(dealerNew.logo)}" alt="" style="object-fit:contain">`; } catch (_) { $("#n_lg").textContent = "Upload failed"; } };
     $("#nCancel").onclick = () => { dealerNew = null; websites(V); };
+    const choose = (k) => { dealerNew.template = k; $("#n_tpl").value = k; $$("[data-pk]").forEach((c) => c.classList.toggle("on", c.dataset.pk === k));
+      $$("[data-choose]").forEach((b) => { b.textContent = b.dataset.choose === k ? "✓ Chosen" : "Choose"; b.classList.toggle("primary", b.dataset.choose !== k); }); };
+    $$("[data-choose]").forEach((b) => (b.onclick = () => choose(b.dataset.choose)));
+    const bigD = (k) => { const i = DEALER_TPL.indexOf(k); openPreview(demoUrl(k), TEMPLATES[k].name + " · example", { onUse: () => choose(k), useLabel: "Choose this design",
+      prev: () => bigD(DEALER_TPL[(i - 1 + DEALER_TPL.length) % DEALER_TPL.length]), next: () => bigD(DEALER_TPL[(i + 1) % DEALER_TPL.length]) }); };
+    bindThumbs($("#nPick"), (url) => bigD(new URLSearchParams(url.split("?")[1]).get("template")));
     $("#nSave").onclick = async () => {
       const slug = slugify(v("n_slug") || v("n_name")), pw = v("n_pw"), dom = v("n_dom").replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "").toLowerCase();
       if (!v("n_name")) return toast("Add the dealer name.", 1);
@@ -1011,8 +1024,15 @@ function websites(V) {
   $$("[data-tdel]").forEach((b) => (b.onclick = async () => { const w = st.websites.find((x) => x.id === b.dataset.tdel);
     if (prompt(`This deletes ${w.name}'s website, cars and messages for good. Type DELETE to confirm.`) !== "DELETE") return;
     try { await api(`/api/t/${w.slug}/data`, { method: "DELETE" }); st.websites = st.websites.filter((x) => x.id !== w.id); await saveSite(); toast("Dealer website deleted"); websites(V); } catch (x) { toast(errMsg(x), 1); } }));
-  $$("[data-use]").forEach((b) => (b.onclick = async () => { const prev = st.mainTemplate; st.mainTemplate = b.dataset.use;
-    try { await saveSite(); toast(`Done. ${location.host} now uses ${TEMPLATES[b.dataset.use].name}.`); websites(V); } catch (x) { st.mainTemplate = prev; toast(errMsg(x), 1); } }));
+  const useMain = async (id) => { const prev = st.mainTemplate; st.mainTemplate = id;
+    try { await saveSite(); toast(`Done. ${location.host} now uses ${TEMPLATES[id].name}.`); websites(V); } catch (x) { st.mainTemplate = prev; toast(errMsg(x), 1); } };
+  $$("[data-use]").forEach((b) => (b.onclick = () => useMain(b.dataset.use)));
+  const ids = Object.keys(TEMPLATES);
+  const big = (id) => { const i = ids.indexOf(id);
+    openPreview("/?template=" + id, TEMPLATES[id].name + " · " + TEMPLATES[id].desc, { onUse: id === main ? null : () => useMain(id), useLabel: "Use for " + location.host,
+      prev: () => big(ids[(i - 1 + ids.length) % ids.length]), next: () => big(ids[(i + 1) % ids.length]) }); };
+  $$("[data-big]").forEach((b) => (b.onclick = () => big(b.dataset.big)));
+  bindThumbs(V, (url) => big(new URLSearchParams(url.split("?")[1]).get("template")));
   $("#newSite").onclick = () => { siteEdit = { isNew: true, id: uid("W"), name: "", slug: "", template: "classic", filter: {} }; websites(V); $("#wForm").scrollIntoView(); $("#w_name").focus(); };
   $$("[data-edit]").forEach((b) => (b.onclick = () => { siteEdit = clone(st.websites.find((w) => w.id === b.dataset.edit)); websites(V); $("#wForm").scrollIntoView(); }));
   $$("[data-delw]").forEach((b) => (b.onclick = async () => { if (!confirm("Delete this website? Its link stops working.")) return; const prev = st.websites; st.websites = st.websites.filter((w) => w.id !== b.dataset.delw);

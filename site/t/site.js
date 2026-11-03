@@ -22,7 +22,14 @@ const slug = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1];
 const sites = MS.websites || [];
 const entry = (slug && sites.find((w) => w.slug === slug)) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || null;
 let S, ALL, site;
-if (entry && entry.tenant) {
+const DEMO = new URLSearchParams(location.search).has("demo");
+if (DEMO) {
+  // template gallery: sample dealer details, real cars from the lot
+  S = { name: "Your Dealership", phone: "(555) 123-4567", email: "sales@yourdealership.com", street: "123 Main Street", city: "Your Town", state: "ID", zip: "83300", apr: 12.9,
+    hours: [["Monday – Friday", "9:00 AM – 6:00 PM"], ["Saturday", "10:00 AM – 4:00 PM"], ["Sunday", "Closed"]] };
+  ALL = (data.cars || []).filter((c) => c.status === "lot");
+  site = { ...S, tenant: "", demo: true, filter: {} };
+} else if (entry && entry.tenant) {
   // a separate dealer: its own cars and details, edited at /w/<slug>/admin
   let td = null;
   try { const r = await fetch(`/api/t/${entry.slug}/data`, { cache: "no-store" }); if (r.ok) td = await r.json(); } catch (_) {}
@@ -62,7 +69,7 @@ const title = (c) => `${c.year} ${c.name}`;
 
 const applyUrl = (carId) => "/apply" + (site.tenant ? "?d=" + site.tenant : "") + (carId ? (site.tenant ? "&" : "?") + "car=" + encodeURIComponent(carId) : "");
 function header() {
-  return `<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || site.main || !site.tenant ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
+  return `<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || ((site.main || !site.tenant) && !site.demo) ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
     <nav class="nav"><a href="#inventory">Inventory</a><a href="${applyUrl()}">Financing</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
     ${S.phone ? `<a class="tel" href="${tel}">${esc(S.phone)}</a>` : ""}</div></header>`;
 }
@@ -99,7 +106,7 @@ function drawGrid() {
     <div class="bd"><h3>${esc(c.name)}</h3><div class="sp">${esc([c.trim, c.miles != null ? Number(c.miles).toLocaleString("en-US") + " mi" : "", c.drive, c.ext].filter(Boolean).join(" · "))}</div><div class="pr">${money(c.price)}</div></div></a>`).join("")
     || '<div class="empty">No cars match. Try fewer filters.</div>';
 }
-const aboutImg = site.tenant ? site.aboutImg || (CARS[1] || CARS[0] || {}).img : "/img/showroom.webp";
+const aboutImg = site.tenant || site.demo ? site.aboutImg || (CARS[1] || CARS[0] || {}).img : "/img/showroom.webp";
 function about() {
   return `<section class="s" id="about" style="background:var(--panel);border-block:1px solid var(--line)"><div class="wrap about"><div><h2>About ${esc(name)}</h2>
     <p class="muted" style="font-size:18px">${esc(site.about || `We're a locally owned dealer${S.street ? ` at ${S.street}${S.city ? ", " + S.city : ""}` : ""}. Every car on our lot is hand-picked, inspected and detailed, with a clear price and no pressure. Many of our customers are neighbours who come back, and send their friends.`)}</p>
@@ -123,6 +130,7 @@ function bindForms(rootEl) {
   $$("form[data-lead]", rootEl).forEach((f) => (f.onsubmit = async (e) => {
     e.preventDefault(); const fd = Object.fromEntries(new FormData(f)); const out = $(".msg", f);
     if (!fd.name.trim()) return; if (!fd.phone.trim() && !fd.email.trim()) { out.innerHTML = '<div class="ok">Add a phone number or an email so we can reach you.</div>'; return; }
+    if (site.demo) { out.innerHTML = '<div class="ok">This is a demo. On your website, messages go straight to your admin page.</div>'; return; }
     const b = $("button", f); b.disabled = true;
     try {
       const r = await fetch("/api/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...fd, type: f.dataset.lead, carId: f.dataset.car, site: site.main || site.tenant ? "" : name, tenant: site.tenant || "" }) });
