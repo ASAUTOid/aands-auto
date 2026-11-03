@@ -25,7 +25,21 @@ let S, ALL, site;
 const DEMO = new URLSearchParams(location.search).has("demo");
 if (DEMO) {
   // template gallery: sample dealer details, real cars from the lot
-  S = { name: "Your Dealership", phone: "(555) 123-4567", email: "sales@yourdealership.com", street: "123 Main Street", city: "Your Town", state: "ID", zip: "83300", apr: 12.9,
+  // a different made-up dealer for each template
+  const DEMOS = {
+    classic: ["Summit Ridge Motors", "Twin Falls", "214 Blue Lakes Blvd", "83301", "0142"],
+    bold: ["Big Rig Auto Sales", "Pocatello", "88 Yellowstone Ave", "83201", "0187"],
+    minimal: ["Northline Autos", "Boise", "1200 W Fairview Ave", "83702", "0119"],
+    sport: ["Redline Car Co.", "Nampa", "450 Caldwell Blvd", "83651", "0163"],
+    country: ["Snake River Trucks", "Jerome", "31 S Lincoln Ave", "83338", "0175"],
+    luxury: ["Golden Mile Motorcars", "Meridian", "3300 E Overland Rd", "83642", "0128"],
+    ocean: ["Blue Harbor Auto", "Coeur d'Alene", "705 N Lakeshore Dr", "83814", "0151"],
+    urban: ["Downtown Drive", "Idaho Falls", "560 W Broadway St", "83402", "0194"],
+    family: ["Happy Road Autos", "Rexburg", "140 N 2nd E", "83440", "0136"],
+    budget: ["Cash Car Corner", "Caldwell", "905 Cleveland Blvd", "83605", "0181"],
+  };
+  const dm = DEMOS[new URLSearchParams(location.search).get("template")] || DEMOS.classic;
+  S = { name: dm[0], phone: "(555) 555-" + dm[4], email: "sales@" + dm[0].toLowerCase().replace(/[^a-z]/g, "") + ".com", street: dm[2], city: dm[1], state: "ID", zip: dm[3], apr: 12.9,
     hours: [["Monday – Friday", "9:00 AM – 6:00 PM"], ["Saturday", "10:00 AM – 4:00 PM"], ["Sunday", "Closed"]] };
   ALL = (data.cars || []).filter((c) => c.status === "lot");
   site = { ...S, tenant: "", demo: true, filter: {} };
