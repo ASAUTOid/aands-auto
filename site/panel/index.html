@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Dealer panel · DealerVexa</title>
+<link rel="icon" href="/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/admin/app.css">
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <form id="loginForm" class="login-card">
+    <img src="/img/logo.png" alt="" id="loginLogo">
+    <h1>Dealer panel</h1>
+    <p>Enter your password to open your DealerVexa panel.</p>
+    <input type="password" id="loginPw" autocomplete="current-password" placeholder="Password" aria-label="Password">
+    <button class="b primary" type="submit">Log in</button>
+    <p class="err" id="loginErr"></p>
+  </form>
+</div>
+
+<div id="app" class="app" hidden>
+  <aside class="side" id="side">
+    <a class="logo" href="#/dashboard"><img src="/img/logo.png" alt=""><span><b>A &amp; S Auto</b><small>DEALER DASHBOARD</small></span></a>
+    <nav id="nav"></nav>
+    <div class="side-ft"><a id="viewSite" href="/" target="_blank" rel="noopener">View website ↗</a><button class="linkish" id="logout" type="button">Log out</button></div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <button class="burger" id="burger" type="button" aria-label="Menu">☰</button>
+      <div class="search"><input id="q" type="search" placeholder="Search cars, VIN, stock #, customers, leads…" aria-label="Search"><div id="qres" class="qres" hidden></div></div>
+      <div class="top-act">
+        <a class="b sm" href="#/inventory/new">+ Car</a>
+        <a class="b sm" href="#/deals/new">+ Deal</a>
+        <a class="b sm" href="#/leads/new">+ Lead</a>
+      </div>
+    </header>
+    <main id="view" class="view"></main>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/admin/app.js"></script>
+</body>
+</html>

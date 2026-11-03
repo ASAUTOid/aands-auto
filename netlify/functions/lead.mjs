@@ -23,11 +23,11 @@ export default async (req) => {
     if (!/^[a-z0-9-]+$/.test(tenant)) return json({ error: "bad_site" }, 400);
     const ts = getStore({ name: "tenants", consistency: "strong" });
     if (!(await ts.get("site/" + tenant, { type: "json" }))) return json({ error: "not_found" }, 404);
-    const map = (await ts.get("leads/" + tenant, { type: "json" })) || {};
+    const map = (await ts.get(`db/${tenant}/leads`, { type: "json" })) || {};
     if (Object.keys(map).length > 5000) return json({ error: "full" }, 507);
     const id = newId("L");
     map[id] = { ...lead, source: "Website", id, createdAt: new Date().toISOString() };
-    await ts.setJSON("leads/" + tenant, map);
+    await ts.setJSON(`db/${tenant}/leads`, map);
     return json({ ok: true });
   }
   const all = await readAll("leads");

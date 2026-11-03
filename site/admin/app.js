@@ -30,6 +30,21 @@ const DEAL_TYPES = { cash: "Cash", bhph: "Buy Here Pay Here", outside: "Outside 
 const FREQ = { monthly: ["Monthly", 12], biweekly: ["Every 2 weeks", 26], weekly: ["Weekly", 52] };
 const PAY_METHODS = ["Cash", "Card", "Check", "ACH / Bank transfer", "Money order", "Other"];
 
+// The same panel runs for A & S at /panel/ and for every DealerVexa dealer at /w/<slug>/admin
+const TSLUG = (location.pathname.match(/^\/w\/([a-z0-9-]+)\/admin/) || [])[1] || null;
+const P = TSLUG ? {
+  data: `/api/t/${TSLUG}/data`, db: (c, id) => `/api/t/${TSLUG}/db/${c}` + (id ? "/" + id : ""), upload: `/api/t/${TSLUG}/upload`, login: `/api/t/${TSLUG}/login`, password: `/api/t/${TSLUG}/password`,
+  site: `/w/${TSLUG}`, feed: (k) => `/feeds/t/${TSLUG}/${k}.csv`, insp: (id) => `/inspection?car=${encodeURIComponent(id)}&d=${TSLUG}`, apply: `/apply?d=${TSLUG}`, pwKey: "tpw:" + TSLUG,
+} : {
+  data: "/api/data", db: (c, id) => "/api/db/" + c + (id ? "/" + id : ""), upload: "/api/upload", login: "/api/login", password: "/api/password",
+  site: "", feed: (k) => `/feeds/${k}.csv`, insp: (id) => "/inspection?car=" + encodeURIComponent(id), apply: "/apply", pwKey: "admPw",
+};
+let ROLE = "owner";
+const SLUGR = TSLUG || "aands", WHERE = "panel";
+// send errors to DealerVexa HQ so problems are seen and fixed
+const reportErr = (() => { let n = 0; return (message, stack, where) => { if (!message || n++ > 8) return; try { fetch("/api/report", { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body: JSON.stringify({ where, slug: SLUGR, message: String(message).slice(0, 400), stack: String(stack || "").slice(0, 1500), url: location.href }) }); } catch (_) {} }; })();
+addEventListener("error", (e) => reportErr(e.message, e.error && e.error.stack, WHERE));
+addEventListener("unhandledrejection", (e) => reportErr((e.reason && (e.reason.message || e.reason.code)) || String(e.reason), e.reason && e.reason.stack, WHERE));
 let PW = "";
 let SITE = null; // public website data: { settings, cars }
 const DB = { leads: [], customers: [], deals: [], costs: [], payments: [], tasks: [], appts: [], recon: [], templates: [], expenses: [] };
@@ -42,40 +57,42 @@ async function api(url, opt = {}) {
   const r = await fetch(url, { ...opt, headers: { ...(opt.headers || {}), "x-admin-password": PW } });
   let b = null; try { b = await r.json(); } catch (_) {}
   if (r.status === 401) { logout(); throw { code: "unauthorized" }; }
-  if (!r.ok) throw { code: (b && b.error) || "http_" + r.status };
+  if (!r.ok) { if (r.status >= 500) reportErr(`Server error ${r.status} on ${url}`, (b && b.error) || "", "panel-api"); throw { code: (b && b.error) || "http_" + r.status }; }
   return b;
 }
 const errMsg = (x) => "Could not save (" + ((x && x.code) || "error") + "). Check your connection and try again.";
 
 /* ================= data ================= */
 async function loadSite() {
-  const r = await fetch("/api/data", { cache: "no-store" });
+  const r = await fetch(P.data, { cache: "no-store" });
   if (r.status === 200) return r.json();
+  if (TSLUG) throw { code: "dealer_not_found" };
   // nothing saved yet: read the copy built into the website
   const html = await (await fetch("/index.html", { cache: "no-store" })).text();
   const doc = new DOMParser().parseFromString(html, "text/html");
   return JSON.parse(doc.getElementById("site-data").textContent);
 }
 async function loadAll() {
-  const [site, ...cols] = await Promise.all([loadSite(), ...Object.keys(DB).map((c) => api("/api/db/" + c))]);
+  const [site, ...cols] = await Promise.all([loadSite(), ...Object.keys(DB).map((c) => api(P.db(c)))]);
   SITE = site;
-  SITE.settings = Object.assign({ name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] }, SITE.settings);
+  SITE.settings = Object.assign(TSLUG ? { name: "", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] } : { name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] }, SITE.settings);
   Object.keys(DB).forEach((c, i) => (DB[c] = cols[i] || []));
   // photo paths from the original site are relative ("img/v17.webp"); make them work from every page
   const absP = (u) => (u && !/^(\/|https?:|data:|blob:)/.test(u) ? "/" + u : u);
   SITE.cars.forEach((c) => { c.img = absP(c.img); c.cut = absP(c.cut); });
 }
 async function saveSite() {
-  await api("/api/data", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(SITE) });
+  delete SITE.suspended;
+  await api(P.data, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(SITE) });
 }
 async function saveRec(col, rec) {
-  const saved = await api(`/api/db/${col}/${rec.id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(rec) });
+  const saved = await api(P.db(col, rec.id), { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(rec) });
   const i = DB[col].findIndex((x) => x.id === rec.id);
   if (i >= 0) DB[col][i] = saved; else DB[col].push(saved);
   return saved;
 }
 async function delRec(col, id) {
-  await api(`/api/db/${col}/${id}`, { method: "DELETE" });
+  await api(P.db(col, id), { method: "DELETE" });
   DB[col] = DB[col].filter((x) => x.id !== id);
 }
 const S = () => SITE.settings;
@@ -147,24 +164,27 @@ const bhphDeals = () => DB.deals.filter((d) => d.type === "bhph" && d.status ===
 
 /* ================= login ================= */
 async function tryLogin(pw) {
-  try { const r = await fetch("/api/login", { method: "POST", headers: { "x-admin-password": pw } }); return r.status === 401 ? false : r.ok ? true : null; }
+  try { const r = await fetch(P.login, { method: "POST", headers: { "x-admin-password": pw } }); if (r.status === 401) return false; if (!r.ok) return null; try { ROLE = (await r.json()).role || "owner"; } catch (_) {} return true; }
   catch (_) { return null; }
 }
 function logout() {
-  PW = ""; try { sessionStorage.removeItem("admPw"); } catch (_) {}
+  PW = ""; try { sessionStorage.removeItem(P.pwKey); } catch (_) {}
   $("#app").hidden = true; $("#login").hidden = false; $("#loginPw").value = ""; $("#loginPw").focus();
 }
 async function boot() {
+  // dealer's own name and logo on the login screen
+  if (TSLUG) try { const d = await (await fetch(P.data, { cache: "no-store" })).json(); const h = $("#login h1"), im = $("#loginLogo") || $("#login img");
+    if (h) h.textContent = d.settings?.name || "Dealer panel"; if (im) { if (d.settings?.logo) im.src = d.settings.logo; else im.hidden = true; } document.title = (d.settings?.name || "Dealer") + " · DealerVexa"; } catch (_) {}
   // on a dealer's own domain, /admin/ opens that dealer's simple admin
-  try { const h = location.hostname.replace(/^www\./, ""), m = await (await fetch("/api/data", { cache: "no-store" })).json();
+  if (!TSLUG) try { const h = location.hostname.replace(/^www\./, ""), m = await (await fetch("/api/data", { cache: "no-store" })).json();
     const w = (m.settings?.websites || []).find((x) => x.tenant && x.domain === h); if (w) return location.replace(`/w/${w.slug}/admin`); } catch (_) {}
-  let saved = ""; try { saved = sessionStorage.getItem("admPw") || ""; } catch (_) {}
+  let saved = ""; try { saved = sessionStorage.getItem(P.pwKey) || ""; } catch (_) {}
   if (saved && (await tryLogin(saved))) return start(saved);
   $("#login").hidden = false; $("#loginPw").focus();
   $("#loginForm").onsubmit = async (e) => {
     e.preventDefault(); const pw = $("#loginPw").value, er = $("#loginErr"); er.textContent = "Checking…";
     const ok = await tryLogin(pw);
-    if (ok) { er.textContent = ""; try { sessionStorage.setItem("admPw", pw); } catch (_) {} start(pw); }
+    if (ok) { er.textContent = ""; try { sessionStorage.setItem(P.pwKey, pw); } catch (_) {} start(pw); }
     else er.textContent = ok === null ? "Could not reach the server. Try again." : "Wrong password.";
   };
 }
@@ -172,6 +192,10 @@ async function start(pw) {
   PW = pw; $("#login").hidden = true; $("#app").hidden = false;
   $("#view").innerHTML = '<p class="empty">Loading…</p>';
   try { await loadAll(); } catch (x) { $("#view").innerHTML = `<p class="empty">Could not load your data (${esc(x.code || x.message || "error")}). Reload the page.</p>`; return; }
+  const lg = $(".logo"); if (lg) lg.innerHTML = `${S().logo || !TSLUG ? `<img src="${esc(S().logo || "/img/logo.png")}" alt="">` : ""}<span><b>${esc(S().name || "My dealership")}</b><small>DEALERVEXA</small></span>`;
+  document.title = (S().name || "Dealer") + " · DealerVexa";
+  const vw = $("#viewSite") || $(".side-ft a"); if (vw) vw.href = (P.site || "") + "/";
+  if (SITE.suspended && ROLE === "dealer") setTimeout(() => toast("Your account is paused. Open Billing to pay and switch it back on.", 1), 600);
   $("#logout").onclick = logout;
   $("#burger").onclick = () => document.body.classList.toggle("nav-open");
   setupSearch();
@@ -184,7 +208,7 @@ const NAV = [
   ["Sales", [["inventory", "🚗", "Inventory"], ["studio", "✨", "Photo studio"], ["recon", "🔧", "Recon"], ["leads", "☎", "Leads"], ["calendar", "📅", "Calendar"], ["tasks", "✓", "Tasks"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"], ["opportunities", "🎯", "Opportunities"]]],
   ["Finance", [["collections", "$", "Collections"], ["expenses", "🧾", "Expenses"], ["reports", "📈", "Reports"]]],
   ["Online", [["marketing", "📣", "Marketing"], ["websites", "🌐", "Websites"]]],
-  ["", [["templates", "✉", "Message templates"], ["settings", "⚙", "Settings"]]],
+  ["", [["templates", "✉", "Message templates"], ["settings", "⚙", "Settings"], ...(TSLUG ? [["billing", "💳", "Billing"], ["help", "🛟", "Help"]] : [])]],
 ];
 function renderNav(page) {
   const newLeads = DB.leads.filter((l) => l.status === "new").length;
@@ -201,8 +225,8 @@ function route() {
   renderNav(page);
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
-    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, studio: (V2) => bulkStudio(V2, photoEnv()), inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
-      openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: "/inspection?car=" + id2, upload: (f) => upload(f, 1400),
+    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, studio: (V2) => bulkStudio(V2, photoEnv()), billing: billingPage, help: helpPage, inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
+      openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: P.insp(id2), upload: (f) => upload(f, 1400),
         onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await saveSite(); } catch (x) { k.inspection = prev; throw x; } } }); } };
   (pages[page] || dashboard)(V, id, q);
 }
@@ -264,7 +288,7 @@ async function shrink(file, max) {
 }
 async function upload(file, max) {
   const blob = await shrink(file, max);
-  return (await api("/api/upload", { method: "POST", headers: { "content-type": "image/webp" }, body: blob })).url;
+  return (await api(P.upload, { method: "POST", headers: { "content-type": "image/webp" }, body: blob })).url;
 }
 
 // photo tools: upload, background library (ours + the dealer's own), bulk save
@@ -392,7 +416,7 @@ function carEdit(V, id, q) {
   V.innerHTML = `
   <div class="crumb"><a href="#/inventory">Inventory</a> / ${isNew ? "New car" : esc(carTitle(c))}</div>
   <div class="ph"><div><h1>${isNew ? "Add a car" : esc(carTitle(c))}</h1>${isNew ? "" : `<p>${carStatusPill(c)} ${c.stock ? "· Stock #" + esc(c.stock) : ""}</p>`}</div>
-    <div class="act">${isNew ? "" : `<a class="b" href="/?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview</a><button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/inspect/${esc(c.id)}">📋 Inspection</a><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
+    <div class="act">${isNew ? "" : `<a class="b" href="${P.site || "/"}?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview</a><button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/inspect/${esc(c.id)}">📋 Inspection</a><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
   <div class="split">
     <div class="grid">
       <div class="card"><h3>Vehicle</h3>
@@ -860,7 +884,7 @@ function marketing(V) {
   const st = S(); st.feeds = st.feeds || {};
   for (const k of Object.keys(FEEDS.PRESETS)) st.feeds[k] = st.feeds[k] || { dealerId: "", includeSold: false };
   st.feeds.custom = st.feeds.custom || clone(FEEDS.DEFAULT_CUSTOM);
-  const C = st.feeds.custom, url = (k) => location.origin + "/feeds/" + k + ".csv";
+  const C = st.feeds.custom, url = (k) => location.origin + P.feed(k);
   const iS = 'style="width:100%;min-width:0;border:1px solid var(--line);border-radius:4px;padding:6px;background:var(--panel)"';
   const opts = (s) => `<option value="fixed" ${s === "fixed" ? "selected" : ""}>✎ Fixed value (type it)</option>` + Object.entries(FEEDS.FIELDS).map(([k, [l]]) => `<option value="${k}" ${s === k ? "selected" : ""}>${esc(l)}</option>`).join("");
   let adCar = (SITE.cars.find((c) => c.status === "lot") || {}).id;
@@ -909,7 +933,8 @@ function marketing(V) {
     <div class="card" style="margin-top:14px"><h3>What's posted where</h3>${table([{ h: "Car", f: (c) => `<b>${esc(carTitle(c))}</b><span class="sub">${money(c.price)}</span>` },
       ...FEEDS.CLASSIFIEDS.map(([k, l]) => ({ h: l, f: (c) => { const d = posted(c.id)[k]; if (!d) return '<span style="color:var(--dim)">—</span>'; const age = days(d); return `<span style="color:${age > 30 ? "var(--warn)" : "var(--ok)"}">${fdate(d)}${age > 30 ? " · repost" : ""}</span>`; } }))], lotCars)}</div>`;
     const J = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
-    ftpPanel($("#ftpBox"), { get: () => api("/api/ftp"), put: (c) => api("/api/ftp", J("PUT", c)), send: (feed) => api("/api/ftp", J("POST", { feed })) }, toast);
+    ftpPanel($("#ftpBox"), TSLUG ? { get: () => api(`/api/t/${TSLUG}/ftp`), put: (c) => api(`/api/t/${TSLUG}/ftp`, J("PUT", c)), send: (feed) => api(`/api/t/${TSLUG}/ftpsend`, J("POST", { feed, base: location.origin + P.site })) }
+      : { get: () => api("/api/ftp"), put: (c) => api("/api/ftp", J("PUT", c)), send: (feed) => api("/api/ftp", J("POST", { feed })) }, toast);
     $("#adCar")?.addEventListener("change", (e) => { adCar = e.target.value; draw(); document.getElementById("classifieds").scrollIntoView(); });
     $("#clCity").oninput = (e) => (st.craigslistCity = e.target.value.trim());
     $$("[data-cp]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText($("#" + b.dataset.cp).value).then(() => toast("Copied"))));
@@ -942,6 +967,7 @@ let siteEdit = null, dealerNew = null, domEdit = null;
 const DEALER_TPL = Object.keys(TEMPLATES).filter((k) => !TEMPLATES[k].original);
 const netlifyHost = () => S().netlifyHost || "aands-auto.netlify.app";
 function websites(V) {
+  if (TSLUG) return siteDesign(V);
   const st = S(); st.websites = st.websites || [];
   const main = st.mainTemplate || "night";
   const slugify = (t) => String(t || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -1071,6 +1097,74 @@ function websites(V) {
   }
 }
 
+/* ================= a dealer's own website (DealerVexa dealers) ================= */
+function siteDesign(V) {
+  const s = S(), base = location.origin + P.site;
+  s.hours = s.hours && s.hours.length ? s.hours : [["Monday – Friday", "9:00 AM – 6:00 PM"], ["Saturday", "10:00 AM – 4:00 PM"], ["Sunday", "Closed"]];
+  let tpl = s.template || "classic", logo = s.logo || "", accTouched = false;
+  const T = (k) => TEMPLATES[k];
+  V.innerHTML = `<div class="ph"><div><h1>My website</h1><p><a href="${esc(base)}" target="_blank" rel="noopener">${esc(base)} ↗</a></p></div><div class="act"><button class="b primary" type="button" id="wSave2">Save</button></div></div>
+  <div class="grid g2"><div class="card"><h3>Logo</h3><div class="photo" id="lg" style="aspect-ratio:3/1">${logo ? `<img src="${esc(logo)}" alt="" style="object-fit:contain">` : "No logo yet (your name is shown instead)"}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="lgFile" style="font-size:13px;flex:1">${logo ? '<button class="b sm" type="button" id="lgDel">Remove</button>' : ""}</div></div>
+    <div class="card"><h3>Texts & colour</h3><div class="fg">${fld("w_head", "Headline", s.heroTitle, "text", 'wide placeholder="Quality used cars"')}${area("w_tag", "Intro under the headline", s.tagline)}${area("w_about", "About us", s.about)}
+      <div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(s.accent || T(tpl).vars.accent)}" style="height:40px;padding:2px"></div>
+      <div class="f" style="align-self:end"><button class="b sm" type="button" id="accReset">Use the template's colour</button></div></div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_insp" ${s.showInspections !== false ? "checked" : ""}> Show inspection reports on my website</label></div></div>
+  <p style="color:var(--muted);font-size:14px">Your business name, phone, address and hours are in <a href="#/settings">Settings</a>. Your domain is connected for you by DealerVexa.</p>
+  <h2 class="sec">Design · choose a template</h2>
+  <div class="grid g3">${DEALER_TPL.map((k) => `<div class="card tpl ${k === tpl ? "on" : ""}" data-tpl="${k}">${thumb(`${P.site}?template=${k}`, "Preview " + T(k).name)}<b>${esc(T(k).name)}</b><small style="color:var(--muted)">${esc(T(k).desc)}</small>
+    <div style="display:flex;gap:6px"><button class="b sm" type="button" data-big="${k}">🔍 Big preview</button><button class="b sm ${k === tpl ? "" : "primary"}" type="button" data-pick="${k}">${k === tpl ? "✓ Chosen" : "Choose"}</button></div></div>`).join("")}</div>`;
+  const pick = (k) => { tpl = k; $$("[data-tpl]").forEach((c) => c.classList.toggle("on", c.dataset.tpl === k)); $$("[data-pick]").forEach((x) => { x.textContent = x.dataset.pick === k ? "✓ Chosen" : "Choose"; x.classList.toggle("primary", x.dataset.pick !== k); }); if (!accTouched && !s.accent) $("#w_acc").value = T(k).vars.accent; };
+  $$("[data-pick]").forEach((b) => (b.onclick = () => pick(b.dataset.pick)));
+  const big = (k) => { const i = DEALER_TPL.indexOf(k), n = DEALER_TPL.length;
+    openPreview(`${P.site}?template=${k}`, T(k).name + " · with your cars", { onUse: () => { pick(k); toast("Chosen. Click Save to put it on your website."); }, useLabel: "Choose this design", prev: () => big(DEALER_TPL[(i - 1 + n) % n]), next: () => big(DEALER_TPL[(i + 1) % n]) }); };
+  $$("[data-big]").forEach((b) => (b.onclick = () => big(b.dataset.big)));
+  bindThumbs(V, (url) => big(new URLSearchParams(url.split("?")[1]).get("template")));
+  $("#w_acc").oninput = () => (accTouched = true);
+  $("#accReset").onclick = () => { s.accent = ""; accTouched = false; $("#w_acc").value = T(tpl).vars.accent; toast("Template colour selected. Click Save."); };
+  $("#lgFile").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; $("#lg").textContent = "Uploading…"; try { logo = await upload(f, 600); $("#lg").innerHTML = `<img src="${esc(logo)}" alt="" style="object-fit:contain">`; } catch (_) { $("#lg").textContent = "Upload failed"; } };
+  if ($("#lgDel")) $("#lgDel").onclick = () => { logo = ""; $("#lg").textContent = "No logo"; };
+  $("#wSave2").onclick = async () => { const before = clone(s);
+    Object.assign(s, { logo, template: tpl, heroTitle: v("w_head"), tagline: v("w_tag"), about: v("w_about"), accent: accTouched ? v("w_acc") : s.accent || "", showInspections: $("#w_insp").checked });
+    try { await saveSite(); toast("Saved. Your website is updated."); start2Brand(); } catch (x) { Object.assign(s, before); toast(errMsg(x), 1); } };
+}
+function start2Brand() { const lg = $(".logo"); if (lg) lg.innerHTML = `${S().logo ? `<img src="${esc(S().logo)}" alt="">` : ""}<span><b>${esc(S().name || "My dealership")}</b><small>DEALERVEXA</small></span>`; }
+
+/* ================= billing (DealerVexa dealers) ================= */
+async function billingPage(V) {
+  V.innerHTML = '<p class="empty">Loading…</p>';
+  let b; try { b = await api(`/api/t/${TSLUG}/billing`); } catch (x) { V.innerHTML = `<p class="empty">${esc(errMsg(x))}</p>`; return; }
+  const plan = b.plans.find((p) => p.id === b.status.plan) || {}, wallets = Object.entries(b.wallets || {}).filter(([, a]) => a);
+  const open = b.invoices.filter((i) => i.status === "unpaid" || i.status === "submitted");
+  V.innerHTML = `<div class="ph"><div><h1>Billing</h1><p>Your DealerVexa plan and payments. We accept crypto.</p></div></div>
+  ${b.status.suspended ? '<div class="banner warn">Your account is paused. Pay the open invoice below and we\'ll switch it back on as soon as the payment arrives.</div>' : ""}
+  <div class="grid g3" style="margin-bottom:14px"><div class="card kpi"><span>Plan</span><b>${esc(plan.name || b.status.plan || "—")}</b><small>${plan.price ? money(plan.price) + " / month" : ""}</small></div>
+    <div class="card kpi"><span>Paid until</span><b style="font-size:26px">${b.status.paidUntil ? fdate(b.status.paidUntil) : "—"}</b></div><div class="card kpi"><span>Open invoices</span><b>${open.length}</b></div></div>
+  ${open.map((i) => `<div class="card" style="margin-bottom:14px"><h3>Invoice · ${esc(i.period || "")} <span>${i.status === "submitted" ? pill("Payment sent, we're checking it", "info") : pill("To pay", "warn")}</span></h3>
+    <p style="font-size:22px;margin:0 0 10px"><b>${money2(i.amount)}</b> <small style="color:var(--muted)">in USD, pay the same value in crypto</small></p>
+    ${wallets.length ? `<div class="tw"><table class="t"><tbody>${wallets.map(([c, a]) => `<tr><td><b>${esc(c)}</b></td><td style="font-family:var(--mono);font-size:12px;overflow-wrap:anywhere">${esc(a)}</td><td class="r"><button class="b sm" type="button" data-copy="${esc(a)}">Copy</button></td></tr>`).join("")}</tbody></table></div>` : '<p style="color:var(--muted)">Payment addresses are coming soon. Contact DealerVexa.</p>'}
+    ${i.status === "unpaid" && wallets.length ? `<div class="fg" style="margin-top:12px">${sel("coin_" + i.id, "I paid with", wallets[0][0], wallets.map(([c]) => c))}${fld("tx_" + i.id, "Transaction ID (hash)", "", "text", "wide")}<div class="f" style="align-self:end"><button class="b primary" type="button" data-paid="${esc(i.id)}">I've paid</button></div></div>` : ""}</div>`).join("")}
+  <h2 class="sec">Invoice history</h2>${table([{ h: "Date", f: (i) => fdate((i.createdAt || "").slice(0, 10)) }, { h: "For", f: (i) => esc(i.period || "") }, { h: "Amount", r: 1, f: (i) => money2(i.amount) }, { h: "Status", f: (i) => (i.status === "paid" ? pill("Paid", "ok") : i.status === "submitted" ? pill("Checking", "info") : i.status === "void" ? pill("Cancelled") : pill("To pay", "warn")) }], b.invoices)}`;
+  $$("[data-copy]").forEach((x) => (x.onclick = () => navigator.clipboard?.writeText(x.dataset.copy).then(() => toast("Address copied"))));
+  $$("[data-paid]").forEach((x) => (x.onclick = async () => { const id = x.dataset.paid, tx = v("tx_" + id); if (!tx) return toast("Paste the transaction ID from your wallet.", 1);
+    try { await api(`/api/t/${TSLUG}/billing`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoiceId: id, coin: v("coin_" + id), txHash: tx }) }); toast("Thanks! We'll confirm your payment shortly."); billingPage(V); } catch (x2) { toast(errMsg(x2), 1); } }));
+}
+
+/* ================= help (DealerVexa dealers) ================= */
+async function helpPage(V) {
+  V.innerHTML = '<p class="empty">Loading…</p>';
+  let T = []; try { T = await api(`/api/t/${TSLUG}/help`); } catch (x) { V.innerHTML = `<p class="empty">${esc(errMsg(x))}</p>`; return; }
+  V.innerHTML = `<div class="ph"><div><h1>Help</h1><p>Stuck? Write to the DealerVexa team. We can also open your panel to help you directly.</p></div></div>
+  <div class="card" style="margin-bottom:14px"><h3>New question</h3><div class="fg">${fld("h_subj", "Subject", "", "text", 'wide placeholder="e.g. My Facebook export does not upload"')}${area("h_text", "What happened? What did you expect?", "")}</div>
+    <div class="formft"><button class="b primary" type="button" id="hSend">Send</button></div></div>
+  ${T.map((t) => `<div class="card" style="margin-bottom:12px"><h3>${esc(t.subject)} <span>${t.status === "answered" ? pill("Answered", "ok") : t.status === "closed" ? pill("Closed") : pill("Waiting for us", "info")}</span></h3>
+    ${t.messages.map((mm) => `<div class="note" style="border-left-color:${mm.from === "hq" ? "var(--brand)" : "var(--line)"}"><b>${mm.from === "hq" ? "DealerVexa" : "You"}</b> <small style="display:inline">${fdt(mm.at)}</small><div style="white-space:pre-wrap">${esc(mm.text)}</div></div>`).join("")}
+    ${t.status !== "closed" ? `<div style="display:flex;gap:8px;margin-top:8px"><input data-rep="${esc(t.id)}" placeholder="Write a reply…" style="flex:1;border:1px solid var(--line);border-radius:6px;padding:9px;background:var(--panel)"><button class="b" type="button" data-send="${esc(t.id)}">Reply</button></div>` : ""}</div>`).join("") || '<p style="color:var(--muted)">No questions yet.</p>'}`;
+  const send = async (payload) => { try { await api(`/api/t/${TSLUG}/help`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); toast("Sent. We'll answer here soon."); helpPage(V); } catch (x) { toast(errMsg(x), 1); } };
+  $("#hSend").onclick = () => { const t = v("h_text"); if (!t) return toast("Write your question first.", 1); send({ subject: v("h_subj"), text: t, page: location.hash }); };
+  $$("[data-send]").forEach((b) => (b.onclick = () => { const i = $(`[data-rep="${b.dataset.send}"]`); if (!i.value.trim()) return; send({ ticketId: b.dataset.send, text: i.value.trim() }); }));
+}
+
 /* ================= settings ================= */
 function settings(V) {
   const st = S();
@@ -1083,19 +1177,23 @@ function settings(V) {
       ${area("s_sp", "Salespeople (one per line)", (st.salespeople || []).join("\n"))}</div></div>
     <div class="card"><h3>Admin password</h3><p style="color:var(--muted);margin:0 0 12px;font-size:14px">The password set in Netlify (ADMIN_PASSWORD) always keeps working as a backup key.</p>
       <div class="fg">${fld("pw1", "New password (8+ characters)", "", "password")}${fld("pw2", "Repeat new password", "", "password")}</div><div class="formft"><button class="b" type="button" id="pwGo">Change password</button></div>
-      <h2 class="sec">Website</h2><label class="chk"><input type="checkbox" id="s_insp" ${st.showInspections !== false ? "checked" : ""}> Show inspection reports on the website</label>
-      <h2 class="sec">Appearance</h2>${seg("theme", [["", "Automatic"], ["light", "Light"], ["dark", "Dark"]], document.documentElement.dataset.theme || "")}</div>
+      <h2 class="sec">Website</h2><label class="chk"><input type="checkbox" id="s_insp" ${st.showInspections !== false ? "checked" : ""}> Show inspection reports on the website</label></div>
+    <div class="card" style="grid-column:1/-1"><h3>Custom code · header & footer</h3>
+      <p style="color:var(--muted);font-size:14px;margin:-6px 0 12px">Paste code you get from CARFAX (dealer badges, widgets), Google Analytics, Facebook / TikTok Pixel, chat widgets and similar. Header code goes inside &lt;head&gt;, footer code at the end of the page.${TSLUG ? " For security it runs only on your own domain, not on the shared DealerVexa address." : ""} Only paste code from companies you trust.</p>
+      <div class="fg"><div class="f wf"><label for="s_head">Header code</label><textarea id="s_head" spellcheck="false" style="font:12px/1.5 var(--mono);min-height:120px" placeholder="&lt;script src=&quot;https://…&quot;&gt;&lt;/script&gt;">${esc(st.customHead || "")}</textarea></div>
+        <div class="f wf"><label for="s_body">Footer code</label><textarea id="s_body" spellcheck="false" style="font:12px/1.5 var(--mono);min-height:120px">${esc(st.customBody || "")}</textarea></div></div>
+      </div><div class="card"><h3>Appearance of this panel</h3>${seg("theme", [["", "Automatic"], ["light", "Light"], ["dark", "Dark"]], document.documentElement.dataset.theme || "")}</div>
   </div>`;
   $("#setSave").onclick = async () => {
     Object.assign(st, { name: v("s_name"), phone: v("s_phone"), email: v("s_email"), street: v("s_street"), city: v("s_city"), state: v("s_state"), zip: v("s_zip"), license: v("s_lic"),
-      taxRate: vn("s_tax") ?? 0, docFee: vn("s_doc") ?? 0, titleFee: vn("s_title") ?? 0, apr: vn("s_apr") ?? 0, salespeople: v("s_sp").split("\n").map((s) => s.trim()).filter(Boolean), showInspections: $("#s_insp").checked });
+      taxRate: vn("s_tax") ?? 0, docFee: vn("s_doc") ?? 0, titleFee: vn("s_title") ?? 0, apr: vn("s_apr") ?? 0, salespeople: v("s_sp").split("\n").map((s) => s.trim()).filter(Boolean), showInspections: $("#s_insp").checked, customHead: $("#s_head").value.trim(), customBody: $("#s_body").value.trim() });
     st.hours.forEach((h, i) => (h[1] = v("s_h" + i)));
     try { await saveSite(); toast("Saved. The website is updated."); } catch (x) { toast(errMsg(x), 1); }
   };
   $("#pwGo").onclick = async () => {
     const a = $("#pw1").value, b = $("#pw2").value;
     if (a.length < 8) return toast("Use at least 8 characters.", 1); if (a !== b) return toast("The two passwords are different.", 1);
-    try { await api("/api/password", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ newPassword: a }) }); PW = a; try { sessionStorage.setItem("admPw", a); } catch (_) {} $("#pw1").value = $("#pw2").value = ""; toast("Password changed"); }
+    try { await api(P.password, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ newPassword: a }) }); PW = a; try { sessionStorage.setItem(P.pwKey, a); } catch (_) {} $("#pw1").value = $("#pw2").value = ""; toast("Password changed"); }
     catch (x) { toast("Could not change the password (" + (x.code || "error") + ")", 1); }
   };
   $$("#theme button").forEach((b) => (b.onclick = () => { const t = b.dataset.k; if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; try { localStorage.setItem("dmsTheme", t); } catch (_) {} settings(V); }));
@@ -1106,8 +1204,8 @@ const addDays = (d, n) => { const x = parseD(d); x.setDate(x.getDate() + n); ret
 function fillTpl(text, x) {
   const st = S(), k = x.car;
   const first = String(x.name || "").split(" ")[0];
-  return String(text || "").replace(/\{(\w+)\}/g, (m, t) => ({ first_name: first, name: x.name || "", car: k ? carTitle(k) : "the car", price: k ? money(k.price) : "", link: k ? `${location.origin}/#car-${k.id}` : location.origin,
-    dealer: st.name, phone: st.phone || "", address: [st.street, st.city, st.state].filter(Boolean).join(", "), apply: location.origin + "/apply" }[t] ?? m));
+  return String(text || "").replace(/\{(\w+)\}/g, (m, t) => ({ first_name: first, name: x.name || "", car: k ? carTitle(k) : "the car", price: k ? money(k.price) : "", link: k ? `${location.origin}${P.site}/#car-${k.id}` : location.origin + P.site,
+    dealer: st.name, phone: st.phone || "", address: [st.street, st.city, st.state].filter(Boolean).join(", "), apply: location.origin + P.apply }[t] ?? m));
 }
 function useTemplate(t, x) {
   const body = fillTpl(t.body, x);
@@ -1126,7 +1224,7 @@ function docsBox(el, rec, col) {
         try {
           const isPdf = fl.type === "application/pdf";
           const body = isPdf ? fl : await shrink(fl, 2000);
-          const r = await api("/api/upload", { method: "POST", headers: { "content-type": isPdf ? "application/pdf" : "image/webp" }, body });
+          const r = await api(P.upload, { method: "POST", headers: { "content-type": isPdf ? "application/pdf" : "image/webp" }, body });
           rec.docs.push({ name: fl.name, url: r.url, at: new Date().toISOString() });
         } catch (x) { toast("Could not upload " + fl.name, 1); }
       }
@@ -1312,7 +1410,7 @@ function printWin(title, body) {
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PCSS}</style></head><body><div class="noprint" style="margin-bottom:16px"><button onclick="print()" style="padding:8px 16px;font-size:14px">Print</button></div>${body}</body></html>`);
   w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 400);
 }
-const dealerHead = (title, right = "") => { const st = S(); return `<div class="hd"><div style="display:flex;gap:12px;align-items:center"><img src="${location.origin}/img/logo.png" alt=""><div><b style="font-size:16px">${esc(st.name)}</b><br>${esc(st.street)}, ${esc(st.city)}, ${esc(st.state)} ${esc(st.zip)}<br>${esc(st.phone)} · ${esc(st.email)}${st.license ? "<br>Dealer licence #" + esc(st.license) : ""}</div></div><div style="text-align:right"><h1>${title}</h1>${right}</div></div>`; };
+const dealerHead = (title, right = "") => { const st = S(); return `<div class="hd"><div style="display:flex;gap:12px;align-items:center">${S().logo || !TSLUG ? `<img src="${esc(new URL(S().logo || "/img/logo.png", location.origin).href)}" alt="">` : ""}<div><b style="font-size:16px">${esc(st.name)}</b><br>${esc(st.street)}, ${esc(st.city)}, ${esc(st.state)} ${esc(st.zip)}<br>${esc(st.phone)} · ${esc(st.email)}${st.license ? "<br>Dealer licence #" + esc(st.license) : ""}</div></div><div style="text-align:right"><h1>${title}</h1>${right}</div></div>`; };
 const vehRow = (k) => `<table><tr><th>Year</th><th>Make</th><th>Model</th><th>Body</th><th>Colour</th></tr><tr><td>${esc(k.year)}</td><td>${esc(k.make)}</td><td>${esc(modelOf(k))} ${esc(k.trim || "")}</td><td>${esc(k.body || "")}</td><td>${esc(k.ext || "")}</td></tr>
   <tr><th colspan="2">VIN</th><th>Stock #</th><th colspan="2">Odometer</th></tr><tr><td colspan="2" style="font-family:monospace;font-size:14px">${esc(k.vin || "")}</td><td>${esc(k.stock || "")}</td><td colspan="2">${k.miles ? int(k.miles) + " miles" : ""}</td></tr></table>`;
 function printDeal(kind, d) {
@@ -1367,7 +1465,7 @@ function printReceipt(p) {
 function printSticker(k) {
   const st = S();
   printWin("Window sticker", `<div style="max-width:720px;margin:auto;border:3px solid #111;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><img src="${location.origin}/img/logo.png" style="height:70px" alt=""><div style="text-align:right"><b style="font-size:18px">${esc(st.name)}</b><br>${esc(st.phone)}<br>${esc(location.host)}</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">${S().logo || !TSLUG ? `<img src="${esc(new URL(S().logo || "/img/logo.png", location.origin).href)}" style="height:70px" alt="">` : "<span></span>"}<div style="text-align:right"><b style="font-size:18px">${esc(st.name)}</b><br>${esc(st.phone)}<br>${esc(location.host)}</div></div>
     <h1 style="font-size:40px;margin:14px 0 0">${esc(k.year)} ${esc(k.name)}</h1><div style="font-size:18px" class="muted">${esc(k.trim || "")}</div>
     <div style="font-size:64px;font-weight:800;margin:12px 0">${money(k.price)}</div>
     ${k.img ? `<img src="${esc(new URL(k.img, location.origin).href)}" style="width:100%;aspect-ratio:3/2;object-fit:cover;border:1px solid #999" alt="">` : ""}

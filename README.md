@@ -19,3 +19,8 @@ Static site in `site/`, served by Netlify. Dealer dashboard: https://aands-auto.
 - Made in Dashboard → Websites → Create a dealer website. Data in the `tenants` blob store (`site/<slug>`, `auth/<slug>`, `leads/<slug>`, `ftp/<slug>`).
 - Public site `/w/<slug>` (or the dealer domain), admin `/w/<slug>/admin`, feeds `/feeds/t/<slug>/<feed>.csv`.
 - FTP delivery: `/api/ftp` (A & S) and `/api/t/<slug>/ftp`; `ftp-daily` sends feeds marked "every day".
+
+## DealerVexa (business platform)
+- HQ (owner): `/admin/` — dealers, problems & error log, support, sign-ups, invoices & crypto payments, plans & wallets. Functions: `hq.mjs`, `signup.mjs`, `report.mjs`.
+- Dealer panel (full DMS/CRM): A & S at `/panel/`, every dealer at `/w/<slug>/admin` (same `site/admin/app.js`, dealer mode). Dealer data: `tenants` store (`site/`, `auth/`, `status/`, `db/<slug>/<collection>`, `ftp/`).
+- Sign-up with crypto payment: `/signup`. Dealer custom header/footer code only runs on the dealer's own domain.

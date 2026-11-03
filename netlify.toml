@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/w/:slug/admin"
-  to = "/t/admin.html"
+  to = "/panel/index.html"
   status = 200
 
 [[redirects]]

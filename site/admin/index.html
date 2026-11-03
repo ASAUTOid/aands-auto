@@ -4,45 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>A &amp; S Auto · Dealer Dashboard</title>
-<link rel="icon" href="../img/logo.png">
+<title>DealerVexa HQ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237c3aed'/%3E%3Cpath d='M8 9h6l4 10 4-10h3l-6 15h-3z' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="/admin/app.css">
+<style>
+:root{--brand:#7c3aed;--side:#120f1f;--side-on:#231d3a}
+.vx{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;font:800 22px/1 var(--display)}
+</style>
 </head>
 <body>
 <div id="login" class="login" hidden>
   <form id="loginForm" class="login-card">
-    <img src="../img/logo.png" alt="A &amp; S Auto">
-    <h1>Dealer Dashboard</h1>
-    <p>Staff only. Enter the admin password.</p>
+    <div class="vx" style="margin:0 auto;width:56px;height:56px;font-size:32px">V</div>
+    <h1>DealerVexa HQ</h1>
+    <p>Owner only. Enter the HQ password.</p>
     <input type="password" id="loginPw" autocomplete="current-password" placeholder="Password" aria-label="Password">
     <button class="b primary" type="submit">Log in</button>
     <p class="err" id="loginErr"></p>
   </form>
 </div>
-
 <div id="app" class="app" hidden>
-  <aside class="side" id="side">
-    <a class="logo" href="#/dashboard"><img src="../img/logo.png" alt=""><span><b>A &amp; S Auto</b><small>DEALER DASHBOARD</small></span></a>
+  <aside class="side">
+    <a class="logo" href="#/overview"><span class="vx">V</span><span><b>DealerVexa</b><small>HQ · COMMAND CENTRE</small></span></a>
     <nav id="nav"></nav>
-    <div class="side-ft"><a href="/" target="_blank" rel="noopener">View website ↗</a><button class="linkish" id="logout" type="button">Log out</button></div>
+    <div class="side-ft"><a href="/panel/" target="_blank" rel="noopener">A &amp; S panel ↗</a><button class="linkish" id="logout" type="button">Log out</button></div>
   </aside>
   <div class="main">
-    <header class="top">
-      <button class="burger" id="burger" type="button" aria-label="Menu">☰</button>
-      <div class="search"><input id="q" type="search" placeholder="Search cars, VIN, stock #, customers, leads…" aria-label="Search"><div id="qres" class="qres" hidden></div></div>
-      <div class="top-act">
-        <a class="b sm" href="#/inventory/new">+ Car</a>
-        <a class="b sm" href="#/deals/new">+ Deal</a>
-        <a class="b sm" href="#/leads/new">+ Lead</a>
-      </div>
-    </header>
+    <header class="top"><button class="burger" id="burger" type="button" aria-label="Menu">☰</button><div style="flex:1"></div><a class="b sm primary" href="#/dealers/new">+ New dealer</a></header>
     <main id="view" class="view"></main>
   </div>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script type="module" src="app.js"></script>
+<script type="module" src="/admin/hq.js"></script>
 </body>
 </html>

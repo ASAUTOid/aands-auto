@@ -16,13 +16,18 @@ async function loadData() {
   return JSON.parse(new DOMParser().parseFromString(html, "text/html").getElementById("site-data").textContent);
 }
 
+const SLUGR = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1] || "aands", WHERE = "website";
+// send errors to DealerVexa HQ so problems are seen and fixed
+const reportErr = (() => { let n = 0; return (message, stack, where) => { if (!message || n++ > 8) return; try { fetch("/api/report", { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body: JSON.stringify({ where, slug: SLUGR, message: String(message).slice(0, 400), stack: String(stack || "").slice(0, 1500), url: location.href }) }); } catch (_) {} }; })();
+addEventListener("error", (e) => reportErr(e.message, e.error && e.error.stack, WHERE));
+addEventListener("unhandledrejection", (e) => reportErr((e.reason && (e.reason.message || e.reason.code)) || String(e.reason), e.reason && e.reason.stack, WHERE));
 const data = await loadData();
 const MS = data.settings || {};
 const host = location.hostname.replace(/^www\./, "");
 const slug = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1];
 const sites = MS.websites || [];
-const entry = (slug && sites.find((w) => w.slug === slug)) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || null;
-let S, ALL, site;
+const entry = (slug && (sites.find((w) => w.slug === slug) || { slug, tenant: true, name: slug })) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || null;
+let S, ALL, site, PAUSED = false;
 const DEMO = new URLSearchParams(location.search).has("demo");
 if (DEMO) {
   // template gallery: sample dealer details, real cars from the lot
@@ -55,6 +60,7 @@ if (DEMO) {
   try { const r = await fetch(`/api/t/${entry.slug}/data`, { cache: "no-store" }); if (r.ok) td = await r.json(); } catch (_) {}
   S = Object.assign({ name: entry.name, apr: 12.9, hours: [] }, td ? td.settings : {});
   ALL = td ? td.cars : [];
+  PAUSED = !!(td && td.suspended);
   site = { ...S, tenant: entry.slug, filter: {} };
 } else {
   S = Object.assign({ name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", apr: 12.9 }, MS);
@@ -190,7 +196,7 @@ function calc(c) {
 }
 
 const R = $("#root");
-const footer = `<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)}${where ? " · " + esc(where) : ""}</span><span>Prices exclude tax, title and fees. <a href="${site.tenant ? `/w/${esc(site.tenant)}/admin` : "/admin/"}">Staff</a></span></div></footer>`;
+const footer = `<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)}${where ? " · " + esc(where) : ""}</span><span>Prices exclude tax, title and fees. <a href="${site.tenant ? `/w/${esc(site.tenant)}/admin` : "/panel/"}">Staff</a></span></div></footer>`;
 function home() {
   R.innerHTML = header() + hero() + inventory() + about() + contact() + footer;
   drawGrid(); bindForms(R);
@@ -201,6 +207,7 @@ function home() {
 }
 let onHome = false;
 function route() {
+  if (PAUSED) { R.innerHTML = `<div class="wrap" style="padding:80px 16px;text-align:center"><h1>${esc(name)}</h1><p class="muted">This website is temporarily unavailable. Please call us${S.phone ? ` at <a href="${tel}">${esc(S.phone)}</a>` : ""}.</p></div>`; return; }
   const h = location.hash.slice(1);
   const c = h.startsWith("car-") && CARS.find((x) => x.id === h.slice(4));
   if (c) { onHome = false; R.innerHTML = header() + detail(c) + footer; bindForms(R);
@@ -210,3 +217,11 @@ function route() {
 }
 addEventListener("hashchange", route);
 route();
+
+// custom code (CARFAX badges, analytics, pixels…) from the dealer's settings
+function injectCode(html, where) {
+  if (!html) return; const t = document.createElement("template"); t.innerHTML = html;
+  [...t.content.childNodes].forEach((n) => { if (n.nodeName === "SCRIPT") { const s = document.createElement("script"); [...n.attributes].forEach((a) => s.setAttribute(a.name, a.value)); s.textContent = n.textContent; where.appendChild(s); } else where.appendChild(n.cloneNode(true)); });
+}
+const ownDomain = entry && entry.domain && entry.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host;
+if (!site.demo && !PV && (site.tenant ? ownDomain : true)) { injectCode(S.customHead, document.head); injectCode(S.customBody, document.body); }
