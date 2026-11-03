@@ -30,7 +30,7 @@ const PAY_METHODS = ["Cash", "Card", "Check", "ACH / Bank transfer", "Money orde
 
 let PW = "";
 let SITE = null; // public website data: { settings, cars }
-const DB = { leads: [], customers: [], deals: [], costs: [], payments: [] };
+const DB = { leads: [], customers: [], deals: [], costs: [], payments: [], tasks: [], appts: [], recon: [], templates: [], expenses: [] };
 
 function toast(t, err) {
   const el = $("#toast"); el.textContent = t; el.className = "toast on" + (err ? " err" : "");
@@ -179,15 +179,15 @@ async function start(pw) {
 /* ================= navigation ================= */
 const NAV = [
   ["", [["dashboard", "▦", "Dashboard"]]],
-  ["Sales", [["inventory", "🚗", "Inventory"], ["leads", "☎", "Leads"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"]]],
-  ["Finance", [["collections", "$", "Collections"], ["reports", "📈", "Reports"]]],
+  ["Sales", [["inventory", "🚗", "Inventory"], ["recon", "🔧", "Recon"], ["leads", "☎", "Leads"], ["calendar", "📅", "Calendar"], ["tasks", "✓", "Tasks"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"], ["opportunities", "🎯", "Opportunities"]]],
+  ["Finance", [["collections", "$", "Collections"], ["expenses", "🧾", "Expenses"], ["reports", "📈", "Reports"]]],
   ["Online", [["marketing", "📣", "Marketing"], ["websites", "🌐", "Websites"]]],
-  ["", [["settings", "⚙", "Settings"]]],
+  ["", [["templates", "✉", "Message templates"], ["settings", "⚙", "Settings"]]],
 ];
 function renderNav(page) {
   const newLeads = DB.leads.filter((l) => l.status === "new").length;
   const late = bhphDeals().filter((d) => account(d).pastDue > 0).length;
-  const cnt = { leads: newLeads, collections: late };
+  const cnt = { leads: newLeads, collections: late, tasks: DB.tasks.filter((t) => !t.done && t.due && t.due <= todayISO()).length, calendar: DB.appts.filter((a) => a.date === todayISO() && a.status === "scheduled").length };
   $("#nav").innerHTML = NAV.map(([g, items]) => (g ? `<div class="grp">${g}</div>` : "") + items.map(([k, ic, l]) =>
     `<a href="#/${k}" class="${page === k ? "on" : ""}"><span class="ic" aria-hidden="true">${ic}</span>${l}${cnt[k] ? `<span class="cnt">${cnt[k]}</span>` : ""}</a>`).join("")).join("");
 }
@@ -199,7 +199,7 @@ function route() {
   renderNav(page);
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
-    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings };
+    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage };
   (pages[page] || dashboard)(V, id, q);
 }
 const go = (h) => { if (location.hash === h) route(); else location.hash = h; };
@@ -284,6 +284,12 @@ function dashboard(V) {
     <a class="card kpi" href="#/deals"><span>Sold this month</span><b>${soldM.length}</b><small>${money(soldM.reduce((s, d) => s + n0(d.price), 0))} · gross ${money(grossM)}</small></a>
     <a class="card kpi" href="#/collections"><span>Collections</span><b>${money(recv)}</b><small>${late.length ? `<span style="color:var(--bad)">${late.length} past due · ${money(late.reduce((s, [, a]) => s + a.pastDue, 0))}</span>` : "No accounts past due"} · ${money(paysM)} in this month</small></a>
   </div>
+  ${(() => { const ap = DB.appts.filter((a) => a.date === todayISO() && a.status === "scheduled").sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    const tk = DB.tasks.filter((t) => !t.done && t.due && t.due <= todayISO()); const rc = DB.recon.filter((r) => r.stage !== "done" && r.stage !== "ready" && car(r.id)).length;
+    return `<div class="card" style="margin-top:14px"><h3>Today <a href="#/calendar">Calendar →</a></h3><div class="grid g3">
+      <div><b>📅 ${ap.length} appointment${ap.length === 1 ? "" : "s"}</b>${ap.map((a) => `<a class="lc" style="margin-top:6px" href="#/calendar/${esc(a.id)}">${esc(a.time || "")} ${esc(a.name || "")}<small>${esc(a.type || "")}${a.carId && car(a.carId) ? " · " + esc(carTitle(car(a.carId))) : ""}</small></a>`).join("")}</div>
+      <div><b>✓ ${tk.length} task${tk.length === 1 ? "" : "s"} due</b>${tk.slice(0, 5).map((t) => `<a class="lc" style="margin-top:6px" href="#/tasks">${esc(t.title)}<small>${t.due < todayISO() ? "overdue · " : ""}${fdate(t.due)}</small></a>`).join("")}</div>
+      <div><b>🔧 ${rc} car${rc === 1 ? "" : "s"} in recon</b><p style="margin:6px 0 0"><a href="#/recon">Open the recon board →</a></p></div></div></div>`; })()}
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>New leads <a href="#/leads">All leads →</a></h3>${table([
       { h: "Name", f: (l) => `<b>${esc(l.name)}</b><span class="sub">${esc(l.phone || l.email || "")}</span>` },
@@ -373,7 +379,7 @@ function carEdit(V, id, q) {
   V.innerHTML = `
   <div class="crumb"><a href="#/inventory">Inventory</a> / ${isNew ? "New car" : esc(carTitle(c))}</div>
   <div class="ph"><div><h1>${isNew ? "Add a car" : esc(carTitle(c))}</h1>${isNew ? "" : `<p>${carStatusPill(c)} ${c.stock ? "· Stock #" + esc(c.stock) : ""}</p>`}</div>
-    <div class="act">${isNew ? "" : `<button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
+    <div class="act">${isNew ? "" : `<button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
   <div class="split">
     <div class="grid">
       <div class="card"><h3>Vehicle</h3>
@@ -532,7 +538,9 @@ function leadEdit(V, id) {
     <div class="grid">
       <div class="card"><h3>Status</h3>${seg("l_status", LEAD_STATUS.map(([k, t]) => [k, t]), l.status || "new")}
         <div class="fg" style="margin-top:14px">${fld("l_follow", "Follow up on", l.followUp || "", "date")}</div></div>
-      ${isNew ? "" : `<div class="card"><h3>Next step</h3><a class="b" style="width:100%" href="#/deals/new?lead=${esc(l.id)}${l.carId ? "&car=" + esc(l.carId) : ""}">Start a deal</a></div>
+      ${isNew ? "" : `<div class="card"><h3>Next step</h3><div style="display:grid;gap:8px"><a class="b" href="#/deals/new?lead=${esc(l.id)}${l.carId ? "&car=" + esc(l.carId) : ""}">Start a deal</a>
+        <a class="b" href="#/calendar/new?lead=${esc(l.id)}">Book an appointment</a><button class="b" type="button" id="addTask">Add a follow-up task</button></div></div>
+      ${DB.templates.length ? `<div class="card"><h3>Send a template</h3>${sel("l_tpl", "Template", "", [["", "Choose…"], ...DB.templates.map((t) => [t.id, (t.channel === "sms" ? "💬 " : "✉ ") + t.name])])}<div class="formft"><button class="b" type="button" id="useTpl">Open message</button></div></div>` : ""}
       <div class="card"><h3>Danger zone</h3><button class="b danger" type="button" id="delLead">Delete lead</button></div>`}
     </div>
   </div>`;
@@ -545,9 +553,14 @@ function leadEdit(V, id) {
   };
   $("#saveLead").onclick = async () => { if (await save()) go("#/leads/" + l.id); };
   $("#addNote").onclick = async () => { const t = v("l_note"); if (!t) return; l.notes.push({ text: t, at: new Date().toISOString() }); if (status === "new") status = "contacted"; if (await save("Note added")) go("#/leads/" + l.id); };
+  if ($("#addTask")) $("#addTask").onclick = async () => { const t = prompt("Task (e.g. Call back about the F-150):", "Follow up with " + (l.name || "")); if (!t) return;
+    const due = prompt("Due date (yyyy-mm-dd):", addDays(todayISO(), 1)); try { await saveRec("tasks", { id: uid("T"), title: t, due: due || todayISO(), leadId: l.id, done: false }); toast("Task added"); } catch (x) { toast(errMsg(x), 1); } };
+  if ($("#useTpl")) $("#useTpl").onclick = () => { const t = DB.templates.find((x) => x.id === v("l_tpl")); if (!t) return; useTemplate(t, { name: l.name, phone: l.phone, email: l.email, car: car(l.carId) }); };
   if ($("#toCust")) $("#toCust").onclick = async () => {
     collect(); const [first, ...rest] = (l.name || "").split(" ");
-    const c = { id: uid("C"), first, last: rest.join(" "), phone: l.phone, email: l.email, source: l.source, notes: l.message || "" };
+    const k = l.credit || {};
+    const c = { id: uid("C"), first: k.first || first, last: k.last || rest.join(" "), phone: l.phone, email: l.email, source: l.source, notes: l.message || "",
+      dob: k.dob || null, street: k.street || "", city: k.city || "", state: k.state || "", zip: k.zip || "", employer: k.employer || "", income: k.income ? n0(String(k.income).replace(/[^\d.]/g, "")) : null };
     try { await saveRec("customers", c); l.customerId = c.id; if (l.status === "new") l.status = "contacted"; await saveRec("leads", l); toast("Customer created"); go("#/customers/" + c.id); } catch (x) { toast(errMsg(x), 1); }
   };
   if ($("#delLead")) $("#delLead").onclick = async () => { if (!confirm("Delete this lead?")) return; try { await delRec("leads", l.id); toast("Lead deleted"); go("#/leads"); } catch (x) { toast(errMsg(x), 1); } };
@@ -592,7 +605,9 @@ function custEdit(V, id, q) {
       <div class="card"><h3>Deals</h3>${deals.map((d) => `<a class="lc" href="#/deals/${d.id}">${dealNo(d)} · ${esc(carTitle(car(d.carId)))}<small>${fdate(d.date)} · ${esc(DEAL_TYPES[d.type] || "")} · ${d.status}${d.type === "bhph" && d.status === "sold" ? " · owes " + money2(account(d).payoff) : ""}</small></a>`).join("") || '<p style="color:var(--muted);font-size:14px;margin:0">No deals yet.</p>'}</div>
       ${ls.length ? `<div class="card"><h3>Leads</h3>${ls.map((l) => `<a class="lc" href="#/leads/${l.id}">${esc(l.source || "")} · ${leadPill(l.status)}<small>${fdt(l.createdAt)}</small></a>`).join("")}</div>` : ""}
       ${isNew || deals.length ? "" : `<div class="card"><h3>Danger zone</h3><button class="b danger" type="button" id="delCust">Delete customer</button></div>`}
-    </div></div>`;
+    </div></div>
+  ${isNew ? "" : `<div class="card" style="margin-top:14px"><h3>Documents · licence, insurance, pay stubs</h3><div id="docs"></div></div>`}`;
+  if (!isNew) docsBox($("#docs"), cust(c.id) || c, "customers");
   $("#saveCust").onclick = async () => {
     Object.assign(c, { first: v("u_first"), last: v("u_last"), phone: v("u_phone"), phone2: v("u_phone2"), email: v("u_email"), street: v("u_street"), city: v("u_city"), state: v("u_state"), zip: v("u_zip"),
       dob: v("u_dob") || null, dl: v("u_dl"), dlState: v("u_dlst"), dlExp: v("u_dlexp") || null, employer: v("u_employer"), income: vn("u_income"), ref1: v("u_ref1"), ref2: v("u_ref2"), notes: v("u_notes") });
@@ -656,7 +671,9 @@ function dealEdit(V, id, q) {
       <div class="card"><h3>Summary</h3><dl class="dl" id="dsum"></dl></div>
       ${d.status === "sold" && d.type === "bhph" ? `<a class="b" href="#/collections/${d.id}">Open payment account →</a>` : ""}
       ${isNew || locked ? "" : `<div class="card"><h3>Danger zone</h3><button class="b danger" type="button" id="delDeal">Delete draft</button></div>`}
-    </div></div>`;
+    </div></div>
+  ${isNew ? "" : `<div class="card" style="margin-top:14px"><h3>Deal jacket · documents</h3><div id="docs"></div></div>`}`;
+  if (!isNew) docsBox($("#docs"), DB.deals.find((x) => x.id === d.id) || d, "deals");
   $$("#d_type button").forEach((b) => { if (locked) b.disabled = true; });
   if (locked) $$(".split input,.split select,.split textarea", V).forEach((el) => (el.disabled = true));
   const finBox = () => {
@@ -812,6 +829,21 @@ function reports(V) {
     <div class="card"><h3>Inventory age (on the lot)</h3>${table([{ h: "Age", f: (b) => b[0] }, { h: "Cars", r: 1, f: (b) => b[1] }, { h: "Asking", r: 1, f: (b) => money(b[2]) }, { h: "Cost", r: 1, f: (b) => (b[3] ? money(b[3]) : "—") }], buckets)}</div>
     <div class="card"><h3>Lead sources</h3>${srcRows.length ? `<div class="bars">${srcRows.map(([k, [n, w]]) => `<div><span>${esc(k)}</span><i style="width:${Math.round((n / maxSrc) * 100)}%"></i><span>${n}${w ? ` · ${w} sold` : ""}</span></div>`).join("")}</div>` : '<p style="color:var(--muted)">No leads yet.</p>'}</div>
   </div>`;
+  {
+    const yr = String(repYear), ys = sold.filter((d) => (d.date || "").startsWith(yr));
+    const rev = ys.reduce((s, d) => s + n0(d.price), 0), docs = ys.reduce((s, d) => s + n0(d.docFee), 0);
+    const cogs = ys.reduce((s, d) => s + carCost(d.carId), 0);
+    let interest = 0; bhphDeals().forEach((d) => { const a = account(d); const tot = a.pays.reduce((s, p) => s + n0(p.amount), 0) || 1; interest += a.interestPaid * (a.pays.filter((p) => (p.date || "").startsWith(yr)).reduce((s, p) => s + n0(p.amount), 0) / tot); });
+    const exps = DB.expenses.filter((e) => (e.date || "").startsWith(yr)); const opex = exps.reduce((s, e) => s + n0(e.amount), 0);
+    const byCat = {}; exps.forEach((e) => (byCat[e.category] = (byCat[e.category] || 0) + n0(e.amount)));
+    const net = rev + docs - cogs + interest - opex;
+    V.insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:14px"><h3>Profit & loss ${yr}</h3><dl class="dl" style="max-width:520px">
+      <dt>Car sales</dt><dd>${money2(rev)}</dd><dt>Doc fees</dt><dd>${money2(docs)}</dd><dt>Cost of the cars sold (purchase + recon)</dt><dd>−${money2(cogs)}</dd>
+      <dt class="tot">Gross profit</dt><dd class="tot">${money2(rev + docs - cogs)}</dd><dt>Interest collected (BHPH)</dt><dd>${money2(interest)}</dd>
+      ${Object.entries(byCat).map(([k, x]) => `<dt>${esc(k)}</dt><dd>−${money2(x)}</dd>`).join("")}<dt>Business expenses</dt><dd>−${money2(opex)}</dd>
+      <dt class="tot">Net profit</dt><dd class="tot" style="color:${net < 0 ? "var(--bad)" : "var(--ok)"}">${money2(net)}</dd></dl>
+      <p style="color:var(--muted);font-size:13px;margin:10px 0 0">A guide for you and your accountant, not a tax return. Cars sold without costs entered count as $0 cost.</p></div>`);
+  }
   $("#repY").onchange = (e) => { repYear = +e.target.value; reports(V); };
   $("#repCsv").onclick = () => csvDownload(`report-${repYear}.csv`, [["Month", "Sold", "Financed", "Revenue", "Front gross", "Avg days to sell", "Collected"], ...mrows.map((r) => [r.m, r.n, r.fin, r.rev, r.gN ? r.gross : "", r.dts ?? "", r.coll])]);
 }
@@ -1029,6 +1061,207 @@ function settings(V) {
     catch (x) { toast("Could not change the password (" + (x.code || "error") + ")", 1); }
   };
   $$("#theme button").forEach((b) => (b.onclick = () => { const t = b.dataset.k; if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; try { localStorage.setItem("dmsTheme", t); } catch (_) {} settings(V); }));
+}
+
+/* ================= shared: dates, templates, documents ================= */
+const addDays = (d, n) => { const x = parseD(d); x.setDate(x.getDate() + n); return iso(x); };
+function fillTpl(text, x) {
+  const st = S(), k = x.car;
+  const first = String(x.name || "").split(" ")[0];
+  return String(text || "").replace(/\{(\w+)\}/g, (m, t) => ({ first_name: first, name: x.name || "", car: k ? carTitle(k) : "the car", price: k ? money(k.price) : "", link: k ? `${location.origin}/#car-${k.id}` : location.origin,
+    dealer: st.name, phone: st.phone || "", address: [st.street, st.city, st.state].filter(Boolean).join(", "), apply: location.origin + "/apply" }[t] ?? m));
+}
+function useTemplate(t, x) {
+  const body = fillTpl(t.body, x);
+  if (t.channel === "sms") { if (!x.phone) return toast("This contact has no phone number.", 1); location.href = `sms:${String(x.phone).replace(/[^\d+]/g, "")}?&body=${encodeURIComponent(body)}`; }
+  else { if (!x.email) return toast("This contact has no email.", 1); location.href = `mailto:${x.email}?subject=${encodeURIComponent(fillTpl(t.subject, x))}&body=${encodeURIComponent(body)}`; }
+  navigator.clipboard?.writeText(body).catch(() => {});
+}
+// documents (images / PDF) attached to a deal or a customer: rec.docs = [{ name, url, at }]
+function docsBox(el, rec, col) {
+  rec.docs = rec.docs || [];
+  const draw = () => {
+    el.innerHTML = `${rec.docs.length ? `<div class="tw"><table class="t"><tbody>${rec.docs.map((d, i) => `<tr><td>${/\.pdf$/i.test(d.url) ? "📄" : "🖼"} <a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a></td><td style="color:var(--muted);font-size:13px">${fdt(d.at)}</td><td class="r"><button class="b sm" type="button" data-rmdoc="${i}">✕</button></td></tr>`).join("")}</tbody></table></div>` : '<p style="color:var(--muted);margin:0 0 8px">No documents yet.</p>'}
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><input type="file" accept="image/*,application/pdf" multiple data-docs style="font-size:13px"><span style="color:var(--muted);font-size:13px">Photos of the licence, insurance card, signed papers, pay stubs. PDF or photo.</span></div>`;
+    $("[data-docs]", el).onchange = async (e) => {
+      for (const fl of e.target.files) {
+        try {
+          const isPdf = fl.type === "application/pdf";
+          const body = isPdf ? fl : await shrink(fl, 2000);
+          const r = await api("/api/upload", { method: "POST", headers: { "content-type": isPdf ? "application/pdf" : "image/webp" }, body });
+          rec.docs.push({ name: fl.name, url: r.url, at: new Date().toISOString() });
+        } catch (x) { toast("Could not upload " + fl.name, 1); }
+      }
+      try { Object.assign(rec, await saveRec(col, rec)); toast("Documents saved"); } catch (x) { toast(errMsg(x), 1); }
+      draw();
+    };
+    $$("[data-rmdoc]", el).forEach((b) => (b.onclick = async () => { if (!confirm("Remove this document?")) return; rec.docs.splice(+b.dataset.rmdoc, 1); try { await saveRec(col, rec); } catch (x) { toast(errMsg(x), 1); } draw(); }));
+  };
+  draw();
+}
+
+/* ================= recon / service bay ================= */
+const RECON = [["arrived", "Arrived"], ["mechanical", "Mechanic"], ["body", "Body & paint"], ["detail", "Detail"], ["photos", "Photos"], ["ready", "Front line"]];
+const reconOf = (id) => DB.recon.find((r) => r.id === id);
+function reconBoard(V) {
+  const active = DB.recon.filter((r) => car(r.id) && r.stage !== "done");
+  const candidates = SITE.cars.filter((c) => c.status !== "sold" && !reconOf(c.id));
+  V.innerHTML = `<div class="ph"><div><h1>Recon</h1><p>Get cars from the auction to the front line: mechanic, body, detail, photos.</p></div>
+    <div class="act">${sel("rcAdd", "", "", [["", "+ Put a car into recon…"], ...candidates.map((c) => [c.id, carTitle(c) + (c.stock ? " · #" + c.stock : "")])])}</div></div>
+  <div class="pipeline" style="grid-template-columns:repeat(6,minmax(190px,1fr))">${RECON.map(([k, l]) => { const xs = active.filter((r) => r.stage === k); return `<div class="col"><h4>${l}<span>${xs.length}</span></h4>${xs.map((r) => { const c = car(r.id), open = (r.tasks || []).filter((t) => !t.done).length, d = days((r.since || "").slice(0, 10));
+      return `<a class="lc" href="#/recon/${esc(r.id)}">${c.img ? `<img src="${esc(c.img)}" alt="" style="width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:4px;margin-bottom:6px">` : ""}<b>${esc(carTitle(c))}</b><small>${open ? open + " job" + (open > 1 ? "s" : "") + " open" : "No open jobs"} · ${d ?? 0} day${d === 1 ? "" : "s"} here</small><small>${money((r.tasks || []).reduce((s, t) => s + n0(t.cost), 0))} spent</small></a>`; }).join("") || '<p style="color:var(--dim);font-size:13px;margin:0">—</p>'}</div>`; }).join("")}</div>`;
+  $("#rcAdd").onchange = async (e) => { const id = e.target.value; if (!id) return; try { await saveRec("recon", { id, stage: "arrived", since: new Date().toISOString(), tasks: [] }); go("#/recon/" + id); } catch (x) { toast(errMsg(x), 1); } };
+}
+function reconEdit(V, id) {
+  const c = car(id); if (!c) return go("#/recon");
+  const r = clone(reconOf(id) || { id, stage: "arrived", since: new Date().toISOString(), tasks: [] });
+  const draw = () => {
+    V.innerHTML = `<div class="crumb"><a href="#/recon">Recon</a> / ${esc(carTitle(c))}</div>
+    <div class="ph"><div><h1>${esc(carTitle(c))}</h1><p>${c.stock ? "Stock #" + esc(c.stock) + " · " : ""}${c.vin ? esc(c.vin) : ""}</p></div><div class="act"><a class="b" href="#/inventory/${esc(id)}">Open car</a><button class="b primary" type="button" id="rcSave">Save</button></div></div>
+    <div class="card"><h3>Stage</h3>${seg("rcStage", [...RECON, ["done", "Finished"]], r.stage)}</div>
+    <div class="card" style="margin-top:14px"><h3>Jobs</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Job</th><th>Who does it</th><th class="r">Cost</th><th></th></tr></thead><tbody>
+      ${(r.tasks || []).map((t, i) => `<tr data-i="${i}"><td><input type="checkbox" data-t="done" ${t.done ? "checked" : ""} aria-label="Done"></td>
+        <td><input data-t="desc" value="${esc(t.desc || "")}" placeholder="Oil change, brakes, windshield…" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:6px;background:var(--panel)"></td>
+        <td><input data-t="vendor" value="${esc(t.vendor || "")}" placeholder="Mechanic / shop" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:6px;background:var(--panel)"></td>
+        <td class="r"><input type="number" step="any" data-t="cost" value="${esc(t.cost ?? "")}" style="width:100px;text-align:right;border:1px solid var(--line);border-radius:4px;padding:6px;background:var(--panel)"></td>
+        <td><button class="b sm" type="button" data-rm>✕</button></td></tr>`).join("") || '<tr><td colspan="5" class="empty">No jobs yet.</td></tr>'}</tbody></table></div>
+      <div class="formft" style="justify-content:space-between"><button class="b" type="button" id="rcJob">+ Add job</button><b>Total ${money2((r.tasks || []).reduce((s, t) => s + n0(t.cost), 0))}</b></div>
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 0">When you tick a job as done, its cost is added to the car's expenses automatically (Inventory → Costs).</p></div>
+    <div class="card" style="margin-top:14px">${area("rcNotes", "Notes", r.notes)}</div>`;
+    $$("#rcStage button").forEach((b) => (b.onclick = () => { if (r.stage !== b.dataset.k) { r.stage = b.dataset.k; r.since = new Date().toISOString(); } $$("#rcStage button").forEach((x) => x.classList.toggle("on", x === b)); }));
+    $$("tr[data-i]").forEach((tr) => { const t = r.tasks[+tr.dataset.i];
+      $$("[data-t]", tr).forEach((el) => (el.oninput = el.onchange = () => { t[el.dataset.t] = el.type === "checkbox" ? el.checked : el.dataset.t === "cost" ? n0(el.value) : el.value; }));
+      $("[data-rm]", tr).onclick = () => { r.tasks.splice(+tr.dataset.i, 1); draw(); }; });
+    $("#rcJob").onclick = () => { r.tasks.push({ id: uid("J"), desc: "", vendor: "", cost: 0, done: false }); draw(); $$("[data-t=desc]").pop().focus(); };
+    $("#rcSave").onclick = async () => {
+      r.notes = v("rcNotes"); r.tasks = r.tasks.filter((t) => t.desc || n0(t.cost));
+      const k = clone(costOf(id)); k.expenses = k.expenses || []; let changed = false;
+      for (const t of r.tasks) if (t.done && n0(t.cost) && !k.expenses.some((e) => e.reconJob === t.id)) { k.expenses.push({ date: todayISO(), desc: "Recon: " + (t.desc || "job") + (t.vendor ? " (" + t.vendor + ")" : ""), amount: n0(t.cost), reconJob: t.id }); changed = true; }
+      try { await saveRec("recon", r); if (changed) await saveRec("costs", k); toast(changed ? "Saved. Finished jobs were added to the car's costs." : "Saved"); go("#/recon"); } catch (x) { toast(errMsg(x), 1); }
+    };
+  };
+  draw();
+}
+
+/* ================= calendar (appointments) ================= */
+const APPT_TYPES = ["Test drive", "Viewing", "Delivery / signing", "Credit meeting", "Trade-in appraisal", "Other"];
+let calStart = null;
+function calendar(V) {
+  const t = parseD(todayISO()); if (!calStart) { t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); calStart = iso(t); }
+  const daysW = Array.from({ length: 7 }, (_, i) => addDays(calStart, i));
+  const who = (a) => a.name || (a.leadId && DB.leads.find((l) => l.id === a.leadId)?.name) || custName(cust(a.customerId));
+  const stPill = (a) => a.status === "showed" ? pill("Showed", "ok") : a.status === "noshow" ? pill("No-show", "bad") : a.status === "cancelled" ? pill("Cancelled") : pill("Booked", "info");
+  V.innerHTML = `<div class="ph"><div><h1>Calendar</h1><p>Test drives, viewings, deliveries.</p></div><div class="act"><button class="b" id="cPrev" type="button">←</button><button class="b" id="cToday" type="button">This week</button><button class="b" id="cNext" type="button">→</button><a class="b primary" href="#/calendar/new">+ Appointment</a></div></div>
+  <div class="grid" style="grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;overflow-x:auto">${daysW.map((d) => { const xs = DB.appts.filter((a) => a.date === d).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    return `<div class="col" style="min-width:150px;${d === todayISO() ? "border-color:var(--brand)" : ""}"><h4>${parseD(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}<span>${xs.length || ""}</span></h4>
+      ${xs.map((a) => `<a class="lc" href="#/calendar/${esc(a.id)}"><b>${esc(a.time || "")} ${esc(who(a))}</b><small>${esc(a.type || "")}${a.carId && car(a.carId) ? " · " + esc(carTitle(car(a.carId))) : ""}</small>${stPill(a)}</a>`).join("")}</div>`; }).join("")}</div>
+  <h2 class="sec">Coming up</h2>${table([{ h: "When", f: (a) => `${fdate(a.date)} ${esc(a.time || "")}` }, { h: "Who", f: (a) => `<b>${esc(who(a))}</b><span class="sub">${esc(a.phone || "")}</span>` }, { h: "What", f: (a) => esc(a.type || "") }, { h: "Car", f: (a) => esc(a.carId ? carTitle(car(a.carId)) : "") }, { h: "", f: stPill }],
+    DB.appts.filter((a) => a.date >= todayISO() && a.status === "scheduled").sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || ""))).slice(0, 20), (a) => "#/calendar/" + a.id)}`;
+  bindRows(V);
+  $("#cPrev").onclick = () => { calStart = addDays(calStart, -7); calendar(V); }; $("#cNext").onclick = () => { calStart = addDays(calStart, 7); calendar(V); }; $("#cToday").onclick = () => { calStart = null; calendar(V); };
+}
+function apptEdit(V, id, q) {
+  const isNew = id === "new", L = q.lead && DB.leads.find((l) => l.id === q.lead);
+  const a = isNew ? { id: uid("A"), date: addDays(todayISO(), 1), time: "10:00", type: "Test drive", status: "scheduled", leadId: L?.id || "", customerId: q.customer || L?.customerId || "", carId: q.car || L?.carId || "", name: L?.name || "", phone: L?.phone || "" } : clone(DB.appts.find((x) => x.id === id) || {});
+  if (!a.id) return go("#/calendar");
+  V.innerHTML = `<div class="crumb"><a href="#/calendar">Calendar</a> / ${isNew ? "New appointment" : esc(a.name || "Appointment")}</div>
+  <div class="ph"><div><h1>${isNew ? "New appointment" : "Appointment"}</h1></div><div class="act">${isNew ? "" : '<button class="b danger" type="button" id="aDel">Delete</button>'}<button class="b primary" type="button" id="aSave">Save</button></div></div>
+  <div class="card"><div class="fg">${fld("a_date", "Date", a.date, "date")}${fld("a_time", "Time", a.time, "time")}${sel("a_type", "Type", a.type, APPT_TYPES)}${sel("a_status", "Status", a.status, [["scheduled", "Booked"], ["showed", "Showed up"], ["noshow", "No-show"], ["cancelled", "Cancelled"]])}
+    ${fld("a_name", "Customer name", a.name)}${fld("a_phone", "Phone", a.phone, "tel")}${sel("a_car", "Car", a.carId, [["", "—"], ...SITE.cars.filter((c) => c.status !== "hidden" || c.id === a.carId).map((c) => [c.id, carTitle(c)])], "w2")}
+    ${sel("a_sp", "With", a.salesperson || "", [["", "—"], ...(S().salespeople || []).map((x) => [x, x])])}${area("a_notes", "Notes", a.notes)}</div>
+    ${a.phone ? `<div class="formft" style="justify-content:flex-start"><a class="b sm" href="sms:${esc(String(a.phone).replace(/[^\d+]/g, ""))}?&body=${encodeURIComponent(`Hi ${String(a.name || "").split(" ")[0]}, this is ${S().name}. Just confirming your ${String(a.type).toLowerCase()} on ${fdate(a.date)} at ${a.time}. See you then! ${S().phone || ""}`)}">Text a reminder</a></div>` : ""}</div>`;
+  $("#aSave").onclick = async () => {
+    Object.assign(a, { date: v("a_date"), time: v("a_time"), type: v("a_type"), status: v("a_status"), name: v("a_name"), phone: v("a_phone"), carId: v("a_car") || null, salesperson: v("a_sp"), notes: v("a_notes") });
+    if (!a.date) return toast("Pick a date.", 1);
+    try { await saveRec("appts", a); if (isNew && L && L.status === "new") { L.status = "appointment"; await saveRec("leads", L); } else if (isNew && L && L.status === "contacted") { L.status = "appointment"; await saveRec("leads", L); }
+      toast("Appointment saved"); calStart = null; go("#/calendar"); } catch (x) { toast(errMsg(x), 1); }
+  };
+  if ($("#aDel")) $("#aDel").onclick = async () => { if (!confirm("Delete this appointment?")) return; try { await delRec("appts", a.id); go("#/calendar"); } catch (x) { toast(errMsg(x), 1); } };
+}
+
+/* ================= tasks ================= */
+let taskFilter = "open";
+function tasksPage(V) {
+  const today = todayISO();
+  const L = DB.tasks.filter((t) => taskFilter === "all" || (taskFilter === "done" ? t.done : !t.done)).sort((a, b) => (a.done - b.done) || (a.due || "9").localeCompare(b.due || "9"));
+  const link = (t) => t.leadId && DB.leads.find((l) => l.id === t.leadId) ? `<a href="#/leads/${esc(t.leadId)}">${esc(DB.leads.find((l) => l.id === t.leadId).name)}</a>` : t.customerId && cust(t.customerId) ? `<a href="#/customers/${esc(t.customerId)}">${esc(custName(cust(t.customerId)))}</a>` : "";
+  V.innerHTML = `<div class="ph"><div><h1>Tasks</h1><p>Calls to make, papers to chase, follow-ups.</p></div></div>
+  <div class="card" style="margin-bottom:14px"><div class="fg">${fld("t_title", "New task", "", "text", 'wide placeholder="Call John about the Tacoma"')}${fld("t_due", "Due", today, "date")}<div class="f" style="align-self:end"><button class="b primary" type="button" id="tAdd">Add task</button></div></div></div>
+  <div class="bar">${seg("tSeg", [["open", "Open"], ["done", "Done"], ["all", "All"]], taskFilter)}</div>
+  <div class="tw"><table class="t"><tbody>${L.map((t) => `<tr><td style="width:36px"><input type="checkbox" data-done="${esc(t.id)}" ${t.done ? "checked" : ""} aria-label="Done"></td>
+    <td style="${t.done ? "text-decoration:line-through;color:var(--muted)" : ""}"><b>${esc(t.title)}</b><span class="sub">${link(t)}</span></td>
+    <td>${t.due ? `<span style="color:${!t.done && t.due < today ? "var(--bad)" : !t.done && t.due === today ? "var(--warn)" : "inherit"}">${t.due === today ? "Today" : fdate(t.due)}</span>` : ""}</td>
+    <td class="r"><button class="b sm" type="button" data-tdel="${esc(t.id)}">✕</button></td></tr>`).join("") || '<tr><td class="empty">Nothing here.</td></tr>'}</tbody></table></div>`;
+  $("#tAdd").onclick = async () => { const title = v("t_title"); if (!title) return; try { await saveRec("tasks", { id: uid("T"), title, due: v("t_due") || null, done: false }); tasksPage(V); renderNav("tasks"); } catch (x) { toast(errMsg(x), 1); } };
+  $$("#tSeg button").forEach((b) => (b.onclick = () => { taskFilter = b.dataset.k; tasksPage(V); }));
+  $$("[data-done]").forEach((c) => (c.onchange = async () => { const t = DB.tasks.find((x) => x.id === c.dataset.done); t.done = c.checked; try { await saveRec("tasks", t); tasksPage(V); renderNav("tasks"); } catch (x) { toast(errMsg(x), 1); } }));
+  $$("[data-tdel]").forEach((b) => (b.onclick = async () => { try { await delRec("tasks", b.dataset.tdel); tasksPage(V); renderNav("tasks"); } catch (x) { toast(errMsg(x), 1); } }));
+}
+
+/* ================= opportunities (equity mining) ================= */
+function opportunities(V) {
+  const today = todayISO();
+  const custOf = (d) => cust(d.customerId);
+  // 1. buy-here-pay-here customers in good standing who have paid off most of their car: offer an upgrade
+  const upgrade = bhphDeals().map((d) => [d, account(d)]).filter(([, a]) => a.payoff > 0 && a.pastDue === 0 && a.paid >= a.calc.totalPay * 0.6);
+  // 2. paid-off BHPH customers: ready for their next car
+  const paidOff = bhphDeals().map((d) => [d, account(d)]).filter(([, a]) => a.payoff === 0);
+  // 3. bought 2+ years ago: time to trade up
+  const old = DB.deals.filter((d) => d.status === "sold" && d.type !== "bhph" && d.date && days(d.date) >= 730);
+  // 4. lost or cold leads from the last 90 days with a phone number: try again
+  const cold = DB.leads.filter((l) => ["lost", "contacted"].includes(l.status) && l.phone && days((l.createdAt || "").slice(0, 10)) <= 90 && days((l.createdAt || "").slice(0, 10)) >= 14);
+  // 5. birthdays this month
+  const bdays = DB.customers.filter((c) => c.dob && c.dob.slice(5, 7) === today.slice(5, 7));
+  const row = (c, why, extra = "") => `<tr><td><b>${esc(custName(c))}</b><span class="sub">${esc(c?.phone || "")}</span></td><td>${why}</td><td class="r" style="white-space:nowrap">${c?.phone ? `<a class="b sm" href="tel:${esc(String(c.phone).replace(/[^\d+]/g, ""))}">Call</a> <a class="b sm" href="sms:${esc(String(c.phone).replace(/[^\d+]/g, ""))}">Text</a>` : ""} ${c ? `<a class="b sm" href="#/customers/${esc(c.id)}">Open</a>` : ""}${extra}</td></tr>`;
+  const sec = (title, desc, rows) => `<div class="card" style="margin-bottom:14px"><h3>${title} <span style="text-transform:none;letter-spacing:0;font-family:var(--body)">${rows.length}</span></h3><p style="color:var(--muted);margin:-6px 0 10px;font-size:14px">${desc}</p>
+    ${rows.length ? `<div class="tw"><table class="t"><tbody>${rows.join("")}</tbody></table></div>` : '<p style="color:var(--dim);margin:0">Nobody right now.</p>'}</div>`;
+  V.innerHTML = `<div class="ph"><div><h1>Opportunities</h1><p>People already in your records who are likely to buy again. Call them first.</p></div></div>
+  ${sec("Ready for an upgrade", "Buy-here-pay-here customers who always pay and have paid 60% or more. Offer to roll them into a newer car.", upgrade.map(([d, a]) => row(custOf(d), `${esc(carTitle(car(d.carId)))} · ${Math.round((a.paid / a.calc.totalPay) * 100)}% paid · owes ${money(a.payoff)}`)))}
+  ${sec("Paid off", "Finished paying. Thank them and offer their next car.", paidOff.map(([d]) => row(custOf(d), `${esc(carTitle(car(d.carId)))} paid off`)))}
+  ${sec("Time to trade up", "Bought from you two or more years ago.", old.map((d) => row(custOf(d), `${esc(carTitle(car(d.carId)))} · bought ${fdate(d.date)}`)))}
+  ${sec("Second chance", "Leads from the last 3 months who didn't buy. Try again with a new car.", cold.map((l) => `<tr><td><b>${esc(l.name)}</b><span class="sub">${esc(l.phone)}</span></td><td>${leadPill(l.status)} · ${fdate((l.createdAt || "").slice(0, 10))}</td><td class="r" style="white-space:nowrap"><a class="b sm" href="tel:${esc(l.phone.replace(/[^\d+]/g, ""))}">Call</a> <a class="b sm" href="#/leads/${esc(l.id)}">Open</a></td></tr>`))}
+  ${sec("Birthdays this month", "Send a quick happy birthday text.", bdays.map((c) => row(c, `🎂 ${parseD(c.dob).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`)))}`;
+}
+
+/* ================= expenses (business costs) ================= */
+const EXP_CATS = ["Rent", "Utilities", "Payroll", "Advertising", "Insurance", "Floor plan interest", "Auction fees", "Transport", "Office", "Licences & fees", "Other"];
+function expensesPage(V) {
+  const L = DB.expenses.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const month = todayISO().slice(0, 7);
+  V.innerHTML = `<div class="ph"><div><h1>Expenses</h1><p>Business costs that aren't tied to one car. Used for the profit & loss in Reports.</p></div><div class="act"><button class="b" id="eCsv" type="button">Export CSV</button></div></div>
+  <div class="grid g3" style="margin-bottom:14px"><div class="card kpi"><span>This month</span><b>${money(L.filter((e) => (e.date || "").startsWith(month)).reduce((s, e) => s + n0(e.amount), 0))}</b></div>
+    <div class="card kpi"><span>This year</span><b>${money(L.filter((e) => (e.date || "").startsWith(month.slice(0, 4))).reduce((s, e) => s + n0(e.amount), 0))}</b></div></div>
+  <div class="card" style="margin-bottom:14px"><div class="fg">${fld("e_date", "Date", todayISO(), "date")}${sel("e_cat", "Category", "Rent", EXP_CATS)}${fld("e_vendor", "Paid to", "")}${fld("e_amt", "Amount", "", "number")}${fld("e_note", "Note", "")}
+    <div class="f" style="align-self:end"><button class="b primary" type="button" id="eAdd">Add expense</button></div></div></div>
+  ${table([{ h: "Date", f: (e) => fdate(e.date) }, { h: "Category", f: (e) => esc(e.category) }, { h: "Paid to", f: (e) => esc(e.vendor || "") }, { h: "Note", f: (e) => esc(e.note || "") }, { h: "Amount", r: 1, f: (e) => money2(e.amount) },
+    { h: "", f: (e) => `<button class="b sm" type="button" data-edel="${esc(e.id)}">✕</button>` }], L)}`;
+  $("#eAdd").onclick = async () => { const amount = vn("e_amt"); if (!(amount > 0)) return toast("Enter the amount.", 1);
+    try { await saveRec("expenses", { id: uid("E"), date: v("e_date") || todayISO(), category: v("e_cat"), vendor: v("e_vendor"), amount, note: v("e_note") }); toast("Expense added"); expensesPage(V); } catch (x) { toast(errMsg(x), 1); } };
+  $$("[data-edel]").forEach((b) => (b.onclick = async () => { if (!confirm("Delete this expense?")) return; try { await delRec("expenses", b.dataset.edel); expensesPage(V); } catch (x) { toast(errMsg(x), 1); } }));
+  $("#eCsv").onclick = () => csvDownload("expenses.csv", [["Date", "Category", "Paid to", "Note", "Amount"], ...L.map((e) => [e.date, e.category, e.vendor || "", e.note || "", e.amount])]);
+}
+
+/* ================= message templates ================= */
+const DEFAULT_TPLS = [
+  { name: "Thanks for your interest", channel: "sms", body: "Hi {first_name}, this is {dealer}. Thanks for asking about the {car}. When would you like to come see it? {phone}" },
+  { name: "Car still available", channel: "email", subject: "The {car} is still available", body: "Hi {first_name},\n\nGood news: the {car} is still available at {price}.\n\nPhotos and details: {link}\nGet pre-approved in 3 minutes: {apply}\n\nWe're at {address}. Call or text {phone} anytime.\n\n{dealer}" },
+  { name: "Appointment reminder", channel: "sms", body: "Hi {first_name}, just a reminder of your visit at {dealer} tomorrow. Reply if you need to change the time. {phone}" },
+  { name: "Payment reminder", channel: "sms", body: "Hi {first_name}, friendly reminder from {dealer}: your car payment is due soon. Questions? Call {phone}." },
+];
+function templatesPage(V) {
+  V.innerHTML = `<div class="ph"><div><h1>Message templates</h1><p>Ready-made texts and emails. Use them from any lead: they open in your phone or email with the name, car and price filled in.</p></div>
+    <div class="act">${DB.templates.length ? "" : '<button class="b" type="button" id="tplDefaults">Add starter templates</button>'}<button class="b primary" type="button" id="tplNew">+ New template</button></div></div>
+  <div class="banner">You can use: {first_name} {name} {car} {price} {link} {apply} {dealer} {phone} {address}</div>
+  <div class="grid g2">${DB.templates.map((t) => `<div class="card" data-tid="${esc(t.id)}"><div class="fg">${fld("n_" + t.id, "Name", t.name, "text", "wide")}${sel("c_" + t.id, "Type", t.channel, [["sms", "Text message"], ["email", "Email"]])}
+    ${t.channel === "email" ? fld("s_" + t.id, "Subject", t.subject, "text", "wide") : ""}${area("b_" + t.id, "Message", t.body)}</div>
+    <div class="formft"><button class="b danger sm" type="button" data-tpdel="${esc(t.id)}">Delete</button><button class="b sm primary" type="button" data-tpsave="${esc(t.id)}">Save</button></div></div>`).join("")}</div>`;
+  const add = async (t) => { await saveRec("templates", { id: uid("M"), ...t }); };
+  if ($("#tplDefaults")) $("#tplDefaults").onclick = async () => { try { for (const t of DEFAULT_TPLS) await add(t); templatesPage(V); } catch (x) { toast(errMsg(x), 1); } };
+  $("#tplNew").onclick = async () => { try { await add({ name: "New template", channel: "sms", body: "Hi {first_name}, " }); templatesPage(V); } catch (x) { toast(errMsg(x), 1); } };
+  $$("[data-tpsave]").forEach((b) => (b.onclick = async () => { const id = b.dataset.tpsave, t = DB.templates.find((x) => x.id === id);
+    Object.assign(t, { name: v("n_" + id), channel: v("c_" + id), subject: document.getElementById("s_" + id) ? v("s_" + id) : t.subject || "", body: document.getElementById("b_" + id).value });
+    try { await saveRec("templates", t); toast("Saved"); templatesPage(V); } catch (x) { toast(errMsg(x), 1); } }));
+  $$("[data-tpdel]").forEach((b) => (b.onclick = async () => { if (!confirm("Delete this template?")) return; try { await delRec("templates", b.dataset.tpdel); templatesPage(V); } catch (x) { toast(errMsg(x), 1); } }));
 }
 
 /* ================= printing ================= */

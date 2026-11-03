@@ -45,6 +45,10 @@ export const FIELDS = {
   bodyUpper: ["Body style in capitals (TRUCK)", (c) => ({ Truck: "TRUCK", SUV: "SUV", Sedan: "SEDAN", Coupe: "COUPE", "Minivan / Passenger Van": "MINIVAN", Convertible: "CONVERTIBLE", Wagon: "WAGON", Hatchback: "HATCHBACK", Van: "VAN" }[c.body] || "OTHER")],
   title: ["Ad title (2014 Ford F-150 XLT)", (c) => [c.year, c.name, c.trim].filter(Boolean).join(" ")],
   availability: ["Availability (AVAILABLE / SOLD)", (c) => (c.status === "sold" ? "SOLD" : "AVAILABLE")],
+  addedAt: ["Date first on the lot (yyyy-mm-dd)", (c) => c.addedAt || ""],
+  daysOnLot: ["Days on the lot", (c) => (c.addedAt ? Math.max(0, Math.round((Date.now() - new Date(c.addedAt).getTime()) / 864e5)) : "")],
+  driveCode: ["Drivetrain code (4X4, AWD, FWD, RWD)", (c) => ({ "4WD": "4X4", "4x4": "4X4", AWD: "AWD", FWD: "FWD", RWD: "RWD" }[c.drive] || "Other")],
+  availLower: ["Availability (available / not available)", (c) => (c.status === "lot" ? "available" : "not available")],
 };
 
 // Ready-made exports. "dealerId" is the account number each site gives you.
@@ -116,6 +120,15 @@ Object.assign(PRESETS, {
     cols: [P("id", "stock"), P("title", "title"), P("description", "desc"), P("link", "url"), P("image_link", "photo"), P("price", "priceUSD"),
       F("condition", "used"), P("brand", "make"), P("model", "model"), P("year", "year"), P("trim", "trim"), P("mileage", "milesText"), P("vin", "vin"),
       P("color", "ext"), P("body_style", "body"), P("engine", "engine"), P("availability", "availability")],
+  },
+  tiktok: {
+    label: "TikTok",
+    note: "Automotive inventory catalog for TikTok Automotive Ads (TikTok Ads Manager → Catalogs).",
+    cols: [P("vehicle_id", "stock"), P("title", "title"), P("description", "desc"), P("link", "url"), P("image_link", "photo"), P("make", "make"), P("model", "model"),
+      P("year", "year"), P("trim", "trim"), P("mileage.value", "miles"), F("mileage.unit", "MI"), F("state_of_vehicle", "Used"), P("availability", "availLower"),
+      P("date_first_on_lot", "addedAt"), P("days_on_lot", "daysOnLot"), P("price", "priceUSD"), P("vin", "vin"), P("stock_number", "stock"),
+      P("exterior_color", "ext"), P("interior_color", "int"), P("drivetrain", "driveCode"), P("body_style", "body"), P("fuel_type", "fuel"), P("transmission", "trans"),
+      P("dealer_name", "dealerName"), P("dealer_phone", "dealerPhone"), P("address.city", "dealerCity"), P("address.region", "dealerState"), P("address.postal_code", "dealerZip"), F("address.country", "US")],
   },
   ksl: {
     label: "KSL Cars",

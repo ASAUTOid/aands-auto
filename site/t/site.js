@@ -60,9 +60,10 @@ const featured = CARS.find((c) => c.featured) || CARS[0];
 const tel = "tel:+1" + String(S.phone || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
 const title = (c) => `${c.year} ${c.name}`;
 
+const applyUrl = (carId) => "/apply" + (site.tenant ? "?d=" + site.tenant : "") + (carId ? (site.tenant ? "&" : "?") + "car=" + encodeURIComponent(carId) : "");
 function header() {
   return `<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || site.main || !site.tenant ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
-    <nav class="nav"><a href="#inventory">Inventory</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+    <nav class="nav"><a href="#inventory">Inventory</a><a href="${applyUrl()}">Financing</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
     ${S.phone ? `<a class="tel" href="${tel}">${esc(S.phone)}</a>` : ""}</div></header>`;
 }
 function hero() {
@@ -139,7 +140,7 @@ function detail(c) {
       ${(c.equip || []).length ? `<div class="equip">${c.equip.map((e) => `<span>${esc(e)}</span>`).join("")}</div>` : ""}
       ${c.desc ? `<p class="muted" style="margin-top:18px">${esc(c.desc)}</p>` : ""}</div>
     <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a>${c.status === "sold" ? "" : `<a class="btn ghost" href="${applyUrl(c.id)}">Get pre-approved</a>`}</div>
       ${c.status === "sold" ? "" : `<div class="box calc"><h3>Payment estimate</h3>
         <label>Down payment <b id="cDownV"></b></label><input type="range" id="cDown" min="0" max="${Math.round(c.price * 0.5)}" step="250" value="${Math.round(c.price * 0.1 / 250) * 250}">
         <label>Term <b id="cTermV"></b></label><input type="range" id="cTerm" min="12" max="72" step="12" value="48">

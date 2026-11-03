@@ -15,6 +15,7 @@ export default async (req) => {
     message: clip(b.message, 4000), vin: clip(b.vin, 17), miles: clip(b.miles, 20), carId: clip(b.carId, 40),
     source: b.site ? "Website: " + clip(b.site, 60) : "Website", status: "new", notes: [],
   };
+  if (b.credit && typeof b.credit === "object") lead.credit = Object.fromEntries(Object.entries(b.credit).slice(0, 30).map(([k, v]) => [clip(k, 30), clip(v, 200)]));
   if (!lead.name || (!lead.phone && !lead.email)) return json({ error: "missing_fields" }, 400);
   // messages sent from a dealer website go to that dealer's own admin
   const tenant = clip(b.tenant, 40);

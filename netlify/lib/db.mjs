@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 
 // Private dealer data (never shown on the public website). One JSON document per collection.
-export const COLLECTIONS = ["leads", "customers", "deals", "costs", "payments", "tasks"];
+export const COLLECTIONS = ["leads", "customers", "deals", "costs", "payments", "tasks", "appts", "recon", "templates", "expenses"];
 const store = () => getStore({ name: "dms", consistency: "strong" });
 
 export async function readAll(col) {
