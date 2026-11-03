@@ -945,7 +945,7 @@ function list(){
   const s={pa:(a,b)=>a.price-b.price,pd:(a,b)=>b.price-a.price,yd:(a,b)=>b.year-a.year,hp:(a,b)=>(b.hp||0)-(a.hp||0),new:(a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id)}[filt.sort];
   return r.sort(s);
 }
-function cardHTML(c){return `<a class="card ${c.status==='sold'?'is-sold':''}" href="#car-${c.id}" data-id="${c.id}"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="yr">${c.year}</span>${c.status==='sold'?'<span class="sold">SOLD</span>':c.status==='pending'?'<span class="sold" style="background:var(--sodium);color:#111">SALE PENDING</span>':c.status==='draft'?'<span class="sold" style="background:#555">DRAFT PREVIEW</span>':''}<div class="glare"></div></div><div class="bd"><div><h3>${c.name}</h3><span class="trim">${[c.trim,c.ext].filter(Boolean).join(' · ')}</span></div><div class="specs"><span>${c.hp?`<b>${c.hp}</b> hp`:'hp on request'}</span><span>${c.miles?`<b>${c.miles.toLocaleString()}</b> mi`:'miles on request'}</span>${c.drive?`<span><b>${c.drive}</b></span>`:''}</div><div class="ft"><span class="pr">${money(c.price)}</span><button class="cmp ${cmpSel.includes(c.id)?'on':''}" data-c="${c.id}" aria-pressed="${cmpSel.includes(c.id)}">${cmpSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button></div></div></a>`}
+function cardHTML(c){return `<a class="card ${c.status==='sold'?'is-sold':''}" href="#car-${c.id}" data-id="${c.id}"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="yr">${c.year}</span>${c.inspection&&c.inspection.grade&&c.inspection.public!==false&&ST.showInspections!==false&&!/repairs/i.test(c.inspection.grade)?'<span style="position:absolute;left:12px;bottom:12px;background:#1f8a4c;color:#fff;font:700 11px var(--mono);letter-spacing:.1em;padding:5px 8px;border-radius:2px;z-index:3">✓ INSPECTED</span>':''}${c.status==='sold'?'<span class="sold">SOLD</span>':c.status==='pending'?'<span class="sold" style="background:var(--sodium);color:#111">SALE PENDING</span>':c.status==='draft'?'<span class="sold" style="background:#555">DRAFT PREVIEW</span>':''}<div class="glare"></div></div><div class="bd"><div><h3>${c.name}</h3><span class="trim">${[c.trim,c.ext].filter(Boolean).join(' · ')}</span></div><div class="specs"><span>${c.hp?`<b>${c.hp}</b> hp`:'hp on request'}</span><span>${c.miles?`<b>${c.miles.toLocaleString()}</b> mi`:'miles on request'}</span>${c.drive?`<span><b>${c.drive}</b></span>`:''}</div><div class="ft"><span class="pr">${money(c.price)}</span><button class="cmp ${cmpSel.includes(c.id)?'on':''}" data-c="${c.id}" aria-pressed="${cmpSel.includes(c.id)}">${cmpSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button></div></div></a>`}
 function renderGrid(){
   const g=$('#grid'); const before=new Map($$('.card',g).map(el=>[el.dataset.id,el.getBoundingClientRect()]));
   const r=list();
@@ -990,7 +990,7 @@ function renderCar(id){
       <div class="price">${c.status==='sold'?'Sold':money(c.price)}</div>${c.status==='pending'?'<div class="trim" style="color:var(--sodium)">SALE PENDING · ask about similar cars</div>':''}
       <p class="desc">${c.desc}</p>
       <div class="acts"><a class="btn" href="#contact" id="bookBtn" data-mag>Book a viewing <span class="arr">→</span></a><a class="btn ghost" href="#contact" id="testBtn">Schedule test drive</a><button class="btn ghost" id="cmpBtn">${cmpSel.includes(id)?'✓ In compare':'+ Compare'}</button><a class="btn ghost" href="/apply?car=${id}">Get pre-approved</a></div>
-      ${c.inspection&&c.inspection.public!==false&&c.inspection.grade?`<a href="/inspection?car=${id}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:18px;padding:14px 16px;border:1px solid var(--line);border-radius:3px;text-decoration:none;background:var(--tar)"><span><b style="font:800 20px/1 var(--display);text-transform:uppercase">📋 Inspection report</b><br><span style="color:var(--steel);font-size:14px">${c.inspection.grade}</span></span><span style="color:var(--sodium)">View →</span></a>`:''}
+      <div id="inspBox"></div>
     </div>
   </div>
   <div class="gauges">
@@ -1016,6 +1016,7 @@ function renderCar(id){
   // zoom
   const z=$('#zoom'), zi=z.firstElementChild;
   z.onclick=()=>{z.classList.toggle('z'); z.querySelector('.hint').textContent=z.classList.contains('z')?'CLICK TO CLOSE':'CLICK TO ZOOM'};
+  if(c.inspection&&ST.showInspections!==false) import('/admin/inspect.js').then(m=>{const b=$('#inspBox'); if(b) b.innerHTML=m.siteSummary(c,'/inspection?car='+encodeURIComponent(c.id),true)}).catch(()=>{});
   $$('#thumbs [data-ph]').forEach(b=>b.onclick=()=>{zi.src=b.dataset.ph;$$('#thumbs [data-ph]').forEach(x=>x.style.borderColor=x===b?'var(--crimson)':'transparent')});
   z.onpointermove=e=>{const r=z.getBoundingClientRect();zi.style.transformOrigin=`${(e.clientX-r.left)/r.width*100}% ${(e.clientY-r.top)/r.height*100}%`};
   // gauges

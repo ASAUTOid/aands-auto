@@ -202,7 +202,7 @@ function route() {
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
     deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, studio: (V2) => bulkStudio(V2, photoEnv()), inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
-      openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: "/inspection?car=" + id2,
+      openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: "/inspection?car=" + id2, upload: (f) => upload(f, 1400),
         onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await saveSite(); } catch (x) { k.inspection = prev; throw x; } } }); } };
   (pages[page] || dashboard)(V, id, q);
 }
@@ -1083,11 +1083,12 @@ function settings(V) {
       ${area("s_sp", "Salespeople (one per line)", (st.salespeople || []).join("\n"))}</div></div>
     <div class="card"><h3>Admin password</h3><p style="color:var(--muted);margin:0 0 12px;font-size:14px">The password set in Netlify (ADMIN_PASSWORD) always keeps working as a backup key.</p>
       <div class="fg">${fld("pw1", "New password (8+ characters)", "", "password")}${fld("pw2", "Repeat new password", "", "password")}</div><div class="formft"><button class="b" type="button" id="pwGo">Change password</button></div>
+      <h2 class="sec">Website</h2><label class="chk"><input type="checkbox" id="s_insp" ${st.showInspections !== false ? "checked" : ""}> Show inspection reports on the website</label>
       <h2 class="sec">Appearance</h2>${seg("theme", [["", "Automatic"], ["light", "Light"], ["dark", "Dark"]], document.documentElement.dataset.theme || "")}</div>
   </div>`;
   $("#setSave").onclick = async () => {
     Object.assign(st, { name: v("s_name"), phone: v("s_phone"), email: v("s_email"), street: v("s_street"), city: v("s_city"), state: v("s_state"), zip: v("s_zip"), license: v("s_lic"),
-      taxRate: vn("s_tax") ?? 0, docFee: vn("s_doc") ?? 0, titleFee: vn("s_title") ?? 0, apr: vn("s_apr") ?? 0, salespeople: v("s_sp").split("\n").map((s) => s.trim()).filter(Boolean) });
+      taxRate: vn("s_tax") ?? 0, docFee: vn("s_doc") ?? 0, titleFee: vn("s_title") ?? 0, apr: vn("s_apr") ?? 0, salespeople: v("s_sp").split("\n").map((s) => s.trim()).filter(Boolean), showInspections: $("#s_insp").checked });
     st.hours.forEach((h, i) => (h[1] = v("s_h" + i)));
     try { await saveSite(); toast("Saved. The website is updated."); } catch (x) { toast(errMsg(x), 1); }
   };

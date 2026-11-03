@@ -66,7 +66,7 @@ function route() {
   const V = $("#view");
   if (page === "studio") return bulkStudio(V, photoEnv());
   if (page === "inspect") { const k = TD.cars.find((x) => x.id === id); if (!k) return go("#/cars");
-    return openInspection(V, { car: k, settings: S(), title: k.year + " " + k.name, backLabel: k.year + " " + k.name, onBack: () => go("#/cars/" + id), toast, reportUrl: `/inspection?car=${id}&d=${SLUG}`,
+    return openInspection(V, { car: k, settings: S(), title: k.year + " " + k.name, backLabel: k.year + " " + k.name, onBack: () => go("#/cars/" + id), toast, reportUrl: `/inspection?car=${id}&d=${SLUG}`, upload: (f) => upload(f, 1400),
       onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await save(); } catch (x) { k.inspection = prev; throw x; } } }); }
   ({ cars: id ? carEdit : cars, messages, website, marketing, account }[page] || cars)(V, id);
 }
@@ -176,7 +176,8 @@ function website(V) {
       <h3 style="margin-top:18px">Opening hours</h3><div class="fg">${s.hours.map((h, i) => f("h" + i, h[0], h[1])).join("")}</div></div></div>
   <div class="card" style="margin-top:14px"><h3>Texts</h3><div class="fg">${f("w_head", "Headline", s.heroTitle, "text", 'wide placeholder="Quality used cars"')}${area("w_tag", "Intro under the headline", s.tagline)}${area("w_about", "About us", s.about)}
     ${f("w_apr", "APR for the payment calculator %", s.apr ?? 12.9, "number")}<div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(s.accent || T(tpl).vars.accent)}" style="height:40px;padding:2px"></div>
-    <div class="f" style="align-self:end"><button class="b sm" type="button" id="accReset">Use the template's colour</button></div></div></div>
+    <div class="f" style="align-self:end"><button class="b sm" type="button" id="accReset">Use the template's colour</button></div></div>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" id="w_insp" ${s.showInspections !== false ? "checked" : ""}> Show inspection reports on my website (a summary on each car's page and an "Inspected" badge)</label></div>
   <h2 class="sec">Design · choose a template</h2>
   <div class="grid g3">${DEALER_TEMPLATES.map((k) => `<div class="card tpl ${k === tpl ? "on" : ""}" data-tpl="${k}">${thumb(`${SITE_URL}?template=${k}`, "Preview " + T(k).name)}<b>${esc(T(k).name)}</b><small style="color:var(--muted)">${esc(T(k).desc)}</small>
     <div style="display:flex;gap:6px"><button class="b sm" type="button" data-big="${k}">🔍 Big preview</button><button class="b sm ${k === tpl ? "" : "primary"}" type="button" data-pick="${k}">${k === tpl ? "Selected" : "Choose"}</button></div></div>`).join("")}</div>`;
@@ -196,7 +197,7 @@ function website(V) {
     if (!val("w_name")) return toast("Add your business name.", 1);
     const before = clone(s);
     Object.assign(s, { name: val("w_name"), phone: val("w_phone"), email: val("w_email"), street: val("w_street"), city: val("w_city"), state: val("w_state"), zip: val("w_zip"), logo, template: tpl,
-      heroTitle: val("w_head"), tagline: val("w_tag"), about: val("w_about"), apr: num("w_apr") ?? 12.9, accent: accTouched ? val("w_acc") : s.accent || "" });
+      heroTitle: val("w_head"), tagline: val("w_tag"), about: val("w_about"), apr: num("w_apr") ?? 12.9, showInspections: $("#w_insp").checked, accent: accTouched ? val("w_acc") : s.accent || "" });
     s.hours.forEach((h, i) => (h[1] = val("h" + i)));
     try { await save(); brand(); toast("Saved. Your website is updated."); website(V); } catch (x) { TD.settings = before; toast("Could not save.", 1); }
   };

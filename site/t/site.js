@@ -4,6 +4,7 @@
 // any domain listed on an extra website -> that website
 // ?template=<id> previews a template.
 import { TEMPLATES } from "./templates.js";
+import { siteSummary, summary as inspSum } from "../admin/inspect.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n) => "$" + Math.round(+n || 0).toLocaleString("en-US");
@@ -64,6 +65,9 @@ const preview = new URLSearchParams(location.search).get("template");
 const tplId = TEMPLATES[preview] && !TEMPLATES[preview].original ? preview : TEMPLATES[site.template] && !TEMPLATES[site.template].original ? site.template : "classic";
 const T = TEMPLATES[tplId];
 const where = [S.city, S.state].filter(Boolean).join(", ");
+const showInsp = S.showInspections !== false;
+const isDark = (() => { const h = String((T.vars || {}).bg || "#fff").replace("#", ""); const n = parseInt(h.length === 3 ? h.split("").map((x) => x + x).join("") : h, 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 < 128; })();
+const inspBadge = (c) => { const i = c.inspection; if (!i || i.public === false || !i.grade) return ""; const s = inspSum(i); return s.fail ? "" : s.done + " points"; };
 
 // theme
 const vars = { ...T.vars, ...(site.accent ? { accent: site.accent, ...(T.heroStyle === "search" || T.heroStyle === "split" ? { hero: site.accent } : {}) } : {}) };
@@ -123,7 +127,7 @@ function drawGrid() {
   $("#cnt").textContent = `${xs.length} vehicle${xs.length === 1 ? "" : "s"}`;
   if (!CARS.length) { $("#grid").innerHTML = '<div class="empty">New cars are coming soon. Call us to hear what just arrived.</div>'; return; }
   $("#grid").innerHTML = xs.map((c) => `<a class="card" href="#car-${esc(c.id)}"><div class="ph"><img src="${esc(c.img)}" alt="${esc(title(c))}" loading="lazy">${c.status === "sold" ? '<span class="tag sold">Sold</span>' : c.status === "pending" ? '<span class="tag sold" style="background:#b45309">Sale pending</span>' : c.status === "draft" ? '<span class="tag sold" style="background:#555">Draft preview</span>' : `<span class="tag">${esc(c.year)}</span>`}</div>
-    <div class="bd"><h3>${esc(c.name)}</h3><div class="sp">${esc([c.trim, c.miles != null ? Number(c.miles).toLocaleString("en-US") + " mi" : "", c.drive, c.ext].filter(Boolean).join(" · "))}</div><div class="pr">${money(c.price)}</div></div></a>`).join("")
+    <div class="bd">${showInsp && inspBadge(c) ? `<span style="font-size:12px;font-weight:700;color:#1f8a4c">✓ Inspected · ${inspBadge(c)}</span>` : ""}<h3>${esc(c.name)}</h3><div class="sp">${esc([c.trim, c.miles != null ? Number(c.miles).toLocaleString("en-US") + " mi" : "", c.drive, c.ext].filter(Boolean).join(" · "))}</div><div class="pr">${money(c.price)}</div></div></a>`).join("")
     || '<div class="empty">No cars match. Try fewer filters.</div>';
 }
 const aboutImg = site.tenant || site.demo ? site.aboutImg || (CARS[1] || CARS[0] || {}).img : "/img/showroom.webp";
@@ -170,7 +174,7 @@ function detail(c) {
       ${c.desc ? `<p class="muted" style="margin-top:18px">${esc(c.desc)}</p>` : ""}</div>
     <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>${c.status === "pending" ? '<div class="muted" style="margin:-6px 0 14px;font-weight:700">Sale pending · ask us about similar cars</div>' : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a>${c.status === "sold" ? "" : `<a class="btn ghost" href="${applyUrl(c.id)}">Get pre-approved</a>`}</div>
-      ${c.inspection && c.inspection.public !== false && c.inspection.grade ? `<a class="box" style="display:flex;justify-content:space-between;align-items:center;gap:10px;text-decoration:none;margin-bottom:16px" href="/inspection?car=${esc(c.id)}${site.tenant ? "&d=" + esc(site.tenant) : ""}" target="_blank" rel="noopener"><span><b>📋 Inspection report</b><br><span class="muted">${esc(c.inspection.grade)}</span></span><span>View →</span></a>` : ""}
+      ${showInsp ? siteSummary(c, `/inspection?car=${encodeURIComponent(c.id)}${site.tenant ? "&d=" + site.tenant : ""}`, isDark) : ""}
       ${c.status === "sold" ? "" : `<div class="box calc"><h3>Payment estimate</h3>
         <label>Down payment <b id="cDownV"></b></label><input type="range" id="cDown" min="0" max="${Math.round(c.price * 0.5)}" step="250" value="${Math.round(c.price * 0.1 / 250) * 250}">
         <label>Term <b id="cTermV"></b></label><input type="range" id="cTerm" min="12" max="72" step="12" value="48">
