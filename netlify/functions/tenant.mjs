@@ -3,7 +3,8 @@ import { randomUUID, scryptSync, createHash, timingSafeEqual } from "node:crypto
 import { checkPassword, json } from "../lib/auth.mjs";
 import { mask, merge, sendFeed } from "../lib/ftp.mjs";
 import { COLLECTIONS } from "../lib/db.mjs";
-import { hashPw, statusOf, setStatus, readMap, writeMap, newId, getConfig } from "../lib/hq.mjs";
+import { hashPw, statusOf, setStatus, readMap, writeMap, newId, getConfig, listDomain } from "../lib/hq.mjs";
+import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailable, cleanDomain, validDomain } from "../lib/netlify.mjs";
 
 // Everything for one dealer on the platform. The owner (HQ password) can do everything; the dealer uses their own password.
 // GET    /api/t/<slug>/data              public: settings + cars (+ suspended flag)
@@ -120,6 +121,35 @@ export default async (req, context) => {
     cfg[name] = await sendFeed(td, name, cfg[name], b.base && /^https:\/\/[a-z0-9.-]+(\/w\/[a-z0-9-]+)?$/.test(b.base) ? b.base : new URL(req.url).origin + "/w/" + slug);
     await store().setJSON("ftp/" + slug, cfg);
     return json(mask(cfg)[name]);
+  }
+  // Domain: connect the dealer's own domain automatically (Netlify API), check it, or ask to buy one through DealerVexa
+  if (action === "domain") {
+    const st = await statusOf(slug);
+    if (m === "GET") { const out = { domain: st.domain || "", nameservers: st.nameservers || [], auto: hasNetlify(), requests: Object.values(await readMap("domainRequests")).filter((x) => x.slug === slug) };
+      if (st.domain && st.nameservers?.length) Object.assign(out, await checkDomain(st.domain, st.nameservers)); return json(out); }
+    if (m === "POST") {
+      const b = await body(req), domain = cleanDomain(b?.domain);
+      if (!validDomain(domain)) return json({ error: "That doesn't look like a domain (example: joesautos.com)." }, 400);
+      let ns = [];
+      if (hasNetlify()) { try { ns = (await connectDomain(domain)).nameservers; } catch (e) { return json({ error: "Could not connect the domain: " + e.message }, 502); } }
+      await setStatus(slug, { domain, nameservers: ns, domainAddedAt: new Date().toISOString() });
+      await listDomain(slug, domain);
+      return json({ domain, nameservers: ns, auto: hasNetlify() });
+    }
+    if (m === "DELETE") { if (st.domain && hasNetlify()) await disconnectDomain(st.domain).catch(() => {}); await setStatus(slug, { domain: "", nameservers: [] }); await listDomain(slug, ""); return json({ ok: true }); }
+  }
+  if (action === "domaincheck" && m === "GET") {
+    const d = cleanDomain(new URL(req.url).searchParams.get("name")); if (!validDomain(d)) return json({ error: "bad_domain" }, 400);
+    const cfg = await getConfig(); return json({ domain: d, available: await domainAvailable(d), price: cfg.domainPrice ?? 25 });
+  }
+  if (action === "domainbuy" && m === "POST") {
+    const b = await body(req), d = cleanDomain(b?.domain); if (!validDomain(d)) return json({ error: "bad_domain" }, 400);
+    const cfg = await getConfig(), price = cfg.domainPrice ?? 25, reqs = await readMap("domainRequests"), inv = await readMap("invoices");
+    const iid = newId("I"), rid = newId("R");
+    inv[iid] = { id: iid, slug, plan: "domain", amount: price, period: `Domain ${d} (1 year)`, status: "unpaid", createdAt: new Date().toISOString(), domainRequest: rid };
+    reqs[rid] = { id: rid, slug, domain: d, price, invoiceId: iid, status: "awaiting_payment", createdAt: new Date().toISOString() };
+    await writeMap("invoices", inv); await writeMap("domainRequests", reqs);
+    return json(reqs[rid]);
   }
   // Help: the dealer writes to DealerVexa, HQ answers
   if (action === "help") {

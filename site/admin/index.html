@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>DealerVexa HQ</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237c3aed'/%3E%3Cpath d='M8 9h6l4 10 4-10h3l-6 15h-3z' fill='white'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpath d='M7 8h7c5 0 8 3 8 8s-3 8-8 8H7zm4 4v8h3c2 0 4-1 4-4s-2-4-4-4z' fill='%23d7dade'/%3E%3Cpath d='M18 8h4l2 9 4-9h2l-6 16h-2z' fill='%23e11d2a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/admin/app.css">
 <style>
-:root{--brand:#7c3aed;--side:#120f1f;--side-on:#231d3a}
-.vx{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;font:800 22px/1 var(--display)}
+:root{--brand:#e11d2a;--side:#0a0a0c;--side-on:#1c1c22}
+.dvlogo{height:36px;width:auto}
+.vx{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#e11d2a,#9b0f18);color:#fff;font:800 22px/1 var(--display)}
 </style>
 </head>
 <body>
 <div id="login" class="login" hidden>
   <form id="loginForm" class="login-card">
-    <div class="vx" style="margin:0 auto;width:56px;height:56px;font-size:32px">V</div>
+    <img class="dvlogo" style="height:auto;width:100%;max-width:300px;margin:0 auto;background:#0a0a0c;padding:12px;border-radius:10px" src="/img/dealervexa-logo.png" alt="DealerVexa" onerror="this.onerror=null;this.src='/img/dealervexa-logo.svg'">
     <h1>DealerVexa HQ</h1>
     <p>Owner only. Enter the HQ password.</p>
     <input type="password" id="loginPw" autocomplete="current-password" placeholder="Password" aria-label="Password">
@@ -28,7 +29,7 @@
 </div>
 <div id="app" class="app" hidden>
   <aside class="side">
-    <a class="logo" href="#/overview"><span class="vx">V</span><span><b>DealerVexa</b><small>HQ · COMMAND CENTRE</small></span></a>
+    <a class="logo" href="#/overview" style="flex-direction:column;align-items:flex-start;gap:4px"><img class="dvlogo" style="height:auto;width:100%" src="/img/dealervexa-logo.png" alt="DealerVexa" onerror="this.onerror=null;this.src='/img/dealervexa-logo.svg'"><small style="font:500 9px/1.6 var(--mono);letter-spacing:.18em;color:var(--side-dim)">HQ · COMMAND CENTRE</small></a>
     <nav id="nav"></nav>
     <div class="side-ft"><a href="/panel/" target="_blank" rel="noopener">A &amp; S panel ↗</a><button class="linkish" id="logout" type="button">Log out</button></div>
   </aside>

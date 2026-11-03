@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150" role="img" aria-label="DealerVexa · Dealership Management Platform">
+  <defs>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#c9ccd2"/><stop offset=".55" stop-color="#8d939c"/><stop offset="1" stop-color="#e6e8ec"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b52"/><stop offset=".5" stop-color="#e11d2a"/><stop offset="1" stop-color="#9b0f18"/></linearGradient>
+    <linearGradient id="swoosh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e11d2a" stop-opacity="0"/><stop offset=".25" stop-color="#e11d2a"/><stop offset=".55" stop-color="#d7dade"/><stop offset=".8" stop-color="#e11d2a"/><stop offset="1" stop-color="#e11d2a" stop-opacity="0"/></linearGradient>
+  </defs>
+  <path d="M150 40 C 260 6, 400 0, 520 30 C 560 40, 590 52, 610 62" fill="none" stroke="url(#swoosh)" stroke-width="5" stroke-linecap="round"/>
+  <g font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-style="italic">
+    <text x="6" y="108" font-size="78" fill="url(#chrome)" letter-spacing="-4">D</text>
+    <text x="56" y="108" font-size="78" fill="url(#red)" letter-spacing="-4">V</text>
+    <path d="M128 52 L112 112" stroke="#e11d2a" stroke-width="4"/>
+    <text x="138" y="104" font-size="64" letter-spacing="-2"><tspan fill="url(#chrome)">Dealer</tspan><tspan fill="url(#red)">Vexa</tspan><tspan font-family="Arial,sans-serif" font-style="normal" font-weight="400" font-size="14" dy="-40" fill="#c9ccd2">®</tspan></text>
+  </g>
+  <g font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="13.5" letter-spacing="6.2" fill="#c9ccd2"><text x="150" y="136">DEALERSHIP MANAGEMENT PLATFORM</text></g>
+  <path d="M110 131 H140 M598 131 H628" stroke="#e11d2a" stroke-width="2.5"/>
+</svg>

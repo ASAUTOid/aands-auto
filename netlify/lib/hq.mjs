@@ -17,6 +17,7 @@ export const DEFAULT_CONFIG = {
   ],
   wallets: { BTC: "", ETH: "", "USDT (TRC-20)": "", "USDT (ERC-20)": "", USDC: "" },
   trialDays: 0,
+  domainPrice: 25,
 };
 export async function getConfig() { return { ...DEFAULT_CONFIG, ...((await hq().get("config", { type: "json" })) || {}) }; }
 
@@ -26,6 +27,15 @@ export async function readMap(key) { return (await hq().get(key, { type: "json" 
 export async function writeMap(key, m) { await hq().setJSON(key, m); }
 export async function statusOf(slug) { return (await tenants().get("status/" + slug, { type: "json" })) || {}; }
 export async function setStatus(slug, patch) { const s = { ...(await statusOf(slug)), ...patch }; await tenants().setJSON("status/" + slug, s); return s; }
+
+// keep the platform's list of websites (used for /w/<slug> and custom domains) in step with a dealer's domain
+export async function listDomain(slug, domain) {
+  const site = await siteStore().get("data", { type: "json" }); if (!site) return;
+  site.settings = site.settings || {}; site.settings.websites = site.settings.websites || [];
+  const w = site.settings.websites.find((x) => x.slug === slug);
+  if (w) w.domain = domain; else site.settings.websites.push({ id: newId("W"), slug, name: slug, tenant: true, domain });
+  await siteStore().setJSON("data", site);
+}
 
 // Creates a dealer website + account (used by HQ "create dealer" and when a sign-up is approved)
 export async function createDealer({ slug, settings, auth, plan, createdBy = "hq" }) {

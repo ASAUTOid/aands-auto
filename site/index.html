@@ -1092,6 +1092,7 @@ $$('.cpy').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copy
 
 /* ---------- router ---------- */
 let cur='home', first=true;
+if(/(^|\.)dealervexa\./i.test(location.hostname)){location.replace('/dealervexa/')}
 if(location.hash==='#admin'){location.replace('/panel/')}
 window.addEventListener('hashchange',()=>{if(location.hash==='#admin')location.href='/panel/'});
 const VIEWS=['home','inventory','compare','heritage','trade','contact','admin'];

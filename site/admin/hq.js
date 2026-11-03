@@ -40,7 +40,7 @@ function start(pw) {
 }
 
 /* ---------- router ---------- */
-const NAV = [["overview", "▦", "Overview"], ["dealers", "🏪", "Dealers"], ["problems", "⚠", "Problems"], ["support", "🛟", "Support"], ["signups", "📝", "Sign-ups"], ["invoices", "💳", "Invoices & payments"], ["plans", "⚙", "Plans & wallets"], ["links", "🔗", "Pages & links"]];
+const NAV = [["overview", "▦", "Overview"], ["dealers", "🏪", "Dealers"], ["problems", "⚠", "Problems"], ["support", "🛟", "Support"], ["signups", "📝", "Sign-ups"], ["invoices", "💳", "Invoices & payments"], ["domains", "🌐", "Domains"], ["plans", "⚙", "Plans & wallets"], ["links", "🔗", "Pages & links"]];
 async function route() {
   document.body.classList.remove("nav-open");
   const [page, id] = (location.hash.replace(/^#\/?/, "") || "overview").split("/");
@@ -48,7 +48,7 @@ async function route() {
   const V = $("#view"); V.innerHTML = '<p class="empty">Loading…</p>'; scrollTo(0, 0);
   try {
     if (!CFG) CFG = await api("/api/hq/config");
-    await ({ overview, dealers: id === "new" ? newDealer : dealers, problems, support, signups, invoices, plans, links }[page] || overview)(V, id);
+    await ({ overview, dealers: id === "new" ? newDealer : dealers, problems, support, signups, invoices, domains, plans, links }[page] || overview)(V, id);
   } catch (x) { V.innerHTML = `<p class="empty">Could not load (${esc(err(x))}).</p>`; }
 }
 const go = (h) => (location.hash === h ? route() : (location.hash = h));
@@ -116,10 +116,9 @@ async function dealers(V) {
     $$("[data-pw]").forEach((b) => (b.onclick = async () => { const pw = prompt("New password for this dealer (8+ characters):"); if (!pw) return; if (pw.length < 8) return toast("At least 8 characters.", 1);
       try { await api(`/api/t/${b.dataset.pw}/password`, J("POST", { newPassword: pw })); toast("Password changed. Send it to the dealer."); } catch (x) { toast(err(x), 1); } }));
     $$("[data-dom]").forEach((b) => (b.onclick = () => { dom = dom === b.dataset.dom ? null : b.dataset.dom; draw(); }));
-    if ($("#domSave")) $("#domSave").onclick = async () => { const d = o.dealers.find((x) => x.slug === dom), val = $("#domIn").value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "").toLowerCase();
-      try { const site = await (await fetch("/api/data", { cache: "no-store" })).json(); const w = (site.settings.websites || []).find((x) => x.slug === dom);
-        if (w) w.domain = val; else (site.settings.websites = site.settings.websites || []).push({ id: "W" + Date.now().toString(36), slug: dom, name: d.name, tenant: true, domain: val });
-        await api("/api/data", J("PUT", site)); d.domain = val; dom = null; toast("Domain saved"); draw(); } catch (x) { toast(err(x), 1); } };
+    if ($("#domSave")) $("#domSave").onclick = async () => { const d = o.dealers.find((x) => x.slug === dom), val = $("#domIn").value.trim();
+      try { const r = await api(`/api/t/${dom}/domain`, J("POST", { domain: val })); d.domain = r.domain; dom = null; draw();
+        alert(r.nameservers.length ? `Connected in Netlify. The dealer must set these name servers at their domain company:\n\n${r.nameservers.join("\n")}` : "Domain saved. Netlify is not linked (NETLIFY_TOKEN), so add it by hand in Netlify → Domain management."); } catch (x) { toast(err(x), 1); } };
     $$("[data-del]").forEach((b) => (b.onclick = async () => { const d = o.dealers.find((x) => x.slug === b.dataset.del);
       if (prompt(`This deletes ${d.name}: website, cars, customers, deals. It can't be undone. Type DELETE to confirm.`) !== "DELETE") return;
       try { await api(`/api/t/${d.slug}/data`, { method: "DELETE" }); const site = await (await fetch("/api/data", { cache: "no-store" })).json(); site.settings.websites = (site.settings.websites || []).filter((w) => w.slug !== d.slug); await api("/api/data", J("PUT", site));
@@ -230,6 +229,20 @@ async function invoices(V) {
   $$("[data-void]").forEach((b) => (b.onclick = async () => { if (!confirm("Cancel this invoice?")) return; try { await api("/api/hq/invoices/" + b.dataset.void, J("PUT", { status: "void" })); invoices(V); } catch (x) { toast(err(x), 1); } }));
 }
 
+/* ---------- domains bought through DealerVexa ---------- */
+async function domains(V) {
+  const r = await api("/api/hq/domains");
+  const st = (x) => ({ awaiting_payment: pill("Waiting for payment", "warn"), paid: pill("Paid · buy it now", "bad"), connected: pill("Connected", "ok"), cancelled: pill("Cancelled") }[x.status] || pill(x.status));
+  V.innerHTML = `<div class="ph"><div><h1>Domains</h1><p>Domains dealers asked to buy through DealerVexa.</p></div></div>
+  ${r.auto ? '<div class="banner">Netlify is linked: when you click "Bought, connect it", the domain is added to the site and its DNS zone is created automatically.</div>' : '<div class="banner warn">Netlify is not linked yet. Add NETLIFY_TOKEN and NETLIFY_SITE_ID in Netlify → Environment variables to connect domains automatically.</div>'}
+  <div class="card" style="margin-bottom:14px"><b>How to buy:</b> in Netlify go to <b>Domains → Register a domain</b> (or your favourite registrar), buy the name for 1 year, then click <b>Bought, connect it</b> below. Domains bought in Netlify work straight away; others need the name servers shown to the dealer.</div>
+  ${tbl([{ h: "Domain", f: (x) => `<b>${esc(x.domain)}</b><span class="sub">${esc(x.slug)} · ${fdate(x.createdAt)}</span>` }, { h: "Price", r: 1, f: (x) => money(x.price) }, { h: "Status", f: st },
+    { h: "", f: (x) => x.status === "paid" || x.status === "awaiting_payment" ? `<button class="b sm primary" type="button" data-done="${esc(x.id)}">Bought, connect it</button> <button class="b sm" type="button" data-cancel="${esc(x.id)}">Cancel</button>` : "" }], r.requests)}`;
+  $$("[data-done]").forEach((b) => (b.onclick = async () => { if (!confirm("Did you buy this domain? It will be connected to the dealer's website now.")) return;
+    try { await api(`/api/hq/domains/${b.dataset.done}/done`, { method: "POST" }); toast("Connected"); domains(V); } catch (x) { toast(err(x), 1); } }));
+  $$("[data-cancel]").forEach((b) => (b.onclick = async () => { await api("/api/hq/domains/" + b.dataset.cancel, J("PUT", { status: "cancelled" })); domains(V); }));
+}
+
 /* ---------- plans & wallets ---------- */
 async function plans(V) {
   const c = await api("/api/hq/config"); CFG = c;
@@ -237,11 +250,12 @@ async function plans(V) {
   <div class="card"><h3>Plans (USD per month)</h3>${c.plans.map((p, i) => `<div class="fg" style="margin-bottom:10px"><div class="f"><label>Name</label><input data-p="${i}|name" value="${esc(p.name)}"></div><div class="f"><label>Price</label><input type="number" data-p="${i}|price" value="${esc(p.price)}"></div><div class="f w2"><label>What's included</label><input data-p="${i}|desc" value="${esc(p.desc)}"></div></div>`).join("")}</div>
   <div class="card" style="margin-top:14px"><h3>Crypto wallets</h3><p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">Paste your receiving addresses. Only filled-in coins are offered to dealers. Double-check every address: crypto sent to a wrong address can't be recovered.</p>
     <div class="fg">${Object.entries(c.wallets).map(([k, a]) => `<div class="f w2"><label>${esc(k)}</label><input data-w="${esc(k)}" value="${esc(a)}" style="font-family:var(--mono);font-size:13px"></div>`).join("")}</div></div>
-  <div class="card" style="margin-top:14px"><label class="chk"><input type="checkbox" id="open" ${c.signupOpen ? "checked" : ""}> Sign-ups are open (the /signup page takes new dealers)</label></div>`;
+  <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Domain price for dealers (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div></div>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="open" ${c.signupOpen ? "checked" : ""}> Sign-ups are open (the /signup page takes new dealers)</label></div>`;
   $("#save").onclick = async () => {
     const pl = c.plans.map((p) => ({ ...p })); $$("[data-p]").forEach((i) => { const [n, k] = i.dataset.p.split("|"); pl[+n][k] = k === "price" ? +i.value : i.value; });
     const w = {}; $$("[data-w]").forEach((i) => (w[i.dataset.w] = i.value.trim()));
-    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked })); toast("Saved"); } catch (x) { toast(err(x), 1); }
+    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
   };
 }
 
