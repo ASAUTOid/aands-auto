@@ -699,12 +699,17 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
    If the server can't be reached, the copy built into this page is used instead. */
 (()=>{
   const run=()=>document.querySelectorAll('script.app-src').forEach(s=>{const n=document.createElement('script');n.textContent=s.textContent;s.replaceWith(n)});
+  let swapped=false;
+  const swap=()=>fetch('/t/site.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{swapped=true;document.open();document.write(h);document.close()});
   const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),4000);
   fetch('/api/data',{cache:'no-store',signal:ctl.signal})
     .then(r=>r.status===200?r.json():null)
-    .then(d=>{ if(d&&Array.isArray(d.cars)&&d.settings) document.getElementById('site-data').textContent=JSON.stringify(d).replace(/</g,'\\u003c') })
+    .then(d=>{ if(d&&Array.isArray(d.cars)&&d.settings){ document.getElementById('site-data').textContent=JSON.stringify(d).replace(/</g,'\\u003c');
+      const S=d.settings, q=new URLSearchParams(location.search).get('template'), host=location.hostname.replace(/^www\./,'');
+      const other=(S.websites||[]).some(w=>w.domain&&w.domain.replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'')===host);
+      const tpl=q||S.mainTemplate; if(other||(tpl&&tpl!=='night')) return swap(); } })
     .catch(()=>{})
-    .finally(()=>{clearTimeout(t); document.readyState==='loading'?document.addEventListener('DOMContentLoaded',run):run()});
+    .finally(()=>{clearTimeout(t); if(swapped) return; document.readyState==='loading'?document.addEventListener('DOMContentLoaded',run):run()});
 })();
 </script>
 <script type="text/plain" class="app-src">

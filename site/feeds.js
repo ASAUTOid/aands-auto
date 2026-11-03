@@ -40,6 +40,11 @@ export const FIELDS = {
   dealerCity: ["Dealer city", (c, s) => s.city || ""],
   dealerState: ["Dealer state", (c, s) => s.state || ""],
   dealerZip: ["Dealer ZIP", (c, s) => s.zip || ""],
+  priceUSD: ["Price with currency (14495 USD)", (c) => (c.price ? c.price + " USD" : "")],
+  milesText: ["Mileage with unit (142300 miles)", (c) => (c.miles != null ? c.miles + " miles" : "")],
+  bodyUpper: ["Body style in capitals (TRUCK)", (c) => ({ Truck: "TRUCK", SUV: "SUV", Sedan: "SEDAN", Coupe: "COUPE", "Minivan / Passenger Van": "MINIVAN", Convertible: "CONVERTIBLE", Wagon: "WAGON", Hatchback: "HATCHBACK", Van: "VAN" }[c.body] || "OTHER")],
+  title: ["Ad title (2014 Ford F-150 XLT)", (c) => [c.year, c.name, c.trim].filter(Boolean).join(" ")],
+  availability: ["Availability (AVAILABLE / SOLD)", (c) => (c.status === "sold" ? "SOLD" : "AVAILABLE")],
 };
 
 // Ready-made exports. "dealerId" is the account number each site gives you.
@@ -78,6 +83,76 @@ export const PRESETS = {
       P("image_urls", "photo"), P("vdp_url", "url")],
   },
 };
+
+const F = (h, val) => ({ h, src: "fixed", val });
+Object.assign(PRESETS, {
+  cargurus: {
+    label: "CarGurus",
+    cols: [D("dealer_id"), P("vin", "vin"), P("stock_number", "stock"), P("year", "year"), P("make", "make"), P("model", "model"), P("trim", "trim"),
+      P("body_type", "body"), P("condition", "condition"), P("mileage", "miles"), P("price", "price"), P("exterior_color", "ext"), P("interior_color", "int"),
+      P("transmission", "trans"), P("engine", "engine"), P("drivetrain", "drive"), P("fuel_type", "fuel"), P("dealer_comments", "desc"), P("options", "equip"),
+      P("image_urls", "photo"), P("vdp_url", "url")],
+  },
+  truecar: {
+    label: "TrueCar",
+    cols: [D("DealerID"), P("VIN", "vin"), P("StockNumber", "stock"), P("Year", "year"), P("Make", "make"), P("Model", "model"), P("Trim", "trim"),
+      P("Body", "body"), P("NewUsed", "condition"), P("Mileage", "miles"), P("Price", "price"), P("ExteriorColor", "ext"), P("InteriorColor", "int"),
+      P("Transmission", "trans"), P("Engine", "engine"), P("Drivetrain", "drive"), P("Fuel", "fuel"), P("Comments", "desc"), P("Options", "equip"),
+      P("Photos", "photo"), P("VDPURL", "url")],
+  },
+  facebook: {
+    label: "Facebook / Instagram",
+    note: "Vehicle catalog for Facebook Marketplace and automotive ads (Meta Commerce Manager).",
+    cols: [P("vehicle_id", "stock"), P("title", "title"), P("description", "desc"), P("url", "url"), P("make", "make"), P("model", "model"), P("year", "year"),
+      P("mileage.value", "miles"), F("mileage.unit", "MI"), P("image[0].url", "photo"), P("body_style", "bodyUpper"), P("price", "priceUSD"),
+      P("exterior_color", "ext"), P("interior_color", "int"), F("state_of_vehicle", "USED"), P("vin", "vin"), P("availability", "availability"),
+      P("trim", "trim"), P("transmission", "trans"), P("drivetrain", "drive"), P("fuel_type", "fuel"),
+      P("dealer_name", "dealerName"), P("dealer_phone", "dealerPhone"), P("address.addr1", "dealerStreet"), P("address.city", "dealerCity"),
+      P("address.region", "dealerState"), P("address.postal_code", "dealerZip"), F("address.country", "US")],
+  },
+  google: {
+    label: "Google Vehicle Listings",
+    note: "Product feed for Google Merchant Center (vehicle ads).",
+    cols: [P("id", "stock"), P("title", "title"), P("description", "desc"), P("link", "url"), P("image_link", "photo"), P("price", "priceUSD"),
+      F("condition", "used"), P("brand", "make"), P("model", "model"), P("year", "year"), P("trim", "trim"), P("mileage", "milesText"), P("vin", "vin"),
+      P("color", "ext"), P("body_style", "body"), P("engine", "engine"), P("availability", "availability")],
+  },
+  ksl: {
+    label: "KSL Cars",
+    cols: [D("DealerID"), P("VIN", "vin"), P("Stock", "stock"), P("Year", "year"), P("Make", "make"), P("Model", "model"), P("Trim", "trim"), P("Body", "body"),
+      P("Mileage", "miles"), P("Price", "price"), P("ExteriorColor", "ext"), P("InteriorColor", "int"), P("Transmission", "trans"), P("Engine", "engine"),
+      P("Drive", "drive"), P("Fuel", "fuel"), P("Description", "desc"), P("Photos", "photo")],
+  },
+  carsforsale: {
+    label: "CarsForSale.com",
+    cols: [D("DealerID"), P("VIN", "vin"), P("StockNumber", "stock"), P("Year", "year"), P("Make", "make"), P("Model", "model"), P("Trim", "trim"),
+      P("BodyStyle", "body"), P("Mileage", "miles"), P("Price", "price"), P("ExteriorColor", "ext"), P("InteriorColor", "int"), P("Transmission", "trans"),
+      P("Engine", "engine"), P("Drivetrain", "drive"), P("FuelType", "fuel"), P("Comments", "desc"), P("Options", "equip"), P("ImageURLs", "photo")],
+  },
+});
+
+// Ready-to-paste ad for classified sites that have no dealer feed (Craigslist, Facebook Marketplace, OfferUp, KSL Classifieds).
+export function adText(c, s, base = SITE_URL) {
+  const title = [c.year, c.name, c.trim].filter(Boolean).join(" ");
+  const L = [`${title} – $${Number(c.price || 0).toLocaleString("en-US")}`, ""];
+  if (c.miles != null) L.push(`Mileage: ${Number(c.miles).toLocaleString("en-US")} miles`);
+  [["Engine", c.engine], ["Transmission", c.trans], ["Drivetrain", c.drive], ["Fuel", c.fuel], ["MPG", c.mpg], ["Exterior", c.ext], ["Interior", c.int], ["VIN", c.vin], ["Stock #", c.stock]]
+    .forEach(([k, v]) => v && L.push(`${k}: ${v}`));
+  if ((c.equip || []).length) { L.push("", "Equipment:"); c.equip.forEach((e) => L.push("• " + e)); }
+  if (c.desc) L.push("", c.desc);
+  L.push("", `${s.name || "A & S Auto"} – ${[s.street, s.city, s.state].filter(Boolean).join(", ")}`);
+  if (s.phone) L.push(`Call or text: ${s.phone}`);
+  L.push(`More photos and details: ${base}/#car-${c.id}`, "Price excludes tax, title and fees.");
+  return { title, price: c.price || 0, text: L.join("\n") };
+}
+
+// Classified sites without a dealer feed: [key, label, posting page, how to post]
+export const CLASSIFIEDS = [
+  ["craigslist", "Craigslist", (s) => `https://${String(s.craigslistCity || "twinfalls").toLowerCase().replace(/[^a-z]/g, "")}.craigslist.org/`, "Click “post”, choose “for sale by dealer”, then “cars & trucks”. Ads expire, so repost every few weeks."],
+  ["marketplace", "Facebook Marketplace", () => "https://www.facebook.com/marketplace/create/vehicle", "Create a new listing → Vehicle for sale. For all your cars at once, use the Facebook / Instagram catalog feed above."],
+  ["offerup", "OfferUp", () => "https://offerup.com/post", "Post an item → Cars & trucks."],
+  ["kslclass", "KSL Classifieds", () => "https://cars.ksl.com/", "Sell your car → dealer listing."],
+];
 
 export const FEED_NAMES = [...Object.keys(PRESETS), "custom"];
 

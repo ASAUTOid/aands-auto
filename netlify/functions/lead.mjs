@@ -12,7 +12,7 @@ export default async (req) => {
     type: ["contact", "trade", "viewing", "credit"].includes(b.type) ? b.type : "contact",
     name: clip(b.name, 120), phone: clip(b.phone, 40), email: clip(b.email, 160),
     message: clip(b.message, 4000), vin: clip(b.vin, 17), miles: clip(b.miles, 20), carId: clip(b.carId, 40),
-    source: "Website", status: "new", notes: [],
+    source: b.site ? "Website: " + clip(b.site, 60) : "Website", status: "new", notes: [],
   };
   if (!lead.name || (!lead.phone && !lead.email)) return json({ error: "missing_fields" }, 400);
   const all = await readAll("leads");

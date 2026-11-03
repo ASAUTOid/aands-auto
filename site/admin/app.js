@@ -1,6 +1,8 @@
 // A & S Auto · Dealer Dashboard
 // Inventory, leads (CRM), customers, deals & documents, buy-here-pay-here collections, reports, marketing feeds, settings.
 import * as FEEDS from "../feeds.js";
+import { openStudio } from "./studio.js";
+import { TEMPLATES } from "../t/templates.js";
 
 /* ================= helpers ================= */
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -56,6 +58,9 @@ async function loadAll() {
   SITE = site;
   SITE.settings = Object.assign({ name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] }, SITE.settings);
   Object.keys(DB).forEach((c, i) => (DB[c] = cols[i] || []));
+  // photo paths from the original site are relative ("img/v17.webp"); make them work from every page
+  const absP = (u) => (u && !/^(\/|https?:|data:|blob:)/.test(u) ? "/" + u : u);
+  SITE.cars.forEach((c) => { c.img = absP(c.img); c.cut = absP(c.cut); });
 }
 async function saveSite() {
   await api("/api/data", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(SITE) });
@@ -172,7 +177,7 @@ const NAV = [
   ["", [["dashboard", "▦", "Dashboard"]]],
   ["Sales", [["inventory", "🚗", "Inventory"], ["leads", "☎", "Leads"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"]]],
   ["Finance", [["collections", "$", "Collections"], ["reports", "📈", "Reports"]]],
-  ["Online", [["marketing", "📣", "Marketing"]]],
+  ["Online", [["marketing", "📣", "Marketing"], ["websites", "🌐", "Websites"]]],
   ["", [["settings", "⚙", "Settings"]]],
 ];
 function renderNav(page) {
@@ -190,7 +195,7 @@ function route() {
   renderNav(page);
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
-    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, settings };
+    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings };
   (pages[page] || dashboard)(V, id, q);
 }
 const go = (h) => { if (location.hash === h) route(); else location.hash = h; };
@@ -388,7 +393,7 @@ function carEdit(V, id, q) {
         <div class="fg">${fld("c_price", "Asking price", c.price, "number")}${sel("c_status", "Status", c.status, [["lot", "On the lot"], ["sold", "Sold"], ["hidden", "Hidden"]])}</div>
         <label class="chk" style="margin-top:12px"><input type="checkbox" id="c_feat" ${c.featured ? "checked" : ""}> Show in the home page animation (needs a cut-out photo)</label></div>
       <div class="card"><h3>Photo</h3><div class="photo" id="pvImg">${c.img ? `<img src="${esc(c.img)}" alt="">` : "No photo yet"}</div>
-        <input type="file" accept="image/*" id="fImg" style="margin-top:10px;font-size:13px"><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">Shown on the website. Landscape works best.</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="fImg" style="font-size:13px;flex:1"><button class="b sm primary" type="button" id="studio">✨ AI photo studio</button></div><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">Shown on the website. Landscape works best.</p></div>
       <div class="card"><h3>Cut-out for the animation</h3><div class="photo cut" id="pvCut">${c.cut ? `<img src="${esc(c.cut)}" alt="">` : "No cut-out yet"}</div>
         <input type="file" accept="image/png,image/webp" id="fCut" style="margin-top:10px;font-size:13px"><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">A PNG with the background removed (e.g. from remove.bg).</p></div>
       ${deals.length ? `<div class="card"><h3>Deals</h3>${deals.map((d) => `<a class="lc" href="#/deals/${d.id}">${dealNo(d)} · ${esc(custName(cust(d.customerId)))}<small>${fdate(d.date)} · ${money(d.price)} · ${d.status}</small></a>`).join("")}</div>` : ""}
@@ -432,6 +437,14 @@ function carEdit(V, id, q) {
     try { c[key] = await upload(f, max); $("#" + pv).innerHTML = `<img src="${esc(c[key])}" alt="">`; }
     catch (x) { $("#" + pv).textContent = "Upload failed"; toast("Upload failed. Try a smaller photo.", 1); } });
   up("fImg", "pvImg", 1600, "img"); up("fCut", "pvCut", 900, "cut");
+  $("#studio").onclick = () => {
+    if (!c.img) return toast("Upload a photo first, then open the studio.", 1);
+    openStudio({ src: c.img, settings: S(), price: n0(v("c_price")) || c.price, onSave: async (blob, kind) => {
+      c[kind] = await upload(blob, kind === "cut" ? 900 : 1600);
+      $(kind === "cut" ? "#pvCut" : "#pvImg").innerHTML = `<img src="${esc(c[kind])}" alt="">`;
+      toast("Photo updated. Click Save to put it on the website.");
+    } });
+  };
   if ($("#sticker")) $("#sticker").onclick = () => printSticker(car(c.id));
   if ($("#delCar")) $("#delCar").onclick = async () => {
     if (deals.length) { toast("This car has deals. Set it to Hidden instead.", 1); return; }
@@ -807,10 +820,15 @@ function marketing(V) {
   const C = st.feeds.custom, url = (k) => location.origin + "/feeds/" + k + ".csv";
   const iS = 'style="width:100%;min-width:0;border:1px solid var(--line);border-radius:4px;padding:6px;background:var(--panel)"';
   const opts = (s) => `<option value="fixed" ${s === "fixed" ? "selected" : ""}>✎ Fixed value (type it)</option>` + Object.entries(FEEDS.FIELDS).map(([k, [l]]) => `<option value="${k}" ${s === k ? "selected" : ""}>${esc(l)}</option>`).join("");
+  let adCar = (SITE.cars.find((c) => c.status === "lot") || {}).id;
+  const posted = (id) => costOf(id).posted || {};
   const draw = () => {
+    const lotCars = SITE.cars.filter((c) => c.status === "lot");
+    if (!car(adCar)) adCar = lotCars[0]?.id;
+    const ad = adCar ? FEEDS.adText(car(adCar), st, location.origin) : null;
     V.innerHTML = `<div class="ph"><div><h1>Marketing</h1><p>Send your inventory to listing sites. The feed links update every time you save a car.</p></div><div class="act"><button class="b primary" id="mkSave" type="button">Save</button></div></div>
     <div class="banner">Each site gives you a dealer ID when you sign up as a dealer, and tells you the file format it wants and how it collects it (feed link, email or FTP). If a site asks for different columns, build them in the custom export below.</div>
-    <div class="grid g4">${Object.entries(FEEDS.PRESETS).map(([k, p]) => `<div class="card" style="display:grid;gap:10px;align-content:start"><h3 style="margin:0">${esc(p.label)}</h3>
+    <div class="grid g4">${Object.entries(FEEDS.PRESETS).map(([k, p]) => `<div class="card" style="display:grid;gap:10px;align-content:start"><h3 style="margin:0">${esc(p.label)}</h3>${p.note ? `<small style="color:var(--muted)">${esc(p.note)}</small>` : ""}
       <div class="f"><label for="dl_${k}">Dealer ID</label><input id="dl_${k}" data-dealer="${k}" value="${esc(st.feeds[k].dealerId || "")}"></div>
       <label class="chk"><input type="checkbox" data-sold="${k}" ${st.feeds[k].includeSold ? "checked" : ""}> Include sold cars</label>
       <button class="b" type="button" data-dl="${k}">Download CSV</button>
@@ -824,7 +842,26 @@ function marketing(V) {
         <td><input data-c="val" value="${esc(c.val || "")}" ${c.src === "fixed" ? "" : "disabled"} ${iS}></td>
         <td style="white-space:nowrap"><button class="b sm" type="button" data-mv="-1" ${i ? "" : "disabled"}>↑</button> <button class="b sm" type="button" data-mv="1" ${i < C.cols.length - 1 ? "" : "disabled"}>↓</button> <button class="b sm" type="button" data-rm>✕</button></td></tr>`).join("")}
       </tbody></table></div>
-      <div class="formft" style="justify-content:flex-start"><button class="b" type="button" id="cxAdd">+ Add column</button><button class="b" type="button" data-dl="custom">Download CSV</button><button class="b sm" type="button" data-copy="custom">Copy feed link</button></div></div>`;
+      <div class="formft" style="justify-content:flex-start"><button class="b" type="button" id="cxAdd">+ Add column</button><button class="b" type="button" data-dl="custom">Download CSV</button><button class="b sm" type="button" data-copy="custom">Copy feed link</button></div></div>
+    <h2 class="sec" id="classifieds">Classifieds: Craigslist, Facebook Marketplace, OfferUp, KSL</h2>
+    <div class="banner">These sites don't take dealer files, so you post each car yourself. Pick a car: the ad below is written for you. Copy it, download the photo, open the site, paste, and mark it as posted so you know when to repost.</div>
+    <div class="split"><div class="card"><div class="fg">${sel("adCar", "Car", adCar, lotCars.map((c) => [c.id, `${carTitle(c)} · ${money(c.price)}`]), "w2")}
+        <div class="f"><label for="clCity">Craigslist area</label><input id="clCity" value="${esc(st.craigslistCity || "twinfalls")}" placeholder="twinfalls, boise…"></div></div>
+      ${ad ? `<div class="f" style="margin-top:12px"><label for="adTitle">Title</label><input id="adTitle" value="${esc(ad.title)}"></div>
+      <div class="f" style="margin-top:12px"><label for="adText">Ad text</label><textarea id="adText" class="adtext">${esc(ad.text)}</textarea></div>
+      <div class="formft" style="justify-content:flex-start"><button class="b" type="button" data-cp="adTitle">Copy title</button><button class="b" type="button" data-cpv="${ad.price}">Copy price</button><button class="b primary" type="button" data-cp="adText">Copy ad text</button><button class="b" type="button" id="adPhoto">Download photo</button></div>` : '<p class="empty">No cars on the lot.</p>'}</div>
+      <div class="card"><h3>Post it</h3>${FEEDS.CLASSIFIEDS.map(([k, l, u, how]) => `<div style="border-bottom:1px solid var(--line);padding:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(l)}</b>
+        <span style="display:flex;gap:6px"><a class="b sm" href="${esc(u(st))}" target="_blank" rel="noopener">Open ↗</a>${ad ? `<button class="b sm" type="button" data-posted="${k}">Mark posted</button>` : ""}</span></div>
+        <small style="color:var(--muted)">${esc(how)}${ad && posted(adCar)[k] ? ` · <b style="color:var(--ok)">Posted ${fdate(posted(adCar)[k])}</b>` : ""}</small></div>`).join("")}</div></div>
+    <div class="card" style="margin-top:14px"><h3>What's posted where</h3>${table([{ h: "Car", f: (c) => `<b>${esc(carTitle(c))}</b><span class="sub">${money(c.price)}</span>` },
+      ...FEEDS.CLASSIFIEDS.map(([k, l]) => ({ h: l, f: (c) => { const d = posted(c.id)[k]; if (!d) return '<span style="color:var(--dim)">—</span>'; const age = days(d); return `<span style="color:${age > 30 ? "var(--warn)" : "var(--ok)"}">${fdate(d)}${age > 30 ? " · repost" : ""}</span>`; } }))], lotCars)}</div>`;
+    $("#adCar")?.addEventListener("change", (e) => { adCar = e.target.value; draw(); document.getElementById("classifieds").scrollIntoView(); });
+    $("#clCity").oninput = (e) => (st.craigslistCity = e.target.value.trim());
+    $$("[data-cp]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText($("#" + b.dataset.cp).value).then(() => toast("Copied"))));
+    $$("[data-cpv]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText(b.dataset.cpv).then(() => toast("Copied"))));
+    if ($("#adPhoto")) $("#adPhoto").onclick = async () => { const k = car(adCar); const a = document.createElement("a"); a.href = URL.createObjectURL(await (await fetch(k.img)).blob()); a.download = `${carTitle(k).replace(/\W+/g, "-")}.webp`; a.click(); };
+    $$("[data-posted]").forEach((b) => (b.onclick = async () => { const k = clone(costOf(adCar)); k.expenses = k.expenses || []; k.posted = { ...(k.posted || {}), [b.dataset.posted]: todayISO() };
+      try { await saveRec("costs", k); toast("Marked as posted"); draw(); document.getElementById("classifieds").scrollIntoView(); } catch (x) { toast(errMsg(x), 1); } }));
     $$("[data-dealer]").forEach((i) => (i.oninput = () => (st.feeds[i.dataset.dealer].dealerId = i.value.trim())));
     $$("[data-sold]").forEach((i) => (i.onchange = () => (st.feeds[i.dataset.sold].includeSold = i.checked)));
     $$("[data-dl]").forEach((b) => (b.onclick = () => { const r = FEEDS.buildFeed(SITE, b.dataset.dl, location.origin); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.csv], { type: "text/csv" })); a.download = r.filename; a.click(); }));
@@ -839,6 +876,58 @@ function marketing(V) {
     $("#mkSave").onclick = async () => { try { await saveSite(); toast("Saved. Feed links are up to date."); } catch (x) { toast(errMsg(x), 1); } };
   };
   draw();
+}
+
+/* ================= websites & templates ================= */
+let siteEdit = null;
+function websites(V) {
+  const st = S(); st.websites = st.websites || [];
+  const main = st.mainTemplate || "night";
+  const slugify = (t) => String(t || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  const tplCard = (id, t, cur) => `<div class="card tpl ${cur ? "on" : ""}"><div class="sw">${t.swatch.map((c) => `<i style="background:${c}"></i>`).join("")}</div>
+    <b>${esc(t.name)}</b><small style="color:var(--muted)">${esc(t.desc)}</small>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><a class="b sm" href="/?template=${id}" target="_blank" rel="noopener">Preview ↗</a>${cur ? pill("In use", "ok") : `<button class="b sm primary" type="button" data-use="${id}">Use this</button>`}</div></div>`;
+  const W = siteEdit;
+  V.innerHTML = `<div class="ph"><div><h1>Websites</h1><p>Choose the look of ${esc(location.host)}, or create more websites from the same inventory.</p></div></div>
+  <h2 class="sec">Main website · ${esc(location.host)}</h2>
+  <div class="grid g3">${Object.entries(TEMPLATES).map(([id, t]) => tplCard(id, t, id === main)).join("")}</div>
+  <h2 class="sec">More websites</h2>
+  <div class="banner">Make a second website, for example only trucks, only cars under $10,000, or a different brand name. Each one gets its own link right away. To give it its own domain, buy the domain, add it in Netlify (Domain management → Add domain alias) and type it below.</div>
+  <div class="grid g3">${st.websites.map((w) => `<div class="card tpl"><div class="sw">${(TEMPLATES[w.template] || TEMPLATES.classic).swatch.map((c, i) => `<i style="background:${i === 1 && w.accent ? esc(w.accent) : c}"></i>`).join("")}</div>
+      <b>${esc(w.name)}</b><small style="color:var(--muted)">${esc((TEMPLATES[w.template] || TEMPLATES.classic).name)}${w.filter?.body ? " · only " + esc(w.filter.body) : ""}${w.filter?.maxPrice ? " · under " + money(w.filter.maxPrice) : ""}</small>
+      <small style="font-family:var(--mono);overflow-wrap:anywhere">${esc(location.origin)}/w/${esc(w.slug)}${w.domain ? "<br>" + esc(w.domain) : ""}</small>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><a class="b sm" href="/w/${esc(w.slug)}" target="_blank" rel="noopener">Open ↗</a><button class="b sm" type="button" data-edit="${esc(w.id)}">Edit</button><button class="b sm danger" type="button" data-delw="${esc(w.id)}">Delete</button></div></div>`).join("")}
+    <button class="card" type="button" id="newSite" style="cursor:pointer;display:grid;place-items:center;min-height:180px;font-weight:700;border-style:dashed">+ Create a website</button></div>
+  ${W ? `<div class="card" id="wForm" style="margin-top:14px"><h3>${W.isNew ? "New website" : "Edit " + esc(W.name)}</h3><div class="fg">
+      ${fld("w_name", "Website name", W.name, "text", "wide")}${fld("w_slug", "Link name", W.slug)}
+      ${sel("w_tpl", "Template", W.template, Object.entries(TEMPLATES).filter(([, t]) => !t.original).map(([k, t]) => [k, t.name]))}
+      <div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(W.accent || (TEMPLATES[W.template] || TEMPLATES.classic).vars.accent)}" style="height:40px;padding:2px"></div>
+      ${fld("w_head", "Headline", W.heroTitle, "text", 'wide placeholder="Find your next truck"')}${area("w_tag", "Short intro under the headline", W.tagline)}${area("w_about", "About us text", W.about)}
+      ${sel("w_body", "Which cars", W.filter?.body || "", [["", "All body types"], ...BODY_TYPES.map((b) => [b, "Only " + b])])}${fld("w_min", "Min price", W.filter?.minPrice, "number")}${fld("w_max", "Max price", W.filter?.maxPrice, "number")}
+      ${fld("w_dom", "Own domain (optional)", W.domain, "text", 'wide placeholder="cheaptrucksburley.com"')}</div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_sold" ${W.showSold ? "checked" : ""}> Also show sold cars</label>
+      <div class="formft"><button class="b" type="button" id="wCancel">Cancel</button><button class="b primary" type="button" id="wSave">Save website</button></div></div>` : ""}`;
+  $$("[data-use]").forEach((b) => (b.onclick = async () => { const prev = st.mainTemplate; st.mainTemplate = b.dataset.use;
+    try { await saveSite(); toast(`Done. ${location.host} now uses ${TEMPLATES[b.dataset.use].name}.`); websites(V); } catch (x) { st.mainTemplate = prev; toast(errMsg(x), 1); } }));
+  $("#newSite").onclick = () => { siteEdit = { isNew: true, id: uid("W"), name: "", slug: "", template: "classic", filter: {} }; websites(V); $("#wForm").scrollIntoView(); $("#w_name").focus(); };
+  $$("[data-edit]").forEach((b) => (b.onclick = () => { siteEdit = clone(st.websites.find((w) => w.id === b.dataset.edit)); websites(V); $("#wForm").scrollIntoView(); }));
+  $$("[data-delw]").forEach((b) => (b.onclick = async () => { if (!confirm("Delete this website? Its link stops working.")) return; const prev = st.websites; st.websites = st.websites.filter((w) => w.id !== b.dataset.delw);
+    try { await saveSite(); toast("Website deleted"); websites(V); } catch (x) { st.websites = prev; toast(errMsg(x), 1); } }));
+  if (W) {
+    $("#w_name").oninput = () => { if (W.isNew && !W.slugTouched) $("#w_slug").value = slugify(v("w_name")); };
+    $("#w_slug").oninput = () => (W.slugTouched = true);
+    $("#w_acc").oninput = () => (W.accentTouched = true);
+    $("#wCancel").onclick = () => { siteEdit = null; websites(V); };
+    $("#wSave").onclick = async () => {
+      const w = { id: W.id, name: v("w_name"), slug: slugify(v("w_slug") || v("w_name")), template: v("w_tpl"), accent: W.accentTouched ? v("w_acc") : W.accent || "", heroTitle: v("w_head"), tagline: v("w_tag"), about: v("w_about"),
+        filter: { body: v("w_body"), minPrice: vn("w_min"), maxPrice: vn("w_max") }, domain: v("w_dom").replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase(), showSold: $("#w_sold").checked };
+      if (!w.name) return toast("Give the website a name.", 1);
+      if (!w.slug) return toast("Add a link name.", 1);
+      if (st.websites.some((x) => x.slug === w.slug && x.id !== w.id)) return toast("Another website already uses that link name.", 1);
+      const prev = clone(st.websites); const i = st.websites.findIndex((x) => x.id === w.id); if (i >= 0) st.websites[i] = w; else st.websites.push(w);
+      try { await saveSite(); siteEdit = null; toast("Website saved"); websites(V); } catch (x) { st.websites = prev; toast(errMsg(x), 1); }
+    };
+  }
 }
 
 /* ================= settings ================= */
