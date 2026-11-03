@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/w/:slug/admin"
+  to = "/t/admin.html"
+  status = 200
+
+[[redirects]]
   from = "/w/*"
   to = "/t/site.html"
   status = 200

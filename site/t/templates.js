@@ -31,4 +31,36 @@ export const TEMPLATES = {
     vars: { bg: "#f6f1e7", panel: "#fffdf8", text: "#2b2620", muted: "#6e6457", line: "#e4dccb", accent: "#2f5d3a", accentInk: "#ffffff", hero: "#2f5d3a", heroInk: "#fffdf8", price: "#8b5e34" },
     fonts: ["Bitter:wght@500;700;800", "Bitter"], head: "'Bitter',Georgia,serif", body: "Arial,Helvetica,sans-serif", radius: "8px", heroStyle: "split",
   },
+  luxury: {
+    name: "Luxury Black & Gold", desc: "Black, gold and elegant serif type. For premium and exotic cars.",
+    swatch: ["#0b0b0b", "#c9a45c", "#161616", "#f5efe4"],
+    vars: { bg: "#0b0b0b", panel: "#141414", text: "#f5efe4", muted: "#a59c8c", line: "#2a2622", accent: "#c9a45c", accentInk: "#0b0b0b", hero: "#0b0b0b", heroInk: "#f5efe4", price: "#c9a45c" },
+    fonts: ["Playfair Display:wght@500;700", "Playfair Display"], head: "'Playfair Display',Georgia,serif", body: "Georgia,serif", radius: "0px", heroStyle: "photo",
+  },
+  ocean: {
+    name: "Ocean Blue", desc: "Bright, fresh blues and rounded cards. Friendly and modern.",
+    swatch: ["#f0f7fb", "#0e7490", "#ffffff", "#0f2a37"],
+    vars: { bg: "#f0f7fb", panel: "#ffffff", text: "#0f2a37", muted: "#557482", line: "#d6e7ef", accent: "#0e7490", accentInk: "#ffffff", hero: "#0e7490", heroInk: "#ffffff", price: "#0e7490" },
+    fonts: ["Nunito Sans:wght@400;700;900", "Nunito Sans"], head: "'Nunito Sans',Arial,sans-serif", body: "'Nunito Sans',Arial,sans-serif", radius: "14px", heroStyle: "search",
+  },
+  urban: {
+    name: "Urban Orange", desc: "Concrete grey with bright orange. Street style for younger buyers.",
+    swatch: ["#1f2326", "#ff6b1a", "#2b3035", "#eef0f2"],
+    vars: { bg: "#1f2326", panel: "#2b3035", text: "#eef0f2", muted: "#a3abb3", line: "#3a4046", accent: "#ff6b1a", accentInk: "#111111", hero: "#1f2326", heroInk: "#eef0f2", price: "#ff6b1a" },
+    fonts: ["Barlow Condensed:wght@600;800", "Barlow Condensed"], head: "'Barlow Condensed',Arial Narrow,sans-serif", body: "Arial,Helvetica,sans-serif", radius: "3px", heroStyle: "split", upper: true,
+  },
+  family: {
+    name: "Family Friendly", desc: "Soft purple, rounded and warm. Minivans, SUVs and first cars.",
+    swatch: ["#faf7ff", "#6d28d9", "#ffffff", "#2e1065"],
+    vars: { bg: "#faf7ff", panel: "#ffffff", text: "#2e1065", muted: "#6b5f86", line: "#e9e2f7", accent: "#6d28d9", accentInk: "#ffffff", hero: "#ede5ff", heroInk: "#2e1065", price: "#6d28d9" },
+    fonts: ["Quicksand:wght@500;700", "Quicksand"], head: "'Quicksand',Arial,sans-serif", body: "'Quicksand',Arial,sans-serif", radius: "18px", heroStyle: "center",
+  },
+  budget: {
+    name: "Budget Deals", desc: "Red and white, big prices up front. Buy here pay here and cash cars.",
+    swatch: ["#ffffff", "#dc2626", "#fef2f2", "#111111"],
+    vars: { bg: "#ffffff", panel: "#ffffff", text: "#111111", muted: "#6b6b6b", line: "#ececec", accent: "#dc2626", accentInk: "#ffffff", hero: "#dc2626", heroInk: "#ffffff", price: "#dc2626" },
+    fonts: ["Archivo Black", "Archivo Black"], head: "'Archivo Black',Impact,sans-serif", body: "Arial,Helvetica,sans-serif", radius: "6px", heroStyle: "center", upper: true,
+  },
 };
+// the 10 templates any dealer website can use (Night Lot is only for the A & S main site)
+export const DEALER_TEMPLATES = Object.keys(TEMPLATES).filter((k) => !TEMPLATES[k].original);

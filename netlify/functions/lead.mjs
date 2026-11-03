@@ -1,3 +1,4 @@
+import { getStore } from "@netlify/blobs";
 import { json } from "../lib/auth.mjs";
 import { readAll, writeAll, newId } from "../lib/db.mjs";
 
@@ -15,6 +16,19 @@ export default async (req) => {
     source: b.site ? "Website: " + clip(b.site, 60) : "Website", status: "new", notes: [],
   };
   if (!lead.name || (!lead.phone && !lead.email)) return json({ error: "missing_fields" }, 400);
+  // messages sent from a dealer website go to that dealer's own admin
+  const tenant = clip(b.tenant, 40);
+  if (tenant) {
+    if (!/^[a-z0-9-]+$/.test(tenant)) return json({ error: "bad_site" }, 400);
+    const ts = getStore({ name: "tenants", consistency: "strong" });
+    if (!(await ts.get("site/" + tenant, { type: "json" }))) return json({ error: "not_found" }, 404);
+    const map = (await ts.get("leads/" + tenant, { type: "json" })) || {};
+    if (Object.keys(map).length > 5000) return json({ error: "full" }, 507);
+    const id = newId("L");
+    map[id] = { ...lead, source: "Website", id, createdAt: new Date().toISOString() };
+    await ts.setJSON("leads/" + tenant, map);
+    return json({ ok: true });
+  }
   const all = await readAll("leads");
   if (Object.keys(all).length > 20000) return json({ error: "full" }, 507);
   const id = newId("L");

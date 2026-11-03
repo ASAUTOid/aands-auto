@@ -16,14 +16,28 @@ async function loadData() {
 }
 
 const data = await loadData();
-const S = Object.assign({ name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", apr: 12.9 }, data.settings);
+const MS = data.settings || {};
 const host = location.hostname.replace(/^www\./, "");
 const slug = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1];
-const sites = S.websites || [];
-const site = (slug && sites.find((w) => w.slug === slug)) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || { name: S.name, template: S.mainTemplate, main: true };
+const sites = MS.websites || [];
+const entry = (slug && sites.find((w) => w.slug === slug)) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || null;
+let S, ALL, site;
+if (entry && entry.tenant) {
+  // a separate dealer: its own cars and details, edited at /w/<slug>/admin
+  let td = null;
+  try { const r = await fetch(`/api/t/${entry.slug}/data`, { cache: "no-store" }); if (r.ok) td = await r.json(); } catch (_) {}
+  S = Object.assign({ name: entry.name, apr: 12.9, hours: [] }, td ? td.settings : {});
+  ALL = td ? td.cars : [];
+  site = { ...S, tenant: entry.slug, filter: {} };
+} else {
+  S = Object.assign({ name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", apr: 12.9 }, MS);
+  ALL = data.cars || [];
+  site = entry || { name: S.name, template: S.mainTemplate, main: true };
+}
 const preview = new URLSearchParams(location.search).get("template");
 const tplId = TEMPLATES[preview] && !TEMPLATES[preview].original ? preview : TEMPLATES[site.template] && !TEMPLATES[site.template].original ? site.template : "classic";
 const T = TEMPLATES[tplId];
+const where = [S.city, S.state].filter(Boolean).join(", ");
 
 // theme
 const vars = { ...T.vars, ...(site.accent ? { accent: site.accent, ...(T.heroStyle === "search" || T.heroStyle === "split" ? { hero: site.accent } : {}) } : {}) };
@@ -33,13 +47,13 @@ root.setProperty("--head", T.head); root.setProperty("--body", T.body); root.set
 if (T.upper) document.body.classList.add("up");
 const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = `https://fonts.googleapis.com/css2?family=${T.fonts[0].replace(/ /g, "+")}&display=swap`; document.head.appendChild(fl);
 const name = site.name || S.name;
-document.title = `${name} · Used cars in ${S.city}, ${S.state}`;
+document.title = `${name} · Used cars${where ? " in " + where : ""}`;
 
 // inventory for this website
 const F = site.filter || {};
 const absP = (u) => (u && !/^(\/|https?:|data:|blob:)/.test(u) ? "/" + u : u);
-(data.cars || []).forEach((c) => { c.img = absP(c.img); c.cut = absP(c.cut); });
-const CARS = (data.cars || []).filter((c) => (c.status === "lot" || (site.showSold && c.status === "sold")) && c.img)
+ALL.forEach((c) => { c.img = absP(c.img); c.cut = absP(c.cut); });
+const CARS = ALL.filter((c) => (c.status === "lot" || (site.showSold && c.status === "sold")) && c.img)
   .filter((c) => !F.body || c.body === F.body).filter((c) => !F.maxPrice || c.price <= F.maxPrice).filter((c) => !F.minPrice || c.price >= F.minPrice)
   .sort((a, b) => (a.status === "sold") - (b.status === "sold"));
 const featured = CARS.find((c) => c.featured) || CARS[0];
@@ -47,16 +61,17 @@ const tel = "tel:+1" + String(S.phone || "").replace(/\D/g, "").replace(/^1(?=\d
 const title = (c) => `${c.year} ${c.name}`;
 
 function header() {
-  return `<header class="hd"><div class="wrap"><a class="brand" href="#top"><img src="${esc(site.logo || "/img/logo.png")}" alt=""><b>${esc(name)}</b></a>
+  return `<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || site.main || !site.tenant ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
     <nav class="nav"><a href="#inventory">Inventory</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
     ${S.phone ? `<a class="tel" href="${tel}">${esc(S.phone)}</a>` : ""}</div></header>`;
 }
 function hero() {
-  const h1 = esc(site.heroTitle || (T.heroStyle === "search" ? "Find your next car" : "Quality used cars in " + S.city));
-  const p = esc(site.tagline || `${CARS.length} hand-picked cars, trucks and SUVs ${CARS.length ? "from " + money(Math.min(...CARS.map((c) => c.price || 0))) : ""}. Inspected, detailed and priced in plain numbers.`);
+  const h1 = esc(site.heroTitle || (T.heroStyle === "search" ? "Find your next car" : "Quality used cars" + (S.city ? " in " + S.city : "")));
+  const p = esc(site.tagline || `${CARS.length === 1 ? "1 hand-picked vehicle" : CARS.length + " hand-picked cars, trucks and SUVs"} ${CARS.length ? "from " + money(Math.min(...CARS.map((c) => c.price || 0))) : ""}. Inspected, detailed and priced in plain numbers.`);
   const ctas = `<div class="ctas"><a class="btn" href="#inventory">Browse inventory</a>${S.phone ? `<a class="btn ghost" href="${tel}">Call ${esc(S.phone)}</a>` : ""}</div>`;
   const img = site.heroImg || featured?.img;
   if (T.heroStyle === "photo" && img) return `<section class="hero photo" id="top"><img class="bgimg" src="${esc(img)}" alt=""><div class="wrap"><h1>${h1}</h1><p>${p}</p>${ctas}</div></section>`;
+  if (T.heroStyle === "center") return `<section class="hero center" id="top"><div class="wrap"><h1>${h1}</h1><p>${p}</p>${ctas}${img ? `<div class="pic"><img src="${esc(img)}" alt=""></div>` : ""}</div></section>`;
   if (T.heroStyle === "split") return `<section class="hero split" id="top"><div class="wrap"><div><h1>${h1}</h1><p>${p}</p>${ctas}</div>${img ? `<div class="pic"><img src="${esc(img)}" alt=""></div>` : ""}</div></section>`;
   const makes = [...new Set(CARS.map((c) => c.make))].sort();
   return `<section class="hero" id="top"><div class="wrap"><h1>${h1}</h1><p>${p}</p>
@@ -78,19 +93,21 @@ function drawGrid() {
   const sorts = { pa: (a, b) => a.price - b.price, pd: (a, b) => b.price - a.price, yd: (a, b) => b.year - a.year, ma: (a, b) => (a.miles ?? 1e9) - (b.miles ?? 1e9) };
   if (sorts[fSort]) xs = xs.slice().sort(sorts[fSort]);
   $("#cnt").textContent = `${xs.length} vehicle${xs.length === 1 ? "" : "s"}`;
+  if (!CARS.length) { $("#grid").innerHTML = '<div class="empty">New cars are coming soon. Call us to hear what just arrived.</div>'; return; }
   $("#grid").innerHTML = xs.map((c) => `<a class="card" href="#car-${esc(c.id)}"><div class="ph"><img src="${esc(c.img)}" alt="${esc(title(c))}" loading="lazy">${c.status === "sold" ? '<span class="tag sold">Sold</span>' : `<span class="tag">${esc(c.year)}</span>`}</div>
     <div class="bd"><h3>${esc(c.name)}</h3><div class="sp">${esc([c.trim, c.miles != null ? Number(c.miles).toLocaleString("en-US") + " mi" : "", c.drive, c.ext].filter(Boolean).join(" · "))}</div><div class="pr">${money(c.price)}</div></div></a>`).join("")
     || '<div class="empty">No cars match. Try fewer filters.</div>';
 }
+const aboutImg = site.tenant ? site.aboutImg || (CARS[1] || CARS[0] || {}).img : "/img/showroom.webp";
 function about() {
   return `<section class="s" id="about" style="background:var(--panel);border-block:1px solid var(--line)"><div class="wrap about"><div><h2>About ${esc(name)}</h2>
-    <p class="muted" style="font-size:18px">${esc(site.about || `We're a locally owned dealer at ${S.street}, ${S.city}. Every car on our lot is hand-picked, inspected and detailed, with a clear price and no pressure. Many of our customers are neighbours who come back, and send their friends.`)}</p>
-    <a class="btn" href="#contact">Visit us</a></div><img src="/img/showroom.webp" alt="${esc(name)}" loading="lazy"></div></section>`;
+    <p class="muted" style="font-size:18px">${esc(site.about || `We're a locally owned dealer${S.street ? ` at ${S.street}${S.city ? ", " + S.city : ""}` : ""}. Every car on our lot is hand-picked, inspected and detailed, with a clear price and no pressure. Many of our customers are neighbours who come back, and send their friends.`)}</p>
+    <a class="btn" href="#contact">Visit us</a></div>${aboutImg ? `<img src="${esc(aboutImg)}" alt="${esc(name)}" loading="lazy">` : ""}</div></section>`;
 }
 function contact() {
   const H = S.hours || [];
   return `<section class="s" id="contact"><div class="wrap contact"><div class="info"><h2 style="margin-bottom:20px">Contact us</h2>
-    <p><b>Visit</b>${esc(S.street)}<br>${esc(S.city)}, ${esc(S.state)} ${esc(S.zip)}<br><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${S.street} ${S.city} ${S.state} ${S.zip}`)}" target="_blank" rel="noopener">Get directions →</a></p>
+    ${S.street || S.city ? `<p><b>Visit</b>${esc(S.street || "")}<br>${esc(where)} ${esc(S.zip || "")}<br><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${S.street} ${S.city} ${S.state} ${S.zip}`)}" target="_blank" rel="noopener">Get directions →</a></p>` : ""}
     ${S.phone ? `<p><b>Call or text</b><a href="${tel}">${esc(S.phone)}</a></p>` : ""}${S.email ? `<p><b>Email</b><a href="mailto:${esc(S.email)}">${esc(S.email)}</a></p>` : ""}
     ${H.length ? `<p><b>Hours</b></p><div class="hours">${H.map(([d, h]) => `<span>${esc(d)}</span><span>${esc(h)}</span>`).join("")}</div>` : ""}</div>
     <div class="box"><h3>Send us a message</h3>${leadForm("contact")}</div></div></section>`;
@@ -107,7 +124,7 @@ function bindForms(rootEl) {
     if (!fd.name.trim()) return; if (!fd.phone.trim() && !fd.email.trim()) { out.innerHTML = '<div class="ok">Add a phone number or an email so we can reach you.</div>'; return; }
     const b = $("button", f); b.disabled = true;
     try {
-      const r = await fetch("/api/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...fd, type: f.dataset.lead, carId: f.dataset.car, site: site.main ? "" : name }) });
+      const r = await fetch("/api/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...fd, type: f.dataset.lead, carId: f.dataset.car, site: site.main || site.tenant ? "" : name, tenant: site.tenant || "" }) });
       if (!r.ok) throw 0; f.reset(); out.innerHTML = `<div class="ok">Thanks! We got your message and will get back to you shortly.</div>`;
     } catch (_) { out.innerHTML = `<div class="ok">Couldn't send right now. Please call ${esc(S.phone || "us")}.</div>`; }
     b.disabled = false;
@@ -138,7 +155,7 @@ function calc(c) {
 }
 
 const R = $("#root");
-const footer = `<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)} · ${esc(S.city)}, ${esc(S.state)}</span><span>Prices exclude tax, title and fees. <a href="/admin/">Staff</a></span></div></footer>`;
+const footer = `<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)}${where ? " · " + esc(where) : ""}</span><span>Prices exclude tax, title and fees. <a href="${site.tenant ? `/w/${esc(site.tenant)}/admin` : "/admin/"}">Staff</a></span></div></footer>`;
 function home() {
   R.innerHTML = header() + hero() + inventory() + about() + contact() + footer;
   drawGrid(); bindForms(R);
@@ -152,7 +169,7 @@ function route() {
   const h = location.hash.slice(1);
   const c = h.startsWith("car-") && CARS.find((x) => x.id === h.slice(4));
   if (c) { onHome = false; R.innerHTML = header() + detail(c) + footer; bindForms(R); if ($("#cPm")) calc(c); document.title = `${title(c)} · ${name}`; scrollTo(0, 0); return; }
-  if (!onHome) { home(); onHome = true; document.title = `${name} · Used cars in ${S.city}, ${S.state}`; }
+  if (!onHome) { home(); onHome = true; document.title = `${name} · Used cars${where ? " in " + where : ""}`; }
   const el = h && document.getElementById(h); if (el) el.scrollIntoView(); else if (!h) scrollTo(0, 0);
 }
 addEventListener("hashchange", route);

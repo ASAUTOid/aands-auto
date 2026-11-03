@@ -14,3 +14,8 @@ Static site in `site/`, served by Netlify. Dealer dashboard: https://aands-auto.
 ## Websites
 - Main site template is chosen in Dashboard → Websites (`settings.mainTemplate`; `night` = original animated site in `site/index.html`).
 - Extra websites live at `/w/<slug>` (rendered by `site/t/site.js`) or on their own domain once it is added as a domain alias in Netlify.
+
+## Dealer websites
+- Made in Dashboard → Websites → Create a dealer website. Data in the `tenants` blob store (`site/<slug>`, `auth/<slug>`, `leads/<slug>`, `ftp/<slug>`).
+- Public site `/w/<slug>` (or the dealer domain), admin `/w/<slug>/admin`, feeds `/feeds/t/<slug>/<feed>.csv`.
+- FTP delivery: `/api/ftp` (A & S) and `/api/t/<slug>/ftp`; `ftp-daily` sends feeds marked "every day".

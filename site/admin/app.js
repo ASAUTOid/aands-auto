@@ -2,6 +2,7 @@
 // Inventory, leads (CRM), customers, deals & documents, buy-here-pay-here collections, reports, marketing feeds, settings.
 import * as FEEDS from "../feeds.js";
 import { openStudio } from "./studio.js";
+import { ftpPanel } from "./ftpui.js";
 import { TEMPLATES } from "../t/templates.js";
 
 /* ================= helpers ================= */
@@ -152,6 +153,9 @@ function logout() {
   $("#app").hidden = true; $("#login").hidden = false; $("#loginPw").value = ""; $("#loginPw").focus();
 }
 async function boot() {
+  // on a dealer's own domain, /admin/ opens that dealer's simple admin
+  try { const h = location.hostname.replace(/^www\./, ""), m = await (await fetch("/api/data", { cache: "no-store" })).json();
+    const w = (m.settings?.websites || []).find((x) => x.tenant && x.domain === h); if (w) return location.replace(`/w/${w.slug}/admin`); } catch (_) {}
   let saved = ""; try { saved = sessionStorage.getItem("admPw") || ""; } catch (_) {}
   if (saved && (await tryLogin(saved))) return start(saved);
   $("#login").hidden = false; $("#loginPw").focus();
@@ -843,6 +847,9 @@ function marketing(V) {
         <td style="white-space:nowrap"><button class="b sm" type="button" data-mv="-1" ${i ? "" : "disabled"}>↑</button> <button class="b sm" type="button" data-mv="1" ${i < C.cols.length - 1 ? "" : "disabled"}>↓</button> <button class="b sm" type="button" data-rm>✕</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="formft" style="justify-content:flex-start"><button class="b" type="button" id="cxAdd">+ Add column</button><button class="b" type="button" data-dl="custom">Download CSV</button><button class="b sm" type="button" data-copy="custom">Copy feed link</button></div></div>
+    <h2 class="sec">Send by FTP</h2>
+    <div class="banner">Most listing sites give you FTP details (server, user, password) when you sign up. Enter them once per site, then click Send now, or tick “Send automatically every day”. Save the page above first so the dealer IDs are up to date.</div>
+    <div id="ftpBox"></div>
     <h2 class="sec" id="classifieds">Classifieds: Craigslist, Facebook Marketplace, OfferUp, KSL</h2>
     <div class="banner">These sites don't take dealer files, so you post each car yourself. Pick a car: the ad below is written for you. Copy it, download the photo, open the site, paste, and mark it as posted so you know when to repost.</div>
     <div class="split"><div class="card"><div class="fg">${sel("adCar", "Car", adCar, lotCars.map((c) => [c.id, `${carTitle(c)} · ${money(c.price)}`]), "w2")}
@@ -855,6 +862,8 @@ function marketing(V) {
         <small style="color:var(--muted)">${esc(how)}${ad && posted(adCar)[k] ? ` · <b style="color:var(--ok)">Posted ${fdate(posted(adCar)[k])}</b>` : ""}</small></div>`).join("")}</div></div>
     <div class="card" style="margin-top:14px"><h3>What's posted where</h3>${table([{ h: "Car", f: (c) => `<b>${esc(carTitle(c))}</b><span class="sub">${money(c.price)}</span>` },
       ...FEEDS.CLASSIFIEDS.map(([k, l]) => ({ h: l, f: (c) => { const d = posted(c.id)[k]; if (!d) return '<span style="color:var(--dim)">—</span>'; const age = days(d); return `<span style="color:${age > 30 ? "var(--warn)" : "var(--ok)"}">${fdate(d)}${age > 30 ? " · repost" : ""}</span>`; } }))], lotCars)}</div>`;
+    const J = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+    ftpPanel($("#ftpBox"), { get: () => api("/api/ftp"), put: (c) => api("/api/ftp", J("PUT", c)), send: (feed) => api("/api/ftp", J("POST", { feed })) }, toast);
     $("#adCar")?.addEventListener("change", (e) => { adCar = e.target.value; draw(); document.getElementById("classifieds").scrollIntoView(); });
     $("#clCity").oninput = (e) => (st.craigslistCity = e.target.value.trim());
     $$("[data-cp]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText($("#" + b.dataset.cp).value).then(() => toast("Copied"))));
@@ -879,7 +888,9 @@ function marketing(V) {
 }
 
 /* ================= websites & templates ================= */
-let siteEdit = null;
+let siteEdit = null, dealerNew = null, domEdit = null;
+const DEALER_TPL = Object.keys(TEMPLATES).filter((k) => !TEMPLATES[k].original);
+const netlifyHost = () => S().netlifyHost || "aands-auto.netlify.app";
 function websites(V) {
   const st = S(); st.websites = st.websites || [];
   const main = st.mainTemplate || "night";
@@ -893,7 +904,7 @@ function websites(V) {
   <div class="grid g3">${Object.entries(TEMPLATES).map(([id, t]) => tplCard(id, t, id === main)).join("")}</div>
   <h2 class="sec">More websites</h2>
   <div class="banner">Make a second website, for example only trucks, only cars under $10,000, or a different brand name. Each one gets its own link right away. To give it its own domain, buy the domain, add it in Netlify (Domain management → Add domain alias) and type it below.</div>
-  <div class="grid g3">${st.websites.map((w) => `<div class="card tpl"><div class="sw">${(TEMPLATES[w.template] || TEMPLATES.classic).swatch.map((c, i) => `<i style="background:${i === 1 && w.accent ? esc(w.accent) : c}"></i>`).join("")}</div>
+  <div class="grid g3">${st.websites.filter((w) => !w.tenant).map((w) => `<div class="card tpl"><div class="sw">${(TEMPLATES[w.template] || TEMPLATES.classic).swatch.map((c, i) => `<i style="background:${i === 1 && w.accent ? esc(w.accent) : c}"></i>`).join("")}</div>
       <b>${esc(w.name)}</b><small style="color:var(--muted)">${esc((TEMPLATES[w.template] || TEMPLATES.classic).name)}${w.filter?.body ? " · only " + esc(w.filter.body) : ""}${w.filter?.maxPrice ? " · under " + money(w.filter.maxPrice) : ""}</small>
       <small style="font-family:var(--mono);overflow-wrap:anywhere">${esc(location.origin)}/w/${esc(w.slug)}${w.domain ? "<br>" + esc(w.domain) : ""}</small>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><a class="b sm" href="/w/${esc(w.slug)}" target="_blank" rel="noopener">Open ↗</a><button class="b sm" type="button" data-edit="${esc(w.id)}">Edit</button><button class="b sm danger" type="button" data-delw="${esc(w.id)}">Delete</button></div></div>`).join("")}
@@ -906,7 +917,68 @@ function websites(V) {
       ${sel("w_body", "Which cars", W.filter?.body || "", [["", "All body types"], ...BODY_TYPES.map((b) => [b, "Only " + b])])}${fld("w_min", "Min price", W.filter?.minPrice, "number")}${fld("w_max", "Max price", W.filter?.maxPrice, "number")}
       ${fld("w_dom", "Own domain (optional)", W.domain, "text", 'wide placeholder="cheaptrucksburley.com"')}</div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_sold" ${W.showSold ? "checked" : ""}> Also show sold cars</label>
-      <div class="formft"><button class="b" type="button" id="wCancel">Cancel</button><button class="b primary" type="button" id="wSave">Save website</button></div></div>` : ""}`;
+      <div class="formft"><button class="b" type="button" id="wCancel">Cancel</button><button class="b primary" type="button" id="wSave">Save website</button></div></div>` : ""}
+  <h2 class="sec">Dealer websites · own cars, own login</h2>
+  <div class="banner">A complete website for another dealer: their name, logo, phone and cars, and their own simple admin page (add cars, AI photo studio, messages, exports and FTP). You can open every dealer's admin with your own password too.</div>
+  <div class="grid g2">${st.websites.filter((w) => w.tenant).map((w) => `<div class="card" style="display:grid;gap:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:18px">${esc(w.name)}</b>${pill((TEMPLATES[w.template] || TEMPLATES.classic).name, "info")}</div>
+      <small style="font-family:var(--mono);overflow-wrap:anywhere">Website: ${esc(location.origin)}/w/${esc(w.slug)}<br>Admin: ${esc(location.origin)}/w/${esc(w.slug)}/admin${w.domain ? "<br>Domain: " + esc(w.domain) : ""}</small>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><a class="b sm" href="/w/${esc(w.slug)}" target="_blank" rel="noopener">Open website ↗</a><a class="b sm primary" href="/w/${esc(w.slug)}/admin" target="_blank" rel="noopener">Open admin ↗</a>
+        <button class="b sm" type="button" data-dom="${esc(w.id)}">Domain</button><button class="b sm" type="button" data-tpw="${esc(w.slug)}">New password</button><button class="b sm danger" type="button" data-tdel="${esc(w.id)}">Delete</button></div>
+      ${domEdit === w.id ? `<div style="border-top:1px solid var(--line);padding-top:10px"><div class="fg">${fld("d_dom", "Domain", w.domain, "text", 'wide placeholder="joesautos.com"')}</div>
+        ${w.domain ? `<ol style="font-size:14px;line-height:1.6;padding-left:18px;margin:10px 0">
+          <li>In <b>Netlify</b>: your project → <b>Domain management</b> → <b>Add a domain alias</b> → type <b>${esc(w.domain)}</b> (and <b>www.${esc(w.domain)}</b>).</li>
+          <li>Where the dealer bought the domain (GoDaddy etc.) → <b>DNS</b>: record <b>A</b>, name <b>@</b>, value <b>75.2.60.5</b>.</li>
+          <li>Same place: record <b>CNAME</b>, name <b>www</b>, value <b>${esc(netlifyHost())}</b>.</li>
+          <li>Wait 15 minutes to a few hours. Netlify adds the padlock (HTTPS) by itself.</li></ol>
+          <div class="formft" style="justify-content:flex-start"><button class="b sm" type="button" id="dnsCopy">Copy these steps</button></div>` : ""}
+        <div class="formft"><button class="b" type="button" id="domCancel">Close</button><button class="b primary" type="button" id="domSave">Save domain</button></div></div>` : ""}</div>`).join("")}
+    <button class="card" type="button" id="newDealer" style="cursor:pointer;display:grid;place-items:center;min-height:160px;font-weight:700;border-style:dashed">+ Create a dealer website</button></div>
+  ${dealerNew ? `<div class="card" id="dForm" style="margin-top:14px"><h3>New dealer website</h3><div class="fg">
+      ${fld("n_name", "Dealer name", dealerNew.name, "text", "wide")}${fld("n_slug", "Link name", dealerNew.slug)}${sel("n_tpl", "Template", dealerNew.template, DEALER_TPL.map((k) => [k, TEMPLATES[k].name]))}
+      ${fld("n_phone", "Phone", dealerNew.phone, "tel")}${fld("n_email", "Email", dealerNew.email, "email")}${fld("n_street", "Street", dealerNew.street, "text", "wide")}${fld("n_city", "City", dealerNew.city)}${fld("n_state", "State", dealerNew.state)}${fld("n_zip", "ZIP", dealerNew.zip)}
+      ${fld("n_dom", "Domain (optional, can be added later)", dealerNew.domain, "text", 'wide placeholder="joesautos.com"')}${fld("n_pw", "Admin password for the dealer (8+ characters)", "", "text")}
+      <div class="f w2"><label>Logo</label><div class="photo" id="n_lg" style="aspect-ratio:3/1">${dealerNew.logo ? `<img src="${esc(dealerNew.logo)}" alt="" style="object-fit:contain">` : "No logo"}</div><input type="file" accept="image/*" id="n_lgf" style="font-size:13px;margin-top:6px"></div></div>
+      <div class="formft"><button class="b" type="button" id="nCancel">Cancel</button><button class="b primary" type="button" id="nSave">Create website</button></div></div>` : ""}`;
+  // ----- dealer websites -----
+  $("#newDealer").onclick = () => { dealerNew = { name: "", slug: "", template: "classic", state: st.state || "" }; websites(V); $("#dForm").scrollIntoView(); $("#n_name").focus(); };
+  if (dealerNew) {
+    $("#n_name").oninput = () => { if (!dealerNew.slugTouched) $("#n_slug").value = slugify(v("n_name")); };
+    $("#n_slug").oninput = () => (dealerNew.slugTouched = true);
+    $("#n_lgf").onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; $("#n_lg").textContent = "Uploading…"; try { dealerNew.logo = await upload(fl, 600); $("#n_lg").innerHTML = `<img src="${esc(dealerNew.logo)}" alt="" style="object-fit:contain">`; } catch (_) { $("#n_lg").textContent = "Upload failed"; } };
+    $("#nCancel").onclick = () => { dealerNew = null; websites(V); };
+    $("#nSave").onclick = async () => {
+      const slug = slugify(v("n_slug") || v("n_name")), pw = v("n_pw"), dom = v("n_dom").replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "").toLowerCase();
+      if (!v("n_name")) return toast("Add the dealer name.", 1);
+      if (!slug) return toast("Add a link name.", 1);
+      if (st.websites.some((w) => w.slug === slug)) return toast("That link name is already used.", 1);
+      if (pw.length < 8) return toast("The dealer password needs at least 8 characters.", 1);
+      const settings = { name: v("n_name"), phone: v("n_phone"), email: v("n_email"), street: v("n_street"), city: v("n_city"), state: v("n_state"), zip: v("n_zip"), logo: dealerNew.logo || "", template: v("n_tpl"),
+        hours: [["Monday – Friday", "9:00 AM – 6:00 PM"], ["Saturday", "10:00 AM – 4:00 PM"], ["Sunday", "Closed"]], apr: 12.9, feeds: {} };
+      const J = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+      $("#nSave").disabled = true;
+      try {
+        await api(`/api/t/${slug}/data`, J("PUT", { settings, cars: [] }));
+        await api(`/api/t/${slug}/password`, J("POST", { newPassword: pw }));
+        st.websites.push({ id: uid("W"), slug, name: settings.name, template: settings.template, domain: dom, tenant: true });
+        await saveSite();
+        dealerNew = null; toast("Dealer website created"); websites(V);
+        alert(`Done! Send these to the dealer:\n\nWebsite: ${location.origin}/w/${slug}\nAdmin: ${location.origin}/w/${slug}/admin\nPassword: ${pw}${dom ? "\n\nDomain " + dom + ": click “Domain” on the card for the DNS steps." : ""}`);
+      } catch (x) { $("#nSave").disabled = false; toast(errMsg(x), 1); }
+    };
+  }
+  $$("[data-dom]").forEach((b) => (b.onclick = () => { domEdit = domEdit === b.dataset.dom ? null : b.dataset.dom; websites(V); }));
+  if ($("#domCancel")) $("#domCancel").onclick = () => { domEdit = null; websites(V); };
+  if ($("#domSave")) $("#domSave").onclick = async () => { const w = st.websites.find((x) => x.id === domEdit), prev = w.domain;
+    w.domain = v("d_dom").replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "").toLowerCase();
+    try { await saveSite(); toast("Domain saved"); websites(V); } catch (x) { w.domain = prev; toast(errMsg(x), 1); } };
+  if ($("#dnsCopy")) $("#dnsCopy").onclick = () => { const w = st.websites.find((x) => x.id === domEdit);
+    navigator.clipboard?.writeText(`Domain setup for ${w.domain}\n\n1. Netlify: Domain management → Add a domain alias → ${w.domain} and www.${w.domain}\n2. DNS at the domain company: A record, name @, value 75.2.60.5\n3. DNS: CNAME record, name www, value ${netlifyHost()}\n4. Wait 15 minutes to a few hours. HTTPS is added automatically.`).then(() => toast("Copied")); };
+  $$("[data-tpw]").forEach((b) => (b.onclick = async () => { const pw = prompt("New password for this dealer (8+ characters):"); if (!pw) return; if (pw.length < 8) return toast("At least 8 characters.", 1);
+    try { await api(`/api/t/${b.dataset.tpw}/password`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ newPassword: pw }) }); toast("Password changed"); } catch (x) { toast(errMsg(x), 1); } }));
+  $$("[data-tdel]").forEach((b) => (b.onclick = async () => { const w = st.websites.find((x) => x.id === b.dataset.tdel);
+    if (prompt(`This deletes ${w.name}'s website, cars and messages for good. Type DELETE to confirm.`) !== "DELETE") return;
+    try { await api(`/api/t/${w.slug}/data`, { method: "DELETE" }); st.websites = st.websites.filter((x) => x.id !== w.id); await saveSite(); toast("Dealer website deleted"); websites(V); } catch (x) { toast(errMsg(x), 1); } }));
   $$("[data-use]").forEach((b) => (b.onclick = async () => { const prev = st.mainTemplate; st.mainTemplate = b.dataset.use;
     try { await saveSite(); toast(`Done. ${location.host} now uses ${TEMPLATES[b.dataset.use].name}.`); websites(V); } catch (x) { st.mainTemplate = prev; toast(errMsg(x), 1); } }));
   $("#newSite").onclick = () => { siteEdit = { isNew: true, id: uid("W"), name: "", slug: "", template: "classic", filter: {} }; websites(V); $("#wForm").scrollIntoView(); $("#w_name").focus(); };

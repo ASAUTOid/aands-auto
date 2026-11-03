@@ -6,7 +6,7 @@
 export const SITE_URL = "https://aands-auto.com";
 
 // Every value a column can take. key -> [label, getter(car, settings, siteUrl)]
-const abs = (u, base) => (!u ? "" : /^https?:\/\//.test(u) ? u : base + "/" + String(u).replace(/^\//, ""));
+const abs = (u, base) => (!u ? "" : /^https?:\/\//.test(u) ? u : new URL("/" + String(u).replace(/^\//, ""), base).href);
 const modelOf = (c) => (c.name && c.make && c.name.startsWith(c.make + " ") ? c.name.slice(c.make.length + 1) : c.name || "");
 export const FIELDS = {
   vin: ["VIN", (c) => c.vin || ""],
