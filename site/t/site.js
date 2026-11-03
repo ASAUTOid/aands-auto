@@ -163,7 +163,8 @@ function detail(c) {
   const sp = [["Mileage", c.miles != null ? Number(c.miles).toLocaleString("en-US") + " miles" : ""], ["Engine", c.engine], ["Transmission", c.trans], ["Drivetrain", c.drive], ["Fuel", c.fuel], ["MPG", c.mpg],
     ["Exterior", c.ext], ["Interior", c.int], ["Body", c.body], ["Horsepower", c.hp], ["VIN", c.vin], ["Stock #", c.stock]].filter(([, v]) => v !== null && v !== undefined && v !== "");
   return `<div class="wrap"><a class="back" href="#inventory">← Back to inventory</a>
-    <div class="det"><div><div class="main"><img src="${esc(c.img)}" alt="${esc(title(c))}"></div>
+    <div class="det"><div><div class="main"><img id="mainPh" src="${esc(c.img)}" alt="${esc(title(c))}"></div>
+      ${(c.photos || []).length ? `<div class="thumbs">${[c.img, ...c.photos].map((u, i) => `<button type="button" class="${i ? "" : "on"}" data-ph="${esc(u)}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}
       <div class="specs">${sp.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join("")}</div>
       ${(c.equip || []).length ? `<div class="equip">${c.equip.map((e) => `<span>${esc(e)}</span>`).join("")}</div>` : ""}
       ${c.desc ? `<p class="muted" style="margin-top:18px">${esc(c.desc)}</p>` : ""}</div>
@@ -198,7 +199,8 @@ let onHome = false;
 function route() {
   const h = location.hash.slice(1);
   const c = h.startsWith("car-") && CARS.find((x) => x.id === h.slice(4));
-  if (c) { onHome = false; R.innerHTML = header() + detail(c) + footer; bindForms(R); if ($("#cPm")) calc(c); document.title = `${title(c)} · ${name}`; scrollTo(0, 0); return; }
+  if (c) { onHome = false; R.innerHTML = header() + detail(c) + footer; bindForms(R);
+    $$(".thumbs [data-ph]").forEach((b) => (b.onclick = () => { $("#mainPh").src = b.dataset.ph; $$(".thumbs button").forEach((x) => x.classList.toggle("on", x === b)); })); if ($("#cPm")) calc(c); document.title = `${title(c)} · ${name}`; scrollTo(0, 0); return; }
   if (!onHome) { home(); onHome = true; document.title = `${name} · Used cars${where ? " in " + where : ""}`; }
   const el = h && document.getElementById(h); if (el) el.scrollIntoView(); else if (!h) scrollTo(0, 0);
 }

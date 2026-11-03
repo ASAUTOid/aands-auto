@@ -1,7 +1,7 @@
 // A & S Auto · Dealer Dashboard
 // Inventory, leads (CRM), customers, deals & documents, buy-here-pay-here collections, reports, marketing feeds, settings.
 import * as FEEDS from "../feeds.js";
-import { openStudio } from "./studio.js";
+import { photosBox, bulkStudio } from "./photos.js";
 import { ftpPanel } from "./ftpui.js";
 import { openInspection, summary as inspSummary } from "./inspect.js";
 import { TEMPLATES } from "../t/templates.js";
@@ -181,7 +181,7 @@ async function start(pw) {
 /* ================= navigation ================= */
 const NAV = [
   ["", [["dashboard", "▦", "Dashboard"]]],
-  ["Sales", [["inventory", "🚗", "Inventory"], ["recon", "🔧", "Recon"], ["leads", "☎", "Leads"], ["calendar", "📅", "Calendar"], ["tasks", "✓", "Tasks"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"], ["opportunities", "🎯", "Opportunities"]]],
+  ["Sales", [["inventory", "🚗", "Inventory"], ["studio", "✨", "Photo studio"], ["recon", "🔧", "Recon"], ["leads", "☎", "Leads"], ["calendar", "📅", "Calendar"], ["tasks", "✓", "Tasks"], ["customers", "👤", "Customers"], ["deals", "📄", "Deals"], ["opportunities", "🎯", "Opportunities"]]],
   ["Finance", [["collections", "$", "Collections"], ["expenses", "🧾", "Expenses"], ["reports", "📈", "Reports"]]],
   ["Online", [["marketing", "📣", "Marketing"], ["websites", "🌐", "Websites"]]],
   ["", [["templates", "✉", "Message templates"], ["settings", "⚙", "Settings"]]],
@@ -201,7 +201,7 @@ function route() {
   renderNav(page);
   const V = $("#view"); window.scrollTo(0, 0);
   const pages = { dashboard, inventory: id ? carEdit : inventory, leads: id ? leadEdit : leads, customers: id ? custEdit : customers,
-    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
+    deals: id ? dealEdit : deals, collections: id ? collectionEdit : collections, reports, marketing, websites, settings, recon: id ? reconEdit : reconBoard, calendar: id ? apptEdit : calendar, tasks: tasksPage, opportunities, expenses: expensesPage, templates: templatesPage, studio: (V2) => bulkStudio(V2, photoEnv()), inspect: (V2, id2) => { const k = car(id2); if (!k) return go("#/inventory");
       openInspection(V2, { car: k, settings: S(), title: carTitle(k), backLabel: carTitle(k), onBack: () => go("#/inventory/" + id2), toast, reportUrl: "/inspection?car=" + id2,
         onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await saveSite(); } catch (x) { k.inspection = prev; throw x; } } }); } };
   (pages[page] || dashboard)(V, id, q);
@@ -266,6 +266,12 @@ async function upload(file, max) {
   const blob = await shrink(file, max);
   return (await api("/api/upload", { method: "POST", headers: { "content-type": "image/webp" }, body: blob })).url;
 }
+
+// photo tools: upload, background library (ours + the dealer's own), bulk save
+const photoEnv = () => ({ upload: (f, max) => upload(f, max), settings: S, library: () => S().bgLibrary || [], toast, cars: () => SITE.cars, saveAll: saveSite,
+  addBackground: async (file) => { const url = await upload(file, 1800);
+    const e = { id: uid("bg"), name: file.name.replace(/\.\w+$/, "").slice(0, 30) || "My background", url, cat: "Yours", floor: 0.86, reflect: false };
+    S().bgLibrary = [...(S().bgLibrary || []), e]; await saveSite(); toast("Background saved to your library"); return e; } });
 
 /* ================= dashboard ================= */
 function dashboard(V) {
@@ -411,8 +417,7 @@ function carEdit(V, id, q) {
         <label class="chk" style="margin-top:12px"><input type="checkbox" id="c_exp" ${c.noExport ? "" : "checked"}> Include in exports (CARFAX, Cars.com, Facebook…)</label>
         <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Drafts never go on the website or in exports. Use 👁 Preview to see a draft as customers will.</p>
         <label class="chk" style="margin-top:12px"><input type="checkbox" id="c_feat" ${c.featured ? "checked" : ""}> Show in the home page animation (needs a cut-out photo)</label></div>
-      <div class="card"><h3>Photo</h3><div class="photo" id="pvImg">${c.img ? `<img src="${esc(c.img)}" alt="">` : "No photo yet"}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="fImg" style="font-size:13px;flex:1"><button class="b sm primary" type="button" id="studio">✨ AI photo studio</button></div><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">Shown on the website. Landscape works best.</p></div>
+      <div class="card"><h3>Photos</h3><div id="photosBox"></div></div>
       <div class="card"><h3>Cut-out for the animation</h3><div class="photo cut" id="pvCut">${c.cut ? `<img src="${esc(c.cut)}" alt="">` : "No cut-out yet"}</div>
         <input type="file" accept="image/png,image/webp" id="fCut" style="margin-top:10px;font-size:13px"><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">A PNG with the background removed (e.g. from remove.bg).</p></div>
       ${deals.length ? `<div class="card"><h3>Deals</h3>${deals.map((d) => `<a class="lc" href="#/deals/${d.id}">${dealNo(d)} · ${esc(custName(cust(d.customerId)))}<small>${fdate(d.date)} · ${money(d.price)} · ${d.status}</small></a>`).join("")}</div>` : ""}
@@ -455,15 +460,8 @@ function carEdit(V, id, q) {
     const f = ev.target.files[0]; if (!f) return; $("#" + pv).textContent = "Uploading…";
     try { c[key] = await upload(f, max); $("#" + pv).innerHTML = `<img src="${esc(c[key])}" alt="">`; }
     catch (x) { $("#" + pv).textContent = "Upload failed"; toast("Upload failed. Try a smaller photo.", 1); } });
-  up("fImg", "pvImg", 1600, "img"); up("fCut", "pvCut", 900, "cut");
-  $("#studio").onclick = () => {
-    if (!c.img) return toast("Upload a photo first, then open the studio.", 1);
-    openStudio({ src: c.img, settings: S(), price: n0(v("c_price")) || c.price, onSave: async (blob, kind) => {
-      c[kind] = await upload(blob, kind === "cut" ? 900 : 1600);
-      $(kind === "cut" ? "#pvCut" : "#pvImg").innerHTML = `<img src="${esc(c[kind])}" alt="">`;
-      toast("Photo updated. Click Save to put it on the website.");
-    } });
-  };
+  up("fCut", "pvCut", 900, "cut");
+  photosBox($("#photosBox"), c, photoEnv(), () => { if (c.cut) $("#pvCut").innerHTML = `<img src="${esc(c.cut)}" alt="">`; });
   if ($("#sticker")) $("#sticker").onclick = () => printSticker(car(c.id));
   if ($("#delCar")) $("#delCar").onclick = async () => {
     if (deals.length) { toast("This car has deals. Set it to Hidden instead.", 1); return; }

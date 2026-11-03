@@ -1,7 +1,7 @@
 // Simple admin for a dealer website made in the A & S dashboard: cars, messages, website details, marketing, password.
 import { TEMPLATES, DEALER_TEMPLATES } from "./templates.js";
 import * as FEEDS from "../feeds.js";
-import { openStudio } from "../admin/studio.js";
+import { photosBox, bulkStudio } from "../admin/photos.js";
 import { ftpPanel } from "../admin/ftpui.js";
 import { thumb, bindThumbs, openPreview } from "./gallery.js";
 import { openInspection, summary as inspSummary } from "../admin/inspect.js";
@@ -56,7 +56,7 @@ async function start(pw) {
 function brand() { $("#sideName").textContent = S().name || "My website"; if (S().logo) { $("#sideLogo").src = S().logo; $("#sideLogo").hidden = false; } document.title = (S().name || "Website") + " · Admin"; }
 
 /* ---------- router ---------- */
-const NAV = [["cars", "🚗", "Cars"], ["messages", "✉", "Messages"], ["website", "🌐", "Website"], ["marketing", "📣", "Marketing"], ["account", "🔑", "Password"]];
+const NAV = [["cars", "🚗", "Cars"], ["studio", "✨", "Photo studio"], ["messages", "✉", "Messages"], ["website", "🌐", "Website"], ["marketing", "📣", "Marketing"], ["account", "🔑", "Password"]];
 function route() {
   document.body.classList.remove("nav-open");
   const [page, id] = (location.hash.replace(/^#\/?/, "") || "cars").split("/");
@@ -64,6 +64,7 @@ function route() {
   $("#nav").innerHTML = NAV.map(([k, ic, l]) => `<a href="#/${k}" class="${page === k ? "on" : ""}"><span class="ic">${ic}</span>${l}${k === "messages" && nNew ? `<span class="cnt">${nNew}</span>` : ""}</a>`).join("");
   scrollTo(0, 0);
   const V = $("#view");
+  if (page === "studio") return bulkStudio(V, photoEnv());
   if (page === "inspect") { const k = TD.cars.find((x) => x.id === id); if (!k) return go("#/cars");
     return openInspection(V, { car: k, settings: S(), title: k.year + " " + k.name, backLabel: k.year + " " + k.name, onBack: () => go("#/cars/" + id), toast, reportUrl: `/inspection?car=${id}&d=${SLUG}`,
       onSave: async (ins) => { const prev = k.inspection; k.inspection = ins; try { await save(); } catch (x) { k.inspection = prev; throw x; } } }); }
@@ -81,6 +82,11 @@ async function upload(blob, max) {
   const out = await new Promise((r) => c.toBlob(r, "image/webp", 0.86));
   return (await api("/upload", { method: "POST", headers: { "content-type": "image/webp" }, body: out })).url;
 }
+
+const photoEnv = () => ({ upload: (f, max) => upload(f, max), settings: S, library: () => S().bgLibrary || [], toast, cars: () => TD.cars, saveAll: save,
+  addBackground: async (file) => { const url = await upload(file, 1800);
+    const e = { id: uid("bg"), name: file.name.replace(/\.\w+$/, "").slice(0, 30) || "My background", url, cat: "Yours", floor: 0.86, reflect: false };
+    S().bgLibrary = [...(S().bgLibrary || []), e]; await save(); toast("Background saved to your library"); return e; } });
 
 /* ---------- cars ---------- */
 function cars(V) {
@@ -116,9 +122,7 @@ function carEdit(V, id) {
     ${f("price", "Price", c.price, "number")}${f("miles", "Mileage", c.miles, "number")}${f("ext", "Exterior colour", c.ext)}${f("int", "Interior", c.int)}
     ${f("engine", "Engine", c.engine)}${f("trans", "Transmission", c.trans)}${f("drive", "Drivetrain", c.drive)}${f("fuel", "Fuel", c.fuel)}${f("mpg", "MPG city / hwy", c.mpg)}${f("hp", "Horsepower", c.hp, "number")}${f("stock", "Stock #", c.stock)}
     ${area("equip", "Equipment (one per line)", (c.equip || []).join("\n"))}${area("desc", "Description", c.desc)}</div></div>
-  <div class="grid"><div class="card"><h3>Photo</h3><div class="photo" id="pv">${c.img ? `<img src="${esc(c.img)}" alt="">` : "No photo yet"}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="file" style="font-size:13px;flex:1"><button class="b sm primary" type="button" id="studio">✨ AI photo studio</button></div>
-    <p style="color:var(--muted);font-size:13px;margin:6px 0 0">The AI studio removes or replaces the background, fixes the light and adds your banner.</p></div>
+  <div class="grid"><div class="card"><h3>Photos</h3><div id="photosBox"></div></div>
     <div class="card"><h3>On the website</h3>${sel("status", "Status", c.status, [["lot", "Public · for sale"], ["draft", "Draft · not on the website"], ["pending", "Sale pending"], ["sold", "Sold"], ["hidden", "Hidden"]])}
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="exp" ${c.noExport ? "" : "checked"}> Include in exports</label>
     ${isNew ? "" : `<a class="b sm" style="margin-top:12px" href="${SITE_URL}?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview on the website</a>`}
@@ -127,9 +131,7 @@ function carEdit(V, id) {
   $("#dec").onclick = async () => { const v = val("vin"); if (v.length !== 17) return toast("Enter all 17 characters of the VIN.", 1); $("#dec").textContent = "Decoding…";
     try { const x = await decodeVin(v); ["year", "make", "model", "trim", "engine", "drive", "fuel", "trans", "hp"].forEach((k) => { if (x[k] && !val(k)) document.getElementById(k).value = x[k]; }); if (x.body) $("#body").value = x.body; toast(x.make ? `Decoded: ${x.year} ${x.make} ${x.model}` : "Could not decode this VIN.", !x.make); }
     catch (_) { toast("Could not reach the VIN decoder.", 1); } $("#dec").textContent = "Decode VIN"; };
-  $("#file").onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; $("#pv").textContent = "Uploading…"; try { c.img = await upload(fl, 1600); $("#pv").innerHTML = `<img src="${esc(c.img)}" alt="">`; } catch (_) { $("#pv").textContent = "Upload failed"; } };
-  $("#studio").onclick = () => { if (!c.img) return toast("Upload a photo first.", 1);
-    openStudio({ src: c.img, settings: S(), price: num("price") || c.price, onSave: async (blob, kind) => { const u = await upload(blob, kind === "cut" ? 900 : 1600); if (kind === "img") { c.img = u; $("#pv").innerHTML = `<img src="${esc(u)}" alt="">`; } else c.cut = u; toast("Photo updated. Click Save."); } }); };
+  photosBox($("#photosBox"), c, photoEnv(), () => {});
   if ($("#del")) $("#del").onclick = async () => { if (!confirm("Delete this car?")) return; TD.cars = TD.cars.filter((x) => x.id !== c.id); try { await save(); toast("Deleted"); go("#/cars"); } catch (x) { TD.cars.push(orig); toast("Could not delete.", 1); } };
   $("#saveCar").onclick = async () => {
     if (!val("make") || !val("model")) return toast("Add the make and model.", 1);

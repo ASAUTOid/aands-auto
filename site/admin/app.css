@@ -192,3 +192,26 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 .tpl.on{outline:2px solid var(--brand);outline-offset:-1px}
 .adtext{width:100%;min-height:260px;font:13px/1.45 var(--mono);padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);white-space:pre-wrap}
 .f label.chk{font:400 14px var(--body);letter-spacing:0;text-transform:none;color:var(--text);display:flex}
+
+/* background library, photos, bulk studio */
+.bg-cat{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}
+.bg-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.bg-it{border:2px solid transparent;border-radius:6px;padding:0;background:none;cursor:pointer;text-align:left;color:inherit}
+.bg-it img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:4px;display:block}
+.bg-it span{display:block;font-size:11px;line-height:1.2;padding:3px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bg-it.on{border-color:var(--brand)}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.ph-it{position:relative;border-radius:6px;overflow:hidden;background:var(--panel-2)}
+.ph-it img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block}
+.ph-main{position:absolute;left:6px;top:6px;background:var(--brand);color:#fff;font:600 10px/1 var(--body);padding:4px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em}
+.ph-act{display:flex;gap:4px;padding:6px;flex-wrap:wrap}
+.ph-act .b{padding:4px 7px}
+.ph-add{display:grid;place-items:center;text-align:center;border:2px dashed var(--line);border-radius:6px;aspect-ratio:3/2;cursor:pointer;color:var(--muted);font-weight:600}
+.ph-add:hover{border-color:var(--muted)}
+.bulk-cars{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;max-height:70vh;overflow:auto}
+.bulk-car{position:relative;border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;display:block}
+.bulk-car.on{border-color:var(--brand)}
+.bulk-car input{position:absolute;left:8px;top:8px;width:20px;height:20px;accent-color:var(--brand)}
+.bulk-car img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block}
+.bulk-car span{display:block;padding:6px 8px;font-size:13px;font-weight:600}
+.bulk-car small{display:block;color:var(--muted);font-weight:400}

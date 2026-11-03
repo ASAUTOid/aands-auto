@@ -31,6 +31,7 @@ export const FIELDS = {
   desc: ["Description", (c) => c.desc || ""],
   equip: ["Equipment (separated by |)", (c) => (c.equip || []).join("|")],
   photo: ["Photo URL", (c, s, base) => abs(c.img, base)],
+  photosAll: ["All photo URLs (separated by |)", (c, s, base) => [c.img, ...(c.photos || [])].filter(Boolean).map((u) => abs(u, base)).join("|")],
   url: ["Car page URL", (c, s, base) => base + "/#car-" + c.id],
   status: ["Status (lot / sold)", (c) => c.status || "lot"],
   dealerName: ["Dealer name", (c, s) => s.name || ""],

@@ -982,6 +982,7 @@ function renderCar(id){
   <div class="crumbs"><a href="#inventory">← Used cars</a><span>/</span><span>${c.make}</span><span>/</span><span style="color:var(--chrome)">${c.name}</span></div>
   <div class="top">
     <div class="zoom" id="zoom" data-cursor="ZOOM"><img src="${img(c)}" alt="${full(c)}"><span class="hint">CLICK TO ZOOM</span></div>
+    ${(c.photos||[]).length?`<div id="thumbs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px">${[c.img,...c.photos].map((u,i)=>`<button type="button" data-ph="${u}" style="padding:0;border:2px solid ${i?'transparent':'var(--crimson)'};border-radius:3px;background:none;cursor:pointer"><img src="${u}" alt="" loading="lazy" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block"></button>`).join('')}</div>`:''}
     <div>
       <div class="eyebrow">On the lot · ${c.body}</div>
       <h1 style="margin-top:14px">${c.name}</h1>
@@ -1015,6 +1016,7 @@ function renderCar(id){
   // zoom
   const z=$('#zoom'), zi=z.firstElementChild;
   z.onclick=()=>{z.classList.toggle('z'); z.querySelector('.hint').textContent=z.classList.contains('z')?'CLICK TO CLOSE':'CLICK TO ZOOM'};
+  $$('#thumbs [data-ph]').forEach(b=>b.onclick=()=>{zi.src=b.dataset.ph;$$('#thumbs [data-ph]').forEach(x=>x.style.borderColor=x===b?'var(--crimson)':'transparent')});
   z.onpointermove=e=>{const r=z.getBoundingClientRect();zi.style.transformOrigin=`${(e.clientX-r.left)/r.width*100}% ${(e.clientY-r.top)/r.height*100}%`};
   // gauges
   requestAnimationFrame(()=>{ $$('.ga').forEach(p=>{p.style.transition=RM?'none':'stroke-dashoffset 1.6s cubic-bezier(.2,.8,.1,1)';p.style.strokeDashoffset=p.dataset.to});
