@@ -81,11 +81,11 @@ async function upload(blob, max) {
 /* ---------- cars ---------- */
 function cars(V) {
   const L = TD.cars;
-  V.innerHTML = `<div class="ph"><div><h1>Cars</h1><p>${L.filter((c) => c.status === "lot").length} for sale · ${L.filter((c) => c.status === "sold").length} sold</p></div><div class="act"><a class="b primary" href="#/cars/new">+ Add car</a></div></div>
+  V.innerHTML = `<div class="ph"><div><h1>Cars</h1><p>${L.filter((c) => c.status === "lot").length} public · ${L.filter((c) => c.status === "draft").length} drafts · ${L.filter((c) => c.status === "pending").length} sale pending · ${L.filter((c) => c.status === "sold").length} sold</p></div><div class="act"><a class="b primary" href="#/cars/new">+ Add car</a></div></div>
   ${L.length ? `<div class="tw"><table class="t"><thead><tr><th></th><th>Car</th><th class="r">Miles</th><th class="r">Price</th><th>Status</th></tr></thead><tbody>${L.map((c) => `<tr class="rowlink" data-href="#/cars/${esc(c.id)}" tabindex="0">
     <td>${c.img ? `<img class="th" src="${esc(c.img)}" alt="">` : ""}</td><td><b>${esc(c.year)} ${esc(c.name)}</b><span class="sub">${esc(c.trim || "")}${c.vin ? " · " + esc(c.vin) : ""}</span></td>
     <td class="r num">${c.miles != null ? Number(c.miles).toLocaleString("en-US") : "—"}</td><td class="r num">${money(c.price)}</td>
-    <td>${c.status === "lot" ? '<span class="pill ok">For sale</span>' : c.status === "sold" ? '<span class="pill bad">Sold</span>' : '<span class="pill">Hidden</span>'}${c.featured ? " ★" : ""}</td></tr>`).join("")}</tbody></table></div>`
+    <td>${c.status === "lot" ? '<span class="pill ok">Public</span>' : c.status === "pending" ? '<span class="pill warn">Sale pending</span>' : c.status === "draft" ? '<span class="pill info">Draft</span>' : c.status === "sold" ? '<span class="pill bad">Sold</span>' : '<span class="pill">Hidden</span>'}${c.featured ? " ★" : ""}</td></tr>`).join("")}</tbody></table></div>`
     : '<div class="card empty">No cars yet. Click <b>+ Add car</b> to put your first car on your website.</div>'}`;
   $$("tr[data-href]").forEach((tr) => { tr.onclick = () => go(tr.dataset.href); tr.onkeydown = (e) => e.key === "Enter" && go(tr.dataset.href); });
 }
@@ -115,7 +115,9 @@ function carEdit(V, id) {
   <div class="grid"><div class="card"><h3>Photo</h3><div class="photo" id="pv">${c.img ? `<img src="${esc(c.img)}" alt="">` : "No photo yet"}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="file" style="font-size:13px;flex:1"><button class="b sm primary" type="button" id="studio">✨ AI photo studio</button></div>
     <p style="color:var(--muted);font-size:13px;margin:6px 0 0">The AI studio removes or replaces the background, fixes the light and adds your banner.</p></div>
-    <div class="card"><h3>On the website</h3>${sel("status", "Status", c.status, [["lot", "For sale"], ["sold", "Sold"], ["hidden", "Hidden"]])}
+    <div class="card"><h3>On the website</h3>${sel("status", "Status", c.status, [["lot", "Public · for sale"], ["draft", "Draft · not on the website"], ["pending", "Sale pending"], ["sold", "Sold"], ["hidden", "Hidden"]])}
+    <label class="chk" style="margin-top:12px"><input type="checkbox" id="exp" ${c.noExport ? "" : "checked"}> Include in exports</label>
+    ${isNew ? "" : `<a class="b sm" style="margin-top:12px" href="${SITE_URL}?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview on the website</a>`}
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="feat" ${c.featured ? "checked" : ""}> Show at the top of the home page</label></div></div></div>`;
   $("#vin").oninput = (e) => (e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
   $("#dec").onclick = async () => { const v = val("vin"); if (v.length !== 17) return toast("Enter all 17 characters of the VIN.", 1); $("#dec").textContent = "Decoding…";
@@ -131,7 +133,7 @@ function carEdit(V, id) {
     if (!c.img) return toast("Add a photo.", 1);
     Object.assign(c, { vin: val("vin") || null, year: num("year"), make: val("make"), name: val("make") + " " + val("model"), trim: val("trim") || null, body: val("body"), price: num("price"), miles: num("miles"),
       ext: val("ext") || null, int: val("int") || null, engine: val("engine") || null, trans: val("trans") || null, drive: val("drive") || null, fuel: val("fuel") || null, mpg: val("mpg") || null, hp: num("hp"),
-      stock: val("stock") || null, equip: val("equip").split("\n").map((s) => s.trim()).filter(Boolean), desc: val("desc"), status: val("status"), featured: $("#feat").checked });
+      stock: val("stock") || null, equip: val("equip").split("\n").map((s) => s.trim()).filter(Boolean), desc: val("desc"), status: val("status"), noExport: !$("#exp").checked, featured: $("#feat").checked });
     const before = clone(TD.cars), i = TD.cars.findIndex((x) => x.id === c.id);
     if (c.featured) TD.cars.forEach((x) => (x.featured = false));
     if (i >= 0) TD.cars[i] = c; else TD.cars.unshift(c);

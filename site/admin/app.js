@@ -226,7 +226,9 @@ function setupSearch() {
 
 /* ================= shared UI ================= */
 const pill = (t, k = "") => `<span class="pill ${k}">${esc(t)}</span>`;
-const carStatusPill = (c) => c.status === "lot" ? pill("On the lot", "ok") : c.status === "sold" ? pill("Sold", "bad") : pill("Hidden");
+const CAR_STATUS = [["lot", "Public · for sale"], ["draft", "Draft · not on the website"], ["pending", "Sale pending"], ["sold", "Sold"], ["hidden", "Hidden"]];
+const carStatusPill = (c) => c.status === "lot" ? pill("Public", "ok") : c.status === "pending" ? pill("Sale pending", "warn") : c.status === "draft" ? pill("Draft", "info") : c.status === "sold" ? pill("Sold", "bad") : pill("Hidden");
+const exportable = (c) => (c.status === "lot" || c.status === "pending") && !c.noExport;
 const leadPill = (s) => { const x = LEAD_STATUS.find((l) => l[0] === s) || LEAD_STATUS[0]; return pill(x[1], x[2]); };
 const dealPill = (d) => d.status === "sold" ? pill("Sold", "ok") : d.status === "void" ? pill("Void", "bad") : pill("Draft", "warn");
 const fld = (id, label, val, type = "text", extra = "") => `<div class="f ${extra.includes("wide") ? "w2" : ""}"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(val ?? "")}" ${type === "number" ? 'step="any"' : ""} ${extra.replace("wide", "")}></div>`;
@@ -326,7 +328,7 @@ function inventory(V) {
   V.innerHTML = `
   <div class="ph"><div><h1>Inventory</h1><p>${cnt("lot")} on the lot · ${cnt("sold")} sold · ${cnt("hidden")} hidden</p></div>
     <div class="act"><button class="b" id="invCsv" type="button">Export CSV</button><a class="b primary" href="#/inventory/new">+ Add car</a></div></div>
-  <div class="bar">${seg("invSeg", [["lot", `On the lot (${cnt("lot")})`], ["sold", `Sold (${cnt("sold")})`], ["hidden", `Hidden (${cnt("hidden")})`], ["all", `All (${cnt("all")})`]], invFilter)}
+  <div class="bar">${seg("invSeg", [["lot", `Public (${cnt("lot")})`], ["draft", `Draft (${cnt("draft")})`], ["pending", `Sale pending (${cnt("pending")})`], ["sold", `Sold (${cnt("sold")})`], ["hidden", `Hidden (${cnt("hidden")})`], ["all", `All (${cnt("all")})`]], invFilter)}
     <div class="f" style="flex:1 1 240px"><input id="invQ" type="search" placeholder="Filter by make, model, VIN, stock #…" value="${esc(invQ)}" aria-label="Filter"></div></div>
   <div id="invT"></div>`;
   const draw = () => {
@@ -380,7 +382,7 @@ function carEdit(V, id, q) {
   V.innerHTML = `
   <div class="crumb"><a href="#/inventory">Inventory</a> / ${isNew ? "New car" : esc(carTitle(c))}</div>
   <div class="ph"><div><h1>${isNew ? "Add a car" : esc(carTitle(c))}</h1>${isNew ? "" : `<p>${carStatusPill(c)} ${c.stock ? "· Stock #" + esc(c.stock) : ""}</p>`}</div>
-    <div class="act">${isNew ? "" : `<button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
+    <div class="act">${isNew ? "" : `<a class="b" href="/?preview=${esc(c.id)}#car-${esc(c.id)}" target="_blank" rel="noopener">👁 Preview</a><button class="b" id="sticker" type="button">Print window sticker</button><a class="b" href="#/recon/${esc(c.id)}">Recon</a><a class="b" href="#/deals/new?car=${esc(c.id)}">Start a deal</a>`}<button class="b primary" id="saveCar" type="button">Save</button></div></div>
   <div class="split">
     <div class="grid">
       <div class="card"><h3>Vehicle</h3>
@@ -401,7 +403,9 @@ function carEdit(V, id, q) {
     </div>
     <div class="grid">
       <div class="card"><h3>Price & status</h3>
-        <div class="fg">${fld("c_price", "Asking price", c.price, "number")}${sel("c_status", "Status", c.status, [["lot", "On the lot"], ["sold", "Sold"], ["hidden", "Hidden"]])}</div>
+        <div class="fg">${fld("c_price", "Asking price", c.price, "number")}${sel("c_status", "Status", c.status, CAR_STATUS)}</div>
+        <label class="chk" style="margin-top:12px"><input type="checkbox" id="c_exp" ${c.noExport ? "" : "checked"}> Include in exports (CARFAX, Cars.com, Facebook…)</label>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Drafts never go on the website or in exports. Use 👁 Preview to see a draft as customers will.</p>
         <label class="chk" style="margin-top:12px"><input type="checkbox" id="c_feat" ${c.featured ? "checked" : ""}> Show in the home page animation (needs a cut-out photo)</label></div>
       <div class="card"><h3>Photo</h3><div class="photo" id="pvImg">${c.img ? `<img src="${esc(c.img)}" alt="">` : "No photo yet"}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><input type="file" accept="image/*" id="fImg" style="font-size:13px;flex:1"><button class="b sm primary" type="button" id="studio">✨ AI photo studio</button></div><p class="hint" style="color:var(--muted);font-size:13px;margin:6px 0 0">Shown on the website. Landscape works best.</p></div>
@@ -471,7 +475,7 @@ function carEdit(V, id, q) {
     if (!c.img) return toast("Add a photo of the car.", 1);
     Object.assign(c, { vin: v("c_vin") || null, stock: v("c_stock") || null, year: vn("c_year"), make, name: make + " " + model, trim: v("c_trim") || null, body: v("c_body"), miles: vn("c_miles"),
       ext: v("c_ext") || null, int: v("c_int") || null, engine: v("c_engine") || null, trans: v("c_trans") || null, drive: v("c_drive") || null, fuel: v("c_fuel") || null, mpg: v("c_mpg") || null,
-      hp: vn("c_hp"), tq: vn("c_tq"), zero: vn("c_zero"), top: vn("c_top"), price: vn("c_price"), status: v("c_status"), featured: $("#c_feat").checked && !!c.cut,
+      hp: vn("c_hp"), tq: vn("c_tq"), zero: vn("c_zero"), top: vn("c_top"), price: vn("c_price"), status: v("c_status"), noExport: !$("#c_exp").checked, featured: $("#c_feat").checked && !!c.cut,
       equip: v("c_equip").split("\n").map((s) => s.trim()).filter(Boolean) });
     c.desc = v("c_desc") || `${c.year} ${c.name}${c.trim ? " " + c.trim : ""} at ${S().name} in ${S().city}, ${S().state}.`;
     if (c.status === "sold" && !c.soldAt) c.soldAt = todayISO();
@@ -643,7 +647,7 @@ function dealEdit(V, id, q) {
   if (isNew && q.lead && !d.customerId) { const l = DB.leads.find((x) => x.id === q.lead); if (l?.customerId) d.customerId = l.customerId; }
   d.trade = d.trade || {};
   const locked = d.status !== "draft";
-  const carOpts = [["", "Choose a car…"], ...SITE.cars.filter((c) => c.status === "lot" || c.id === d.carId).map((c) => [c.id, `${carTitle(c)}${c.stock ? " · #" + c.stock : ""} · ${money(c.price)}`])];
+  const carOpts = [["", "Choose a car…"], ...SITE.cars.filter((c) => c.status === "lot" || c.status === "pending" || c.id === d.carId).map((c) => [c.id, `${carTitle(c)}${c.stock ? " · #" + c.stock : ""} · ${money(c.price)}`])];
   const custOpts = [["", "Choose a customer…"], ...DB.customers.slice().sort((a, b) => custName(a).localeCompare(custName(b))).map((c) => [c.id, custName(c) + (c.phone ? " · " + c.phone : "")])];
   const dis = locked ? "disabled" : "";
   V.innerHTML = `
@@ -880,6 +884,13 @@ function marketing(V) {
         <td style="white-space:nowrap"><button class="b sm" type="button" data-mv="-1" ${i ? "" : "disabled"}>↑</button> <button class="b sm" type="button" data-mv="1" ${i < C.cols.length - 1 ? "" : "disabled"}>↓</button> <button class="b sm" type="button" data-rm>✕</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="formft" style="justify-content:flex-start"><button class="b" type="button" id="cxAdd">+ Add column</button><button class="b" type="button" data-dl="custom">Download CSV</button><button class="b sm" type="button" data-copy="custom">Copy feed link</button></div></div>
+    <h2 class="sec">Which cars go where</h2>
+    <div class="banner">Untick a car to keep it off a site. Only Public and Sale pending cars can be exported. Click Save at the top when you're done.</div>
+    ${(() => { const cars = SITE.cars.filter((c) => c.status === "lot" || c.status === "pending"), fk = [...Object.keys(FEEDS.PRESETS), "custom"];
+      const lab = (k) => (k === "custom" ? "Custom" : FEEDS.PRESETS[k].label);
+      return cars.length ? `<div class="tw"><table class="t" style="font-size:13px"><thead><tr><th>Car</th><th title="Include in all exports">All</th>${fk.map((k) => `<th style="text-align:center;white-space:normal;min-width:64px">${esc(lab(k))}<br><button class="b sm" type="button" data-colall="${k}" style="padding:2px 6px;margin-top:4px">all / none</button></th>`).join("")}</tr></thead><tbody>
+        ${cars.map((c) => `<tr><td><b>${esc(carTitle(c))}</b><span class="sub">${money(c.price)}${c.status === "pending" ? " · sale pending" : ""}</span></td><td><input type="checkbox" data-carall="${esc(c.id)}" ${c.noExport ? "" : "checked"} aria-label="Export this car"></td>
+          ${fk.map((k) => `<td style="text-align:center"><input type="checkbox" data-cf="${esc(c.id)}|${k}" ${!c.noExport && !(c.feedsOff || []).includes(k) ? "checked" : ""} ${c.noExport ? "disabled" : ""} aria-label="${esc(lab(k))}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>` : '<p class="empty">No public cars.</p>'; })()}
     <h2 class="sec">Send by FTP</h2>
     <div class="banner">Most listing sites give you FTP details (server, user, password) when you sign up. Enter them once per site, then click Send now, or tick “Send automatically every day”. Save the page above first so the dealer IDs are up to date.</div>
     <div id="ftpBox"></div>
@@ -915,6 +926,10 @@ function marketing(V) {
       $("[data-c=src]", tr).onchange = (e) => { c.src = e.target.value; if (c.h === "New column" && FEEDS.FIELDS[c.src]) c.h = FEEDS.FIELDS[c.src][0]; draw(); };
       $$("[data-mv]", tr).forEach((b) => (b.onclick = () => { const j = i + +b.dataset.mv; [C.cols[i], C.cols[j]] = [C.cols[j], C.cols[i]]; draw(); }));
       $("[data-rm]", tr).onclick = () => { C.cols.splice(i, 1); draw(); }; });
+    $$("[data-cf]").forEach((cb) => (cb.onchange = () => { const [id, k] = cb.dataset.cf.split("|"), c = car(id); c.feedsOff = (c.feedsOff || []).filter((x) => x !== k); if (!cb.checked) c.feedsOff.push(k); toast("Click Save to keep this change."); }));
+    $$("[data-carall]").forEach((cb) => (cb.onchange = () => { car(cb.dataset.carall).noExport = !cb.checked; draw(); toast("Click Save to keep this change."); }));
+    $$("[data-colall]").forEach((b) => (b.onclick = () => { const k = b.dataset.colall, cs = SITE.cars.filter((c) => (c.status === "lot" || c.status === "pending") && !c.noExport);
+      const allOn = cs.every((c) => !(c.feedsOff || []).includes(k)); cs.forEach((c) => { c.feedsOff = (c.feedsOff || []).filter((x) => x !== k); if (allOn) c.feedsOff.push(k); }); draw(); toast("Click Save to keep this change."); }));
     $("#mkSave").onclick = async () => { try { await saveSite(); toast("Saved. Feed links are up to date."); } catch (x) { toast(errMsg(x), 1); } };
   };
   draw();

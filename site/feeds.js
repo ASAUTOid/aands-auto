@@ -44,7 +44,7 @@ export const FIELDS = {
   milesText: ["Mileage with unit (142300 miles)", (c) => (c.miles != null ? c.miles + " miles" : "")],
   bodyUpper: ["Body style in capitals (TRUCK)", (c) => ({ Truck: "TRUCK", SUV: "SUV", Sedan: "SEDAN", Coupe: "COUPE", "Minivan / Passenger Van": "MINIVAN", Convertible: "CONVERTIBLE", Wagon: "WAGON", Hatchback: "HATCHBACK", Van: "VAN" }[c.body] || "OTHER")],
   title: ["Ad title (2014 Ford F-150 XLT)", (c) => [c.year, c.name, c.trim].filter(Boolean).join(" ")],
-  availability: ["Availability (AVAILABLE / SOLD)", (c) => (c.status === "sold" ? "SOLD" : "AVAILABLE")],
+  availability: ["Availability (AVAILABLE / PENDING / SOLD)", (c) => (c.status === "sold" ? "SOLD" : c.status === "pending" ? "PENDING" : "AVAILABLE")],
   addedAt: ["Date first on the lot (yyyy-mm-dd)", (c) => c.addedAt || ""],
   daysOnLot: ["Days on the lot", (c) => (c.addedAt ? Math.max(0, Math.round((Date.now() - new Date(c.addedAt).getTime()) / 864e5)) : "")],
   driveCode: ["Drivetrain code (4X4, AWD, FWD, RWD)", (c) => ({ "4WD": "4X4", "4x4": "4X4", AWD: "AWD", FWD: "FWD", RWD: "RWD" }[c.drive] || "Other")],
@@ -192,7 +192,9 @@ export function buildFeed(data, name, base = SITE_URL) {
   } else if (PRESETS[name]) {
     cols = PRESETS[name].cols; title = PRESETS[name].label; onlyLot = fs.includeSold ? false : true;
   } else return null;
-  const cars = (data.cars || []).filter((c) => c.status !== "hidden" && (!onlyLot || c.status === "lot"));
+  // never export drafts or hidden cars; "sale pending" counts as available; a car can be switched off per feed
+  const cars = (data.cars || []).filter((c) => !["hidden", "draft"].includes(c.status) && (!onlyLot || c.status === "lot" || c.status === "pending")
+    && !c.noExport && !(c.feedsOff || []).includes(name));
   const val = (col, car) =>
     col.src === "fixed" ? col.val ?? "" : col.src === "dealerId" ? fs.dealerId || "" : FIELDS[col.src] ? FIELDS[col.src][1](car, s, base) : "";
   const rows = [cols.map((c) => cell(c.h, delim)).join(delim), ...cars.map((car) => cols.map((c) => cell(val(c, car), delim)).join(delim))];

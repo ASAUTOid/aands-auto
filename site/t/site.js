@@ -41,7 +41,12 @@ if (DEMO) {
   const dm = DEMOS[new URLSearchParams(location.search).get("template")] || DEMOS.classic;
   S = { name: dm[0], phone: "(555) 555-" + dm[4], email: "sales@" + dm[0].toLowerCase().replace(/[^a-z]/g, "") + ".com", street: dm[2], city: dm[1], state: "ID", zip: dm[3], apr: 12.9,
     hours: [["Monday – Friday", "9:00 AM – 6:00 PM"], ["Saturday", "10:00 AM – 4:00 PM"], ["Sunday", "Closed"]] };
-  ALL = (data.cars || []).filter((c) => c.status === "lot");
+  // each template shows the cars on its own lot (site/demo/<template>/, made by tools/make_demo_photos.py), in a different order
+  const tpl0 = DEMOS[new URLSearchParams(location.search).get("template")] ? new URLSearchParams(location.search).get("template") : "classic";
+  const rot = Object.keys(DEMOS).indexOf(tpl0);
+  const withLot = (data.cars || []).filter((c) => c.cut && /(^|\/)cut\/v\d+\.webp$/.test(c.cut));
+  ALL = withLot.map((_, i, a) => a[(i + rot) % a.length]).map((c, i) => ({ ...c, status: "lot", featured: i === 0, img: `/demo/${tpl0}/${String(c.cut).match(/(v\d+)\.webp$/)[1]}.webp` }));
+  if (!ALL.length) ALL = (data.cars || []).filter((c) => c.status === "lot");
   site = { ...S, tenant: "", demo: true, filter: {} };
 } else if (entry && entry.tenant) {
   // a separate dealer: its own cars and details, edited at /w/<slug>/admin
@@ -74,7 +79,8 @@ document.title = `${name} · Used cars${where ? " in " + where : ""}`;
 const F = site.filter || {};
 const absP = (u) => (u && !/^(\/|https?:|data:|blob:)/.test(u) ? "/" + u : u);
 ALL.forEach((c) => { c.img = absP(c.img); c.cut = absP(c.cut); });
-const CARS = ALL.filter((c) => (c.status === "lot" || (site.showSold && c.status === "sold")) && c.img)
+const PV = new URLSearchParams(location.search).get("preview");
+const CARS = ALL.filter((c) => (c.status === "lot" || c.status === "pending" || (site.showSold && c.status === "sold") || (c.status === "draft" && c.id === PV)) && c.img)
   .filter((c) => !F.body || c.body === F.body).filter((c) => !F.maxPrice || c.price <= F.maxPrice).filter((c) => !F.minPrice || c.price >= F.minPrice)
   .sort((a, b) => (a.status === "sold") - (b.status === "sold"));
 const featured = CARS.find((c) => c.featured) || CARS[0];
@@ -116,7 +122,7 @@ function drawGrid() {
   if (sorts[fSort]) xs = xs.slice().sort(sorts[fSort]);
   $("#cnt").textContent = `${xs.length} vehicle${xs.length === 1 ? "" : "s"}`;
   if (!CARS.length) { $("#grid").innerHTML = '<div class="empty">New cars are coming soon. Call us to hear what just arrived.</div>'; return; }
-  $("#grid").innerHTML = xs.map((c) => `<a class="card" href="#car-${esc(c.id)}"><div class="ph"><img src="${esc(c.img)}" alt="${esc(title(c))}" loading="lazy">${c.status === "sold" ? '<span class="tag sold">Sold</span>' : `<span class="tag">${esc(c.year)}</span>`}</div>
+  $("#grid").innerHTML = xs.map((c) => `<a class="card" href="#car-${esc(c.id)}"><div class="ph"><img src="${esc(c.img)}" alt="${esc(title(c))}" loading="lazy">${c.status === "sold" ? '<span class="tag sold">Sold</span>' : c.status === "pending" ? '<span class="tag sold" style="background:#b45309">Sale pending</span>' : c.status === "draft" ? '<span class="tag sold" style="background:#555">Draft preview</span>' : `<span class="tag">${esc(c.year)}</span>`}</div>
     <div class="bd"><h3>${esc(c.name)}</h3><div class="sp">${esc([c.trim, c.miles != null ? Number(c.miles).toLocaleString("en-US") + " mi" : "", c.drive, c.ext].filter(Boolean).join(" · "))}</div><div class="pr">${money(c.price)}</div></div></a>`).join("")
     || '<div class="empty">No cars match. Try fewer filters.</div>';
 }
@@ -161,7 +167,7 @@ function detail(c) {
       <div class="specs">${sp.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join("")}</div>
       ${(c.equip || []).length ? `<div class="equip">${c.equip.map((e) => `<span>${esc(e)}</span>`).join("")}</div>` : ""}
       ${c.desc ? `<p class="muted" style="margin-top:18px">${esc(c.desc)}</p>` : ""}</div>
-    <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>
+    <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>${c.status === "pending" ? '<div class="muted" style="margin:-6px 0 14px;font-weight:700">Sale pending · ask us about similar cars</div>' : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a>${c.status === "sold" ? "" : `<a class="btn ghost" href="${applyUrl(c.id)}">Get pre-approved</a>`}</div>
       ${c.status === "sold" ? "" : `<div class="box calc"><h3>Payment estimate</h3>
         <label>Down payment <b id="cDownV"></b></label><input type="range" id="cDown" min="0" max="${Math.round(c.price * 0.5)}" step="250" value="${Math.round(c.price * 0.1 / 250) * 250}">

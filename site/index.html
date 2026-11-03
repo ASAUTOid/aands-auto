@@ -721,8 +721,10 @@ const FINE=matchMedia('(hover:hover) and (pointer:fine)').matches;
 const money=n=>'$'+Math.round(n).toLocaleString('en-US');
 const SITE=JSON.parse(document.getElementById('site-data').textContent); window.SITE=SITE;
 const ST=SITE.settings=Object.assign({name:'A & S Auto',street:'1038 Overland Ave',city:'Burley',state:'ID',zip:'83318'},SITE.settings);
-const CARS=SITE.cars.filter(c=>c.status!=='hidden').sort((a,b)=>(a.status==='sold')-(b.status==='sold'));
-const LOT=CARS.filter(c=>c.status==='lot');
+// draft cars only show when the dashboard opens them with ?preview=<car id>
+const PV=new URLSearchParams(location.search).get('preview');
+const CARS=SITE.cars.filter(c=>c.status!=='hidden'&&(c.status!=='draft'||c.id===PV)).sort((a,b)=>(a.status==='sold')-(b.status==='sold'));
+const LOT=CARS.filter(c=>c.status==='lot'||c.status==='pending');
 const byId=Object.fromEntries(CARS.map(c=>[c.id,c]));
 const img=c=>c.img;
 const full=c=>`${c.year} ${c.name}`;
@@ -943,7 +945,7 @@ function list(){
   const s={pa:(a,b)=>a.price-b.price,pd:(a,b)=>b.price-a.price,yd:(a,b)=>b.year-a.year,hp:(a,b)=>(b.hp||0)-(a.hp||0),new:(a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id)}[filt.sort];
   return r.sort(s);
 }
-function cardHTML(c){return `<a class="card ${c.status==='sold'?'is-sold':''}" href="#car-${c.id}" data-id="${c.id}"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="yr">${c.year}</span>${c.status==='sold'?'<span class="sold">SOLD</span>':''}<div class="glare"></div></div><div class="bd"><div><h3>${c.name}</h3><span class="trim">${[c.trim,c.ext].filter(Boolean).join(' · ')}</span></div><div class="specs"><span>${c.hp?`<b>${c.hp}</b> hp`:'hp on request'}</span><span>${c.miles?`<b>${c.miles.toLocaleString()}</b> mi`:'miles on request'}</span>${c.drive?`<span><b>${c.drive}</b></span>`:''}</div><div class="ft"><span class="pr">${money(c.price)}</span><button class="cmp ${cmpSel.includes(c.id)?'on':''}" data-c="${c.id}" aria-pressed="${cmpSel.includes(c.id)}">${cmpSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button></div></div></a>`}
+function cardHTML(c){return `<a class="card ${c.status==='sold'?'is-sold':''}" href="#car-${c.id}" data-id="${c.id}"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="yr">${c.year}</span>${c.status==='sold'?'<span class="sold">SOLD</span>':c.status==='pending'?'<span class="sold" style="background:var(--sodium);color:#111">SALE PENDING</span>':c.status==='draft'?'<span class="sold" style="background:#555">DRAFT PREVIEW</span>':''}<div class="glare"></div></div><div class="bd"><div><h3>${c.name}</h3><span class="trim">${[c.trim,c.ext].filter(Boolean).join(' · ')}</span></div><div class="specs"><span>${c.hp?`<b>${c.hp}</b> hp`:'hp on request'}</span><span>${c.miles?`<b>${c.miles.toLocaleString()}</b> mi`:'miles on request'}</span>${c.drive?`<span><b>${c.drive}</b></span>`:''}</div><div class="ft"><span class="pr">${money(c.price)}</span><button class="cmp ${cmpSel.includes(c.id)?'on':''}" data-c="${c.id}" aria-pressed="${cmpSel.includes(c.id)}">${cmpSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button></div></div></a>`}
 function renderGrid(){
   const g=$('#grid'); const before=new Map($$('.card',g).map(el=>[el.dataset.id,el.getBoundingClientRect()]));
   const r=list();
@@ -984,7 +986,7 @@ function renderCar(id){
       <div class="eyebrow">On the lot · ${c.body}</div>
       <h1 style="margin-top:14px">${c.name}</h1>
       <div class="trim">${[c.year,c.trim,c.ext].filter(Boolean).join(' · ')}</div>
-      <div class="price">${c.status==='sold'?'Sold':money(c.price)}</div>
+      <div class="price">${c.status==='sold'?'Sold':money(c.price)}</div>${c.status==='pending'?'<div class="trim" style="color:var(--sodium)">SALE PENDING · ask about similar cars</div>':''}
       <p class="desc">${c.desc}</p>
       <div class="acts"><a class="btn" href="#contact" id="bookBtn" data-mag>Book a viewing <span class="arr">→</span></a><a class="btn ghost" href="#contact" id="testBtn">Schedule test drive</a><button class="btn ghost" id="cmpBtn">${cmpSel.includes(id)?'✓ In compare':'+ Compare'}</button></div>
     </div>
