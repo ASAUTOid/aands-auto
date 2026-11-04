@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { checkPassword, json } from "../lib/auth.mjs";
-import { SEED_VERSION, SEED_FRONT, SEED_BACK } from "../lib/seed-cars.mjs";
+import { SEED_VERSION, REMOVE_IDS } from "../lib/seed-cars.mjs";
 
 // GET  /api/data  -> the saved site data (cars + business details), or 204 if nothing saved yet
 // PUT  /api/data  -> save new site data (admin password required)
@@ -10,11 +10,11 @@ export default async (req) => {
   if (req.method === "GET") {
     const data = await store.get("data", { type: "json" });
     if (!data) return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
-    // one-time: add the new cars to the saved data (never again, so deleted ones stay deleted)
+    // one-time clean-up of the saved data (see seed-cars.mjs)
     const seeded = +((await store.get("seed-version", { type: "text" })) || 0);
     if (seeded < SEED_VERSION && Array.isArray(data.cars)) {
-      const have = new Set(data.cars.map((c) => c.id));
-      data.cars = [...SEED_FRONT.filter((c) => !have.has(c.id)), ...data.cars, ...SEED_BACK.filter((c) => !have.has(c.id))];
+      const drop = new Set(REMOVE_IDS);
+      data.cars = data.cars.filter((c) => !drop.has(c.id));
       await store.set("backup-" + new Date().toISOString(), JSON.stringify(await store.get("data", { type: "json" })));
       await store.set("data", JSON.stringify(data));
       await store.set("seed-version", String(SEED_VERSION));
