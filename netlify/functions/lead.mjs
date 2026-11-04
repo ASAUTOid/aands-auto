@@ -30,6 +30,7 @@ export default async (req) => {
     await ts.setJSON(`db/${tenant}/leads`, map);
     return json({ ok: true });
   }
+  await mailOut(req, lead);
   const all = await readAll("leads");
   if (Object.keys(all).length > 20000) return json({ error: "full" }, 507);
   const id = newId("L");
@@ -37,5 +38,20 @@ export default async (req) => {
   await writeAll("leads", all);
   return json({ ok: true });
 };
+
+// Netlify Forms: the hidden "lead" form in index.html makes Netlify e-mail every message
+// (Netlify → Forms → Form notifications → Email notification, one per address).
+async function mailOut(req, lead) {
+  const site = process.env.URL || new URL(req.url).origin;
+  const label = { contact: "Contact message", trade: "Trade-in request", viewing: "Viewing / test drive", credit: "Credit application" }[lead.type] || "Message";
+  const credit = lead.credit ? Object.entries(lead.credit).map(([k, v]) => `${k}: ${v}`).join("\n") : "";
+  const f = { "form-name": "lead", subject: `A & S website: ${label} from ${lead.name}`, type: label, name: lead.name, phone: lead.phone, email: lead.email,
+    message: [lead.message, credit].filter(Boolean).join("\n\n"), vin: lead.vin, miles: lead.miles, car: lead.carId };
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+    await fetch(site + "/", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(f).toString(), signal: ctl.signal });
+    clearTimeout(t);
+  } catch (_) { /* the lead is still saved in the dashboard */ }
+}
 
 export const config = { path: "/api/lead" };
