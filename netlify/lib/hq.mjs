@@ -17,6 +17,7 @@ export const DEFAULT_CONFIG = {
   ],
   wallets: { BTC: "", ETH: "", "USDT (TRC-20)": "", "USDT (ERC-20)": "", USDC: "", "SOL (Solana)": "", "XRP (Ripple)": "" },
   trialDays: 0,
+  subdomainBase: "", // e.g. "dealervexa.com": every dealer gets <slug>.dealervexa.com for free (wildcard in Netlify)
   domainPrice: 25, // used only when Porkbun is not connected
   domainFee: 0, // your extra on top of the Porkbun price when the dealer pays you (BTC, USDT…)
 };

@@ -4,7 +4,7 @@ import { checkPassword, json } from "../lib/auth.mjs";
 import { mask, merge, sendFeed } from "../lib/ftp.mjs";
 import { COLLECTIONS } from "../lib/db.mjs";
 import { hashPw, statusOf, setStatus, readMap, writeMap, newId, getConfig, listDomain } from "../lib/hq.mjs";
-import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailable, cleanDomain, validDomain } from "../lib/netlify.mjs";
+import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailable, cleanDomain, validDomain, dnsRecords } from "../lib/netlify.mjs";
 import { hasPorkbun, pbCheck, pbStartPurchase } from "../lib/porkbun.mjs";
 import { advance } from "../lib/domains.mjs";
 
@@ -127,16 +127,16 @@ export default async (req, context) => {
   // Domain: connect the dealer's own domain automatically (Netlify API), check it, or ask to buy one through DealerVexa
   if (action === "domain") {
     const st = await statusOf(slug);
-    if (m === "GET") { const out = { domain: st.domain || "", nameservers: st.nameservers || [], auto: hasNetlify(), requests: Object.values(await readMap("domainRequests")).filter((x) => x.slug === slug) };
-      if (st.domain && st.nameservers?.length) Object.assign(out, await checkDomain(st.domain, st.nameservers)); return json(out); }
+    if (m === "GET") { const out = { domain: st.domain || "", nameservers: st.nameservers || [], records: dnsRecords(), auto: hasNetlify(), buy: hasPorkbun(), free: (await getConfig()).subdomainBase ? `${slug}.${(await getConfig()).subdomainBase}` : "", requests: Object.values(await readMap("domainRequests")).filter((x) => x.slug === slug) };
+      if (st.domain) Object.assign(out, await checkDomain(st.domain, st.nameservers || [])); return json(out); }
     if (m === "POST") {
       const b = await body(req), domain = cleanDomain(b?.domain);
       if (!validDomain(domain)) return json({ error: "That doesn't look like a domain (example: joesautos.com)." }, 400);
       let ns = [];
       if (hasNetlify()) { try { ns = (await connectDomain(domain)).nameservers; } catch (e) { return json({ error: "Could not connect the domain: " + e.message }, 502); } }
-      await setStatus(slug, { domain, nameservers: ns, domainAddedAt: new Date().toISOString() });
+      await setStatus(slug, { domain, nameservers: ns, domainAddedAt: new Date().toISOString(), aliasAdded: hasNetlify() });
       await listDomain(slug, domain);
-      return json({ domain, nameservers: ns, auto: hasNetlify() });
+      return json({ domain, nameservers: ns, records: dnsRecords(), auto: hasNetlify() });
     }
     if (m === "DELETE") { if (st.domain && hasNetlify()) await disconnectDomain(st.domain).catch(() => {}); await setStatus(slug, { domain: "", nameservers: [] }); await listDomain(slug, ""); return json({ ok: true }); }
   }

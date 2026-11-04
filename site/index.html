@@ -705,6 +705,8 @@ addEventListener('error',e=>rep(e.message,e.error&&e.error.stack));addEventListe
   const run=()=>document.querySelectorAll('script.app-src').forEach(s=>{const n=document.createElement('script');n.textContent=s.textContent;s.replaceWith(n)});
   let swapped=false;
   const swap=()=>fetch('/t/site.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{swapped=true;document.open();document.write(h);document.close()});
+  const sub=(location.hostname.replace(/^www\./,'').match(/^([a-z0-9-]+)\.dealervexa\.[a-z.]+$/i)||[])[1];
+  if(sub&&!['app','hq','admin','panel','api'].includes(sub.toLowerCase())){swap();return}
   const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),4000);
   fetch('/api/data',{cache:'no-store',signal:ctl.signal})
     .then(r=>r.status===200?r.json():null)
@@ -1092,7 +1094,7 @@ $$('.cpy').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copy
 
 /* ---------- router ---------- */
 let cur='home', first=true;
-if(/(^|\.)dealervexa\./i.test(location.hostname)){location.replace('/dealervexa/')}
+if(/^(www\.)?dealervexa\./i.test(location.hostname)){location.replace('/dealervexa/')}
 if(location.hash==='#admin'){location.replace('/panel/')}
 window.addEventListener('hashchange',()=>{if(location.hash==='#admin')location.href='/panel/'});
 const VIEWS=['home','inventory','compare','heritage','trade','contact','admin'];

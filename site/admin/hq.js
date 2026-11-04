@@ -150,7 +150,7 @@ async function problems(V) {
   const [o, errs, inv] = await Promise.all([api("/api/hq/overview"), api("/api/hq/errors"), api("/api/hq/invoices")]);
   const today = new Date().toISOString().slice(0, 10), issues = [];
   for (const d of o.dealers) {
-    const add = (level, what, fix) => issues.push({ d, level, what, fix });
+    const add = (level, what, fix, alias) => issues.push({ d, level, what, fix, alias });
     if (d.suspended) add(2, "Account is paused", "Billing: check their invoice, then Resume in Dealers.");
     if (d.paidUntil && d.paidUntil < today && !d.suspended) add(2, `Payment due since ${fdate(d.paidUntil)}`, "Create an invoice or call them.");
     inv.filter((i) => i.slug === d.slug && i.status === "submitted").forEach((i) => add(2, `Says they paid ${money(i.amount)} (${i.coin || "crypto"})`, "Check the transaction, then Mark paid in Invoices."));
@@ -158,6 +158,7 @@ async function problems(V) {
     if (!d.lastActive && !d.lastLogin) add(1, "Never logged in", "Send them their panel link and password again.");
     else if (Date.now() - new Date(d.lastActive || d.lastLogin) > 14 * 864e5) add(1, "No activity for 2 weeks", "Give them a call; they may need help.");
     if (d.newLeads >= 5) add(1, `${d.newLeads} customer messages not answered`, "Remind them to answer their leads.");
+    if (d.domain && !d.aliasAdded) add(2, `New domain ${d.domain}: add it in Netlify`, `Netlify → Domain management → Add a domain alias → "${d.domain}" and "www.${d.domain}". Then click Done.`, d.slug);
     d.profile.forEach((p) => add(0, "Website: " + p, "Open their panel → Settings / Inventory."));
   }
   const errBy = {}; errs.forEach((e) => (errBy[e.slug] = (errBy[e.slug] || 0) + e.count));
@@ -166,12 +167,13 @@ async function problems(V) {
   V.innerHTML = `<div class="ph"><div><h1>Problems</h1><p>Everything that needs your attention, checked automatically for every dealer.</p></div></div>
   <div class="card"><h3>Dealer issues <span>${issues.filter((i) => i.level === 2).length} urgent</span></h3>
     ${tbl([{ h: "", f: (i) => lv(i.level) }, { h: "Dealer", f: (i) => `<b>${esc(i.d.name)}</b><span class="sub">${esc(i.d.phone || i.d.email || "")}</span>` }, { h: "Problem", f: (i) => esc(i.what) }, { h: "What to do", f: (i) => `<span style="color:var(--muted);font-size:13px">${esc(i.fix)}</span>` },
-      { h: "", f: (i) => `<button class="b sm primary" type="button" data-open="${esc(i.d.slug)}">Open panel</button>` }], issues)}</div>
+      { h: "", f: (i) => i.alias ? `<button class="b sm primary" type="button" data-alias="${esc(i.alias)}">✓ Done</button>` : `<button class="b sm primary" type="button" data-open="${esc(i.d.slug)}">Open panel</button>` }], issues)}</div>
   <div class="card" style="margin-top:14px"><h3>Error log <span><button class="b sm" type="button" id="clrErr">Clear all</button></span></h3>
     <p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">Errors from dealer panels and websites, sent automatically. Same error = one row with a count.</p>
     ${tbl([{ h: "Where", f: (e) => `<b>${esc(e.slug)}</b><span class="sub">${esc(e.where)}</span>` }, { h: "Error", f: (e) => `<span style="font-family:var(--mono);font-size:12px">${esc(e.message)}</span>${e.url ? `<span class="sub" style="overflow-wrap:anywhere">${esc(e.url)}</span>` : ""}${e.stack ? `<details><summary style="cursor:pointer;font-size:12px">details</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(e.stack)}</pre></details>` : ""}` },
       { h: "Times", r: 1, f: (e) => e.count }, { h: "Last", f: (e) => ago(e.last) }, { h: "", f: (e) => `<button class="b sm" type="button" data-rmerr="${esc(e.id)}">✓ Fixed</button>` }], errs)}</div>`;
   $$("[data-open]").forEach((b) => (b.onclick = () => openPanel(b.dataset.open)));
+  $$("[data-alias]").forEach((b) => (b.onclick = async () => { try { await api("/api/hq/status/" + b.dataset.alias, J("PUT", { aliasAdded: true })); toast("Marked done"); problems(V); } catch (x) { toast(err(x), 1); } }));
   $("#clrErr").onclick = async () => { if (!confirm("Clear the whole error log?")) return; await api("/api/hq/errors", { method: "DELETE" }); problems(V); };
   $$("[data-rmerr]").forEach((b) => (b.onclick = async () => { await api("/api/hq/errors/" + b.dataset.rmerr, { method: "DELETE" }); problems(V); }));
 }
@@ -252,12 +254,12 @@ async function plans(V) {
   <div class="card"><h3>Plans (USD per month)</h3>${c.plans.map((p, i) => `<div class="fg" style="margin-bottom:10px"><div class="f"><label>Name</label><input data-p="${i}|name" value="${esc(p.name)}"></div><div class="f"><label>Price</label><input type="number" data-p="${i}|price" value="${esc(p.price)}"></div><div class="f w2"><label>What's included</label><input data-p="${i}|desc" value="${esc(p.desc)}"></div></div>`).join("")}</div>
   <div class="card" style="margin-top:14px"><h3>Crypto wallets</h3><p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">Paste your receiving addresses. Only filled-in coins are offered to dealers. Double-check every address: crypto sent to a wrong address can't be recovered.</p>
     <div class="fg">${Object.entries(c.wallets).map(([k, a]) => `<div class="f w2"><label>${esc(k)}</label><input data-w="${esc(k)}" value="${esc(a)}" style="font-family:var(--mono);font-size:13px"></div>`).join("")}</div></div>
-  <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Your extra on domains paid in BTC / USDT / ETH… (USD)</label><input type="number" step="0.01" id="domF" value="${esc(c.domainFee ?? 0)}"></div><div class="f"><label>Domain price if Porkbun is not linked (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div></div>
+  <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Your extra on domains paid in BTC / USDT / ETH… (USD)</label><input type="number" step="0.01" id="domF" value="${esc(c.domainFee ?? 0)}"></div><div class="f"><label>Domain price if Porkbun is not linked (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div><div class="f"><label>Free dealer addresses: your domain (e.g. dealervexa.com → joesautos.dealervexa.com)</label><input id="subB" placeholder="dealervexa.com" value="${esc(c.subdomainBase || "")}"></div></div>
     <label class="chk" style="margin-top:10px"><input type="checkbox" id="open" ${c.signupOpen ? "checked" : ""}> Sign-ups are open (the /signup page takes new dealers)</label></div>`;
   $("#save").onclick = async () => {
     const pl = c.plans.map((p) => ({ ...p })); $$("[data-p]").forEach((i) => { const [n, k] = i.dataset.p.split("|"); pl[+n][k] = k === "price" ? +i.value : i.value; });
     const w = {}; $$("[data-w]").forEach((i) => (w[i.dataset.w] = i.value.trim()));
-    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value, domainFee: +$("#domF").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
+    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value, domainFee: +$("#domF").value, subdomainBase: $("#subB").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
   };
 }
 

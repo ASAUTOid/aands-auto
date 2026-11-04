@@ -45,7 +45,7 @@ export default async (req, context) => {
   if (what === "status" && m === "PUT") {
     if (!SLUG_RE.test(id || "")) return json({ error: "bad_site" }, 400);
     const b = (await body(req)) || {}, patch = {};
-    for (const k of ["suspended", "plan", "paidUntil", "notes"]) if (k in b) patch[k] = b[k];
+    for (const k of ["suspended", "plan", "paidUntil", "notes", "aliasAdded"]) if (k in b) patch[k] = b[k];
     return json(await setStatus(id, patch));
   }
   if (what === "dealers" && m === "POST") {
@@ -62,7 +62,7 @@ export default async (req, context) => {
     if (m === "GET") return json(await getConfig());
     if (m === "PUT") { const b = (await body(req)) || {}; const cur = await getConfig();
       const next = { ...cur, ...(b.plans ? { plans: b.plans.slice(0, 10).map((p) => ({ id: String(p.id || "").slice(0, 30), name: String(p.name || "").slice(0, 40), price: +p.price || 0, desc: String(p.desc || "").slice(0, 300) })) } : {}),
-        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}) };
+        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}), ...("subdomainBase" in b ? { subdomainBase: String(b.subdomainBase || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^\*?\.|^www\./g, "").replace(/\/.*$/, "").slice(0, 60) } : {}) };
       await hq().setJSON("config", next); return json(next); }
   }
   if (what === "signups") {

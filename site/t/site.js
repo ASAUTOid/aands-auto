@@ -16,7 +16,8 @@ async function loadData() {
   return JSON.parse(new DOMParser().parseFromString(html, "text/html").getElementById("site-data").textContent);
 }
 
-const SLUGR = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1] || "aands", WHERE = "website";
+const SUBSLUG = (location.hostname.replace(/^www\./, "").match(/^([a-z0-9-]+)\.dealervexa\.[a-z.]+$/i) || [])[1];
+const SLUGR = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1] || SUBSLUG || "aands", WHERE = "website";
 // send errors to DealerVexa HQ so problems are seen and fixed
 const reportErr = (() => { let n = 0; return (message, stack, where) => { if (!message || n++ > 8) return; try { fetch("/api/report", { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body: JSON.stringify({ where, slug: SLUGR, message: String(message).slice(0, 400), stack: String(stack || "").slice(0, 1500), url: location.href }) }); } catch (_) {} }; })();
 addEventListener("error", (e) => reportErr(e.message, e.error && e.error.stack, WHERE));
@@ -24,7 +25,7 @@ addEventListener("unhandledrejection", (e) => reportErr((e.reason && (e.reason.m
 const data = await loadData();
 const MS = data.settings || {};
 const host = location.hostname.replace(/^www\./, "");
-const slug = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1];
+const slug = (location.pathname.match(/^\/w\/([^/]+)/) || [])[1] || SUBSLUG;
 const sites = MS.websites || [];
 const entry = (slug && (sites.find((w) => w.slug === slug) || { slug, tenant: true, name: slug })) || sites.find((w) => w.domain && w.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") === host) || null;
 let S, ALL, site, PAUSED = false;

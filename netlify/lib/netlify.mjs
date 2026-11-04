@@ -35,11 +35,16 @@ export async function disconnectDomain(domain) {
   const zone = await findZone(domain); if (zone) await nf(`/dns_zones/${zone.id}`, { method: "DELETE" }).catch(() => {});
 }
 // is the dealer's domain using our nameservers yet?
+export const NETLIFY_IP = "75.2.60.5";
+export const netlifyHost = () => process.env.NETLIFY_SUBDOMAIN || "aands-auto.netlify.app";
+// the two DNS records a dealer adds at their domain company (works at any registrar)
+export const dnsRecords = () => [{ type: "A", name: "@", value: NETLIFY_IP }, { type: "CNAME", name: "www", value: netlifyHost() }];
 export async function checkDomain(domain, expected = []) {
   let ns = []; try { ns = (await dns.resolveNs(domain)).map((x) => x.toLowerCase().replace(/\.$/, "")); } catch (_) {}
   const want = expected.map((x) => x.toLowerCase().replace(/\.$/, ""));
   const connected = want.length ? want.every((x) => ns.includes(x)) : false;
-  return { nameserversNow: ns, connected };
+  let a = []; try { a = await dns.resolve4(domain); } catch (_) {}
+  return { nameserversNow: ns, aNow: a, connected: connected || a.includes(NETLIFY_IP) };
 }
 // free / taken check through the public RDAP registry lookup
 export async function domainAvailable(domain) {
