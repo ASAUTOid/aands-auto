@@ -1,6 +1,8 @@
 import { checkPassword, json } from "../lib/auth.mjs";
 import { tenants, hq, siteStore, getConfig, readMap, writeMap, statusOf, setStatus, createDealer, newId, hashPw, SLUG_RE, RESERVED, listDomain } from "../lib/hq.mjs";
 import { hasNetlify, connectDomain } from "../lib/netlify.mjs";
+import { hasPorkbun } from "../lib/porkbun.mjs";
+import { advance } from "../lib/domains.mjs";
 
 // DealerVexa HQ (owner only, HQ password)
 // GET  /api/hq/overview                 every dealer with stats
@@ -60,7 +62,7 @@ export default async (req, context) => {
     if (m === "GET") return json(await getConfig());
     if (m === "PUT") { const b = (await body(req)) || {}; const cur = await getConfig();
       const next = { ...cur, ...(b.plans ? { plans: b.plans.slice(0, 10).map((p) => ({ id: String(p.id || "").slice(0, 30), name: String(p.name || "").slice(0, 40), price: +p.price || 0, desc: String(p.desc || "").slice(0, 300) })) } : {}),
-        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}) };
+        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}) };
       await hq().setJSON("config", next); return json(next); }
   }
   if (what === "signups") {
@@ -89,19 +91,20 @@ export default async (req, context) => {
       await writeMap("invoices", inv); return json(inv[iid]); }
     if (m === "PUT" && inv[id]) { const b = (await body(req)) || {}; const i = inv[id];
       if (b.status) { i.status = b.status; if (b.status === "paid") { i.paidAt = new Date().toISOString();
-        if (i.domainRequest) { const reqs = await readMap("domainRequests"); if (reqs[i.domainRequest]) { reqs[i.domainRequest].status = "paid"; await writeMap("domainRequests", reqs); } }
+        if (i.domainRequest) { const reqs = await readMap("domainRequests"); if (reqs[i.domainRequest]) { reqs[i.domainRequest].status = "paid"; await writeMap("domainRequests", reqs); await writeMap("invoices", inv); await advance(i.domainRequest); } }
         else { const st = await statusOf(i.slug); await setStatus(i.slug, { paidUntil: addMonth(st.paidUntil, 1), suspended: false }); } } }
       if ("txHash" in b) i.txHash = String(b.txHash || "").slice(0, 200);
       await writeMap("invoices", inv); return json(i); }
   }
   if (what === "domains") {
     const reqs = await readMap("domainRequests");
-    if (m === "GET") return json({ auto: hasNetlify(), requests: Object.values(reqs).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")) });
+    if (m === "GET") return json({ auto: hasNetlify(), porkbun: hasPorkbun(), requests: Object.values(reqs).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")) });
     // HQ bought the domain (in Netlify / the registrar): connect it to the dealer automatically
     if (m === "POST" && op === "done" && reqs[id]) { const r = reqs[id]; let ns = [];
       if (hasNetlify()) { try { ns = (await connectDomain(r.domain)).nameservers; } catch (e) { return json({ error: "Could not connect: " + e.message }, 502); } }
       await setStatus(r.slug, { domain: r.domain, nameservers: ns, domainAddedAt: new Date().toISOString() }); await listDomain(r.slug, r.domain);
       r.status = "connected"; r.doneAt = new Date().toISOString(); await writeMap("domainRequests", reqs); return json(r); }
+    if (m === "POST" && op === "retry" && reqs[id]) return json(await advance(id));
     if (m === "PUT" && reqs[id]) { const b = (await body(req)) || {}; if (b.status) reqs[id].status = String(b.status).slice(0, 20); await writeMap("domainRequests", reqs); return json(reqs[id]); }
   }
   if (what === "errors") {

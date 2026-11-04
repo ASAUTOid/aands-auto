@@ -147,8 +147,8 @@ def brand_night():
     return perspective_tiles(im, 704, (110, 30, 36), alpha=45)
 
 
-BGS = [("lux-showroom", lux_showroom), ("classic-dealer", classic_dealer), ("white-studio", white_studio), ("grey-studio", grey_studio), ("sunny-lot", sunny_lot),
-       ("sunset", sunset), ("mountain-road", mountains), ("city-night", city_night), ("garage", garage), ("brand-night", brand_night)]
+# the scenic backgrounds are real photos now (see site/admin/backgrounds.js); only the plain studios are drawn
+BGS = [("white-studio", white_studio), ("grey-studio", grey_studio), ("brand-night", brand_night)]
 # soft focus behind the car, like a camera with the car in focus
 BLUR = {"classic-dealer": 5, "sunny-lot": 4, "sunset": 3, "mountain-road": 4, "city-night": 3, "garage": 2, "lux-showroom": 1.5}
 for name, fn in BGS:

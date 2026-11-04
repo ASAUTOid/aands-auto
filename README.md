@@ -24,3 +24,8 @@ Static site in `site/`, served by Netlify. Dealer dashboard: https://aands-auto.
 - HQ (owner): `/admin/` — dealers, problems & error log, support, sign-ups, invoices & crypto payments, plans & wallets. Functions: `hq.mjs`, `signup.mjs`, `report.mjs`.
 - Dealer panel (full DMS/CRM): A & S at `/panel/`, every dealer at `/w/<slug>/admin` (same `site/admin/app.js`, dealer mode). Dealer data: `tenants` store (`site/`, `auth/`, `status/`, `db/<slug>/<collection>`, `ftp/`).
 - Sign-up with crypto payment: `/signup`. Dealer custom header/footer code only runs on the dealer's own domain.
+
+## Domains bought through DealerVexa (Porkbun)
+- Env vars: `PORKBUN_API_KEY`, `PORKBUN_SECRET_KEY` (API key with read, purchase, domains permissions), plus `NETLIFY_TOKEN`, `NETLIFY_SITE_ID` for connecting.
+- USDC: the dealer pays Porkbun directly on a Coinbase page (`payWith: usdc`); `domain-poll` (every 10 min) finishes paid purchases. Other coins: the dealer pays the DealerVexa invoice; marking it paid buys from Porkbun credit.
+- Studio backgrounds: real photos from Pexels (credits in `site/admin/backgrounds.js`).

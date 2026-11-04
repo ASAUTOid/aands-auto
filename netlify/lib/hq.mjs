@@ -15,11 +15,12 @@ export const DEFAULT_CONFIG = {
     { id: "pro", name: "Pro", price: 99, desc: "Everything in Starter + deals, buy-here-pay-here collections, exports to every listing site, FTP." },
     { id: "dealer-plus", name: "Dealer Plus", price: 179, desc: "Everything in Pro + your own domain set up for you, priority help." },
   ],
-  wallets: { BTC: "", ETH: "", "USDT (TRC-20)": "", "USDT (ERC-20)": "", USDC: "" },
+  wallets: { BTC: "", ETH: "", "USDT (TRC-20)": "", "USDT (ERC-20)": "", USDC: "", "SOL (Solana)": "", "XRP (Ripple)": "" },
   trialDays: 0,
-  domainPrice: 25,
+  domainPrice: 25, // used only when Porkbun is not connected
+  domainFee: 0, // your extra on top of the Porkbun price when the dealer pays you (BTC, USDT…)
 };
-export async function getConfig() { return { ...DEFAULT_CONFIG, ...((await hq().get("config", { type: "json" })) || {}) }; }
+export async function getConfig() { const c = (await hq().get("config", { type: "json" })) || {}; return { ...DEFAULT_CONFIG, ...c, wallets: { ...DEFAULT_CONFIG.wallets, ...(c.wallets || {}) } }; }
 
 export const hashPw = (pw) => { const salt = randomBytes(16); return { salt: salt.toString("hex"), hash: scryptSync(pw, salt, 32).toString("hex") }; };
 export const newId = (p) => p + Date.now().toString(36) + randomBytes(3).toString("hex");

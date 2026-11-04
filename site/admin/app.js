@@ -1136,7 +1136,8 @@ async function domainCard(el) {
   let d; try { d = await api(`/api/t/${TSLUG}/domain`); } catch (x) { el.innerHTML = `<p>${esc(errMsg(x))}</p>`; return; }
   const ns = d.nameservers || [], open = (d.requests || []).filter((r) => r.status !== "connected" && r.status !== "cancelled");
   el.innerHTML = d.domain ? `<p style="margin:0 0 10px;font-size:18px"><b>${esc(d.domain)}</b> ${d.connected ? pill("Connected ✓", "ok") : pill("Waiting for the name servers", "warn")}</p>
-    ${ns.length ? `<p style="margin:0 0 8px">${d.connected ? "Your website is live on your domain." : "Last step: go to the company where you bought the domain (GoDaddy, Namecheap…), open <b>Nameservers</b>, choose <b>Custom</b> and put these:"}</p>
+    ${(d.requests || []).some((r) => r.domain === d.domain && r.status === "connected") && !d.connected ? `<p style="margin:0 0 8px">✓ Bought through DealerVexa: everything is set up for you, nothing to do. Your website goes live on it within minutes to a few hours, with the padlock (HTTPS) added by itself.</p>`
+      : ns.length ? `<p style="margin:0 0 8px">${d.connected ? "Your website is live on your domain." : "Last step: go to the company where you bought the domain (GoDaddy, Namecheap…), open <b>Nameservers</b>, choose <b>Custom</b> and put these:"}</p>
       <div class="tw"><table class="t"><tbody>${ns.map((n) => `<tr><td style="font-family:var(--mono)">${esc(n)}</td><td class="r"><button class="b sm" type="button" data-copy="${esc(n)}">Copy</button></td></tr>`).join("")}</tbody></table></div>
       <p style="color:var(--muted);font-size:13px">It can take from 15 minutes to a few hours. The padlock (HTTPS) is added by itself. Now on: ${esc((d.nameserversNow || []).join(", ") || "not found yet")}</p>`
       : '<p style="color:var(--muted)">DealerVexa is connecting your domain. We\'ll show you the name servers here, or contact you.</p>'}
@@ -1146,17 +1147,27 @@ async function domainCard(el) {
       <p style="color:var(--muted);font-size:13px">We set everything up and give you 4 name servers to put at your domain company.</p></div>
     <div><b>Buy a domain through DealerVexa</b><div style="display:flex;gap:8px;margin-top:8px"><input id="domWant" placeholder="mydealership.com" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:9px;background:var(--panel)"><button class="b" type="button" id="domFind">Check</button></div>
       <div id="domRes" style="margin-top:8px;font-size:14px"></div></div></div>
-    ${open.map((r) => `<div class="banner" style="margin-top:12px">Domain <b>${esc(r.domain)}</b>: ${r.status === "awaiting_payment" ? 'waiting for payment, see <a href="#/billing">Billing</a>' : "paid, we're buying and connecting it for you"}.</div>`).join("")}`;
+    ${open.map((r) => `<div class="banner" style="margin-top:12px">Domain <b>${esc(r.domain)}</b>: ${r.status === "awaiting_payment" ? (r.method === "usdc" ? `waiting for your USDC payment. <a href="${esc(r.payUrl)}" target="_blank" rel="noopener">Open the payment page ↗</a> <button class="b sm primary" type="button" data-conf="${esc(r.id)}">I've paid</button>` : 'waiting for payment, see <a href="#/billing">Billing</a>') : r.status === "expired" ? "the payment page expired. Search the domain again to get a new one." : "paid, we're buying and connecting it for you"}.</div>`).join("")}`;
   $$("[data-copy]", el).forEach((x) => (x.onclick = () => navigator.clipboard?.writeText(x.dataset.copy).then(() => toast("Copied"))));
   if ($("#domRe")) $("#domRe").onclick = () => domainCard(el);
+  $$("[data-conf]", el).forEach((b) => (b.onclick = async () => { b.disabled = true; b.textContent = "Checking…";
+    try { const r = await api(`/api/t/${TSLUG}/domainconfirm`, J2("POST", { id: b.dataset.conf }));
+      toast(r.status === "connected" ? "Your domain is bought and connected!" : r.status === "awaiting_payment" ? "We don't see the payment yet. It can take a minute; we keep checking." : r.lastError || "Working on it…", r.status === "awaiting_payment"); domainCard(el); }
+    catch (x) { toast(errMsg(x), 1); b.disabled = false; } }));
   if ($("#domRm")) $("#domRm").onclick = async () => { if (!confirm("Remove this domain from your website?")) return; try { await api(`/api/t/${TSLUG}/domain`, { method: "DELETE" }); domainCard(el); } catch (x) { toast(errMsg(x), 1); } };
   if ($("#domAdd")) $("#domAdd").onclick = async () => { const v2 = $("#domOwn").value.trim(); if (!v2) return; $("#domAdd").disabled = true;
     try { await api(`/api/t/${TSLUG}/domain`, J2("POST", { domain: v2 })); toast("Domain added"); domainCard(el); } catch (x) { $("#domAdd").disabled = false; toast(errMsg(x), 1); } };
   if ($("#domFind")) $("#domFind").onclick = async () => { const v2 = $("#domWant").value.trim(); if (!v2) return; $("#domRes").textContent = "Checking…";
     try { const r = await api(`/api/t/${TSLUG}/domaincheck?name=` + encodeURIComponent(v2));
-      $("#domRes").innerHTML = r.available === false ? `<span style="color:var(--bad)">✕ ${esc(r.domain)} is taken. Try another name or ending (.net, .co, .auto).</span>`
-        : `<span style="color:var(--ok)">✓ ${esc(r.domain)} ${r.available ? "is free" : "looks free"}</span> · ${money2(r.price)} / year <button class="b sm primary" type="button" id="domBuy">Get it</button>`;
-      if ($("#domBuy")) $("#domBuy").onclick = async () => { try { await api(`/api/t/${TSLUG}/domainbuy`, J2("POST", { domain: r.domain })); toast("Great! Pay the invoice in Billing and we'll set it up."); go("#/billing"); } catch (x) { toast(errMsg(x), 1); } };
+      $("#domRes").innerHTML = r.available === false ? `<span style="color:var(--bad)">✕ ${esc(r.domain)} is ${r.premium ? "a premium name" : "taken"}. Try another name or ending (.net, .co, .auto).</span>`
+        : `<div style="color:var(--ok);margin-bottom:8px">✓ ${esc(r.domain)} ${r.available ? "is free" : "looks free"}${r.renewal ? ` · renews at ${money2(r.renewal)} / year` : ""}</div>
+          <div style="display:grid;gap:6px">${r.usdc ? `<button class="b primary" type="button" id="domUsdc">Pay ${money2(r.price)} in USDC · instant, automatic</button>` : ""}
+          <button class="b" type="button" id="domInv">Pay ${money2(r.priceOther)} with BTC, USDT, ETH, SOL or XRP</button></div>`;
+      const buy = async (method) => { try { const q = await api(`/api/t/${TSLUG}/domainbuy`, J2("POST", { domain: r.domain, method }));
+          if (method === "usdc" && q.payUrl) { window.open(q.payUrl, "_blank", "noopener"); toast("Pay on the Coinbase page, then click \"I've paid\"."); domainCard(el); }
+          else { toast("Pay the invoice in Billing and we'll set it up."); go("#/billing"); } } catch (x) { toast(errMsg(x), 1); } };
+      if ($("#domUsdc")) $("#domUsdc").onclick = () => buy("usdc");
+      $("#domInv").onclick = () => buy("invoice");
     } catch (x) { $("#domRes").textContent = errMsg(x); } };
 }
 function start2Brand() { const lg = $(".logo"); if (lg) lg.innerHTML = `${S().logo ? `<img src="${esc(S().logo)}" alt="">` : ""}<span><b>${esc(S().name || "My dealership")}</b><small>DEALERVEXA</small></span>`; }

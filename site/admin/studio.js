@@ -61,10 +61,22 @@ export function render(cv, A, st) {
         g.globalCompositeOperation = "destination-in"; const fade = g.createLinearGradient(0, ground, 0, ground + r.dh * 0.45); fade.addColorStop(0, "rgba(0,0,0,.28)"); fade.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = fade; g.fillRect(0, 0, W, H);
         x.drawImage(rf, 0, 0);
       }
-      if (st.shadow) { // soft wide shadow + tight contact shadow under the tyres
-        for (const [ry, a, spread] of [[0.11, 0.38, 0.62], [0.035, 0.6, 0.5]]) {
-          const g = x.createRadialGradient(cx, ground, 4, cx, ground, r.dw * spread); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(1, "rgba(0,0,0,0)");
-          x.save(); x.translate(cx, ground); x.scale(1, ry); x.translate(-cx, -ground); x.fillStyle = g; x.fillRect(cx - r.dw, ground - r.dw, r.dw * 2, r.dw * 2); x.restore();
+      if (st.shadow) { // soft wide shadow under the car
+        const g = x.createRadialGradient(cx, ground, 4, cx, ground, r.dw * 0.62); g.addColorStop(0, "rgba(0,0,0,.34)"); g.addColorStop(1, "rgba(0,0,0,0)");
+        x.save(); x.translate(cx, ground); x.scale(1, 0.11); x.translate(-cx, -ground); x.fillStyle = g; x.fillRect(cx - r.dw, ground - r.dw, r.dw * 2, r.dw * 2); x.restore();
+        // contact shadow that follows the bottom edge of the car, so every tyre (front and rear) sits on the ground
+        const x0 = Math.max(0, Math.floor(r.dx)), x1 = Math.min(W, Math.ceil(r.dx + r.dw)), y0 = Math.max(0, Math.floor(r.dy)), y1 = Math.min(H, Math.ceil(ground));
+        if (x1 > x0 && y1 > y0) {
+          const d = c2.getImageData(x0, y0, x1 - x0, y1 - y0).data, w = x1 - x0, h = y1 - y0, lim = Math.floor(h * 0.4), pts = [];
+          for (let cx2 = 0; cx2 < w; cx2 += 3) { for (let yy = h - 1; yy >= h - lim; yy--) { if (d[(yy * w + cx2) * 4 + 3] > 80) { pts.push([x0 + cx2, y0 + yy]); break; } } }
+          if (pts.length > 4) {
+            x.save(); x.lineCap = "round"; x.lineJoin = "round";
+            for (const [lw, blur, a] of [[22, 14, 0.28], [9, 5, 0.55]]) {
+              x.filter = `blur(${blur}px)`; x.strokeStyle = `rgba(0,0,0,${a})`; x.lineWidth = lw; x.beginPath();
+              pts.forEach(([px2, py2], i) => (i ? x.lineTo(px2, py2 + 3) : x.moveTo(px2, py2 + 3))); x.stroke();
+            }
+            x.restore();
+          }
         }
       }
     }
@@ -97,7 +109,7 @@ export function render(cv, A, st) {
   x.restore();
   return r;
 }
-export const DEFAULTS = { mode: "replace", bgId: "lux-showroom", scale: 100, offX: 0, offY: 0, shadow: true, reflect: true, matchLight: true, bright: 100, contrast: 100, sat: 100, overlay: "none", showPrice: false, plate: null, plateStyle: "dealer" };
+export const DEFAULTS = { mode: "replace", bgId: "photo-modern-showroom", scale: 100, offX: 0, offY: 0, shadow: true, reflect: true, matchLight: true, bright: 100, contrast: 100, sat: 100, overlay: "none", showPrice: false, plate: null, plateStyle: "dealer" };
 async function bgFor(st, library) {
   const meta = BACKGROUNDS.find((b) => b.id === st.bgId) || (library || []).find((b) => b.id === st.bgId);
   if (!meta) return { bg: null, bgMeta: null };
@@ -156,7 +168,7 @@ export function openStudio({ src, settings, price, onSave, library = [], onAddBa
   let lastRect = null;
   const draw = () => { if (A.orig) lastRect = render(cv, A, st); };
   const drawBgs = () => {
-    $("[data-bgs]").innerHTML = ["Inside", "Studio", "Outside", "Yours"].map((cat) => { const xs = allBgs().filter((b) => (b.cat || "Yours") === cat); return xs.length ? `<div class="bg-cat">${cat === "Yours" ? "Your backgrounds" : cat}</div>
+    $("[data-bgs]").innerHTML = ["Inside", "Urban", "Outside", "Studio", "Yours"].map((cat) => { const xs = allBgs().filter((b) => (b.cat || "Yours") === cat); return xs.length ? `<div class="bg-cat">${cat === "Yours" ? "Your backgrounds" : cat}</div>
       <div class="bg-row">${xs.map((b) => `<button type="button" class="bg-it ${st.bgId === b.id ? "on" : ""}" data-bg="${esc(b.id)}" title="${esc(b.name)}"><img src="${esc(b.thumb || b.url)}" alt="" loading="lazy"><span>${esc(b.name)}</span></button>`).join("")}</div>` : ""; }).join("");
     $$("[data-bg]").forEach((b) => (b.onclick = async () => { st.bgId = b.dataset.bg; drawBgs(); Object.assign(A, await bgFor(st, lib)); st.reflect = !!(A.bgMeta && A.bgMeta.reflect); $('[data-c="reflect"]').checked = st.reflect; draw(); }));
   };

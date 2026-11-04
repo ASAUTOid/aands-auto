@@ -8,7 +8,7 @@ const fdate = (s) => (s ? new Date(String(s).length <= 10 ? s + "T12:00:00" : s)
 const ago = (s) => { if (!s) return "never"; const d = Math.round((Date.now() - new Date(s)) / 864e5); return d <= 0 ? "today" : d === 1 ? "yesterday" : d + " days ago"; };
 const pill = (t, k = "") => `<span class="pill ${k}">${esc(t)}</span>`;
 const DEALER_TPL = Object.keys(TEMPLATES).filter((k) => !TEMPLATES[k].original);
-const EXPLORER = (coin, tx) => !tx ? "" : /BTC/i.test(coin) ? `https://mempool.space/tx/${tx}` : /TRC/i.test(coin) ? `https://tronscan.org/#/transaction/${tx}` : `https://etherscan.io/tx/${tx}`;
+const EXPLORER = (coin, tx) => !tx ? "" : /BTC/i.test(coin) ? `https://mempool.space/tx/${tx}` : /TRC/i.test(coin) ? `https://tronscan.org/#/transaction/${tx}` : /SOL/i.test(coin) ? `https://solscan.io/tx/${tx}` : /XRP/i.test(coin) ? `https://xrpscan.com/tx/${tx}` : `https://etherscan.io/tx/${tx}`;
 let PW = "", CFG = null;
 
 function toast(t, err) { const el = $("#toast"); el.textContent = t; el.className = "toast on" + (err ? " err" : ""); clearTimeout(toast.t); toast.t = setTimeout(() => (el.className = "toast"), err ? 5000 : 2200); }
@@ -232,15 +232,17 @@ async function invoices(V) {
 /* ---------- domains bought through DealerVexa ---------- */
 async function domains(V) {
   const r = await api("/api/hq/domains");
-  const st = (x) => ({ awaiting_payment: pill("Waiting for payment", "warn"), paid: pill("Paid · buy it now", "bad"), connected: pill("Connected", "ok"), cancelled: pill("Cancelled") }[x.status] || pill(x.status));
+  const st = (x) => ({ awaiting_payment: pill("Waiting for payment", "warn"), paid: pill(r.porkbun ? "Paid · buying" : "Paid · buy it now", "bad"), registered: pill("Bought · connecting", "info"), connected: pill("Connected", "ok"), expired: pill("Payment page expired"), cancelled: pill("Cancelled") }[x.status] || pill(x.status));
   V.innerHTML = `<div class="ph"><div><h1>Domains</h1><p>Domains dealers asked to buy through DealerVexa.</p></div></div>
+  ${r.porkbun ? '<div class="banner">Porkbun is linked: domains are bought automatically. USDC: the dealer pays Porkbun directly. Other coins: the dealer pays you, and when you mark the invoice paid the domain is bought from your Porkbun credit.</div>' : '<div class="banner warn">Porkbun is not linked: add PORKBUN_API_KEY and PORKBUN_SECRET_KEY in Netlify to buy domains automatically.</div>'}
   ${r.auto ? '<div class="banner">Netlify is linked: when you click "Bought, connect it", the domain is added to the site and its DNS zone is created automatically.</div>' : '<div class="banner warn">Netlify is not linked yet. Add NETLIFY_TOKEN and NETLIFY_SITE_ID in Netlify → Environment variables to connect domains automatically.</div>'}
   <div class="card" style="margin-bottom:14px"><b>How to buy:</b> in Netlify go to <b>Domains → Register a domain</b> (or your favourite registrar), buy the name for 1 year, then click <b>Bought, connect it</b> below. Domains bought in Netlify work straight away; others need the name servers shown to the dealer.</div>
-  ${tbl([{ h: "Domain", f: (x) => `<b>${esc(x.domain)}</b><span class="sub">${esc(x.slug)} · ${fdate(x.createdAt)}</span>` }, { h: "Price", r: 1, f: (x) => money(x.price) }, { h: "Status", f: st },
+  ${tbl([{ h: "Domain", f: (x) => `<b>${esc(x.domain)}</b><span class="sub">${esc(x.slug)} · ${fdate(x.createdAt)} · ${x.method === "usdc" ? "USDC direct" : "invoice"}</span>${x.lastError ? `<span class="sub" style="color:var(--bad)">${esc(x.lastError)}</span>` : ""}` }, { h: "Price", r: 1, f: (x) => "$" + (+x.price || 0).toFixed(2) }, { h: "Status", f: (x) => st(x) + (["paid", "registered"].includes(x.status) ? ` <button class="b sm" type="button" data-retry="${esc(x.id)}">↻ Retry</button>` : "") },
     { h: "", f: (x) => x.status === "paid" || x.status === "awaiting_payment" ? `<button class="b sm primary" type="button" data-done="${esc(x.id)}">Bought, connect it</button> <button class="b sm" type="button" data-cancel="${esc(x.id)}">Cancel</button>` : "" }], r.requests)}`;
   $$("[data-done]").forEach((b) => (b.onclick = async () => { if (!confirm("Did you buy this domain? It will be connected to the dealer's website now.")) return;
     try { await api(`/api/hq/domains/${b.dataset.done}/done`, { method: "POST" }); toast("Connected"); domains(V); } catch (x) { toast(err(x), 1); } }));
   $$("[data-cancel]").forEach((b) => (b.onclick = async () => { await api("/api/hq/domains/" + b.dataset.cancel, J("PUT", { status: "cancelled" })); domains(V); }));
+  $$("[data-retry]").forEach((b) => (b.onclick = async () => { b.disabled = true; try { const x = await api(`/api/hq/domains/${b.dataset.retry}/retry`, { method: "POST" }); toast(x.status === "connected" ? "Connected" : x.lastError || "Still working", x.status !== "connected"); domains(V); } catch (x) { toast(err(x), 1); } }));
 }
 
 /* ---------- plans & wallets ---------- */
@@ -250,12 +252,12 @@ async function plans(V) {
   <div class="card"><h3>Plans (USD per month)</h3>${c.plans.map((p, i) => `<div class="fg" style="margin-bottom:10px"><div class="f"><label>Name</label><input data-p="${i}|name" value="${esc(p.name)}"></div><div class="f"><label>Price</label><input type="number" data-p="${i}|price" value="${esc(p.price)}"></div><div class="f w2"><label>What's included</label><input data-p="${i}|desc" value="${esc(p.desc)}"></div></div>`).join("")}</div>
   <div class="card" style="margin-top:14px"><h3>Crypto wallets</h3><p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">Paste your receiving addresses. Only filled-in coins are offered to dealers. Double-check every address: crypto sent to a wrong address can't be recovered.</p>
     <div class="fg">${Object.entries(c.wallets).map(([k, a]) => `<div class="f w2"><label>${esc(k)}</label><input data-w="${esc(k)}" value="${esc(a)}" style="font-family:var(--mono);font-size:13px"></div>`).join("")}</div></div>
-  <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Domain price for dealers (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div></div>
+  <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Your extra on domains paid in BTC / USDT / ETH… (USD)</label><input type="number" step="0.01" id="domF" value="${esc(c.domainFee ?? 0)}"></div><div class="f"><label>Domain price if Porkbun is not linked (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div></div>
     <label class="chk" style="margin-top:10px"><input type="checkbox" id="open" ${c.signupOpen ? "checked" : ""}> Sign-ups are open (the /signup page takes new dealers)</label></div>`;
   $("#save").onclick = async () => {
     const pl = c.plans.map((p) => ({ ...p })); $$("[data-p]").forEach((i) => { const [n, k] = i.dataset.p.split("|"); pl[+n][k] = k === "price" ? +i.value : i.value; });
     const w = {}; $$("[data-w]").forEach((i) => (w[i.dataset.w] = i.value.trim()));
-    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
+    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value, domainFee: +$("#domF").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
   };
 }
 

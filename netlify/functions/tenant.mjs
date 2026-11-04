@@ -5,6 +5,8 @@ import { mask, merge, sendFeed } from "../lib/ftp.mjs";
 import { COLLECTIONS } from "../lib/db.mjs";
 import { hashPw, statusOf, setStatus, readMap, writeMap, newId, getConfig, listDomain } from "../lib/hq.mjs";
 import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailable, cleanDomain, validDomain } from "../lib/netlify.mjs";
+import { hasPorkbun, pbCheck, pbStartPurchase } from "../lib/porkbun.mjs";
+import { advance } from "../lib/domains.mjs";
 
 // Everything for one dealer on the platform. The owner (HQ password) can do everything; the dealer uses their own password.
 // GET    /api/t/<slug>/data              public: settings + cars (+ suspended flag)
@@ -140,16 +142,35 @@ export default async (req, context) => {
   }
   if (action === "domaincheck" && m === "GET") {
     const d = cleanDomain(new URL(req.url).searchParams.get("name")); if (!validDomain(d)) return json({ error: "bad_domain" }, 400);
-    const cfg = await getConfig(); return json({ domain: d, available: await domainAvailable(d), price: cfg.domainPrice ?? 25 });
+    const cfg = await getConfig(), fee = +cfg.domainFee || 0;
+    if (hasPorkbun()) { try { const x = await pbCheck(d); return json({ domain: d, available: x.available && !x.premium, premium: x.premium, price: x.price, renewal: x.renewal, priceOther: x.price ? +(x.price + fee).toFixed(2) : null, usdc: true }); } catch (e) { return json({ error: e.message }, 502); } }
+    return json({ domain: d, available: await domainAvailable(d), price: null, priceOther: cfg.domainPrice ?? 25, usdc: false });
   }
+  // buy: "usdc" = the dealer pays Porkbun directly on a Coinbase page (automatic); "invoice" = pays DealerVexa in BTC / USDT / ETH / SOL / XRP …
   if (action === "domainbuy" && m === "POST") {
     const b = await body(req), d = cleanDomain(b?.domain); if (!validDomain(d)) return json({ error: "bad_domain" }, 400);
-    const cfg = await getConfig(), price = cfg.domainPrice ?? 25, reqs = await readMap("domainRequests"), inv = await readMap("invoices");
-    const iid = newId("I"), rid = newId("R");
-    inv[iid] = { id: iid, slug, plan: "domain", amount: price, period: `Domain ${d} (1 year)`, status: "unpaid", createdAt: new Date().toISOString(), domainRequest: rid };
-    reqs[rid] = { id: rid, slug, domain: d, price, invoiceId: iid, status: "awaiting_payment", createdAt: new Date().toISOString() };
+    const cfg = await getConfig(), reqs = await readMap("domainRequests"), rid = newId("R"), now = new Date().toISOString();
+    let price = cfg.domainPrice ?? 25, cents = 0;
+    if (hasPorkbun()) { const x = await pbCheck(d); if (!x.available || x.premium) return json({ error: "That domain is not available." }, 400); price = x.price; cents = x.cents; }
+    if (b.method === "usdc") {
+      if (!hasPorkbun()) return json({ error: "Direct USDC payment is not set up yet." }, 400);
+      let p; try { p = await pbStartPurchase(d, cents); } catch (e) { return json({ error: e.message }, 502); }
+      reqs[rid] = { id: rid, slug, domain: d, price, cents, method: "usdc", checkoutId: p.checkoutId, payUrl: p.payUrl, status: p.done ? "registered" : "awaiting_payment", createdAt: now };
+      await writeMap("domainRequests", reqs);
+      if (p.done) await advance(rid);
+      return json(reqs[rid]);
+    }
+    const total = +(price + (+cfg.domainFee || 0)).toFixed(2), inv = await readMap("invoices"), iid = newId("I");
+    inv[iid] = { id: iid, slug, plan: "domain", amount: total, period: `Domain ${d} (1 year)`, status: "unpaid", createdAt: now, domainRequest: rid };
+    reqs[rid] = { id: rid, slug, domain: d, price: total, cents, method: "invoice", invoiceId: iid, status: "awaiting_payment", createdAt: now };
     await writeMap("invoices", inv); await writeMap("domainRequests", reqs);
     return json(reqs[rid]);
+  }
+  // "I've paid" on the Coinbase page: finish the purchase and connect the domain
+  if (action === "domainconfirm" && m === "POST") {
+    const b = await body(req), reqs = await readMap("domainRequests"), r = reqs[String(b?.id || "")];
+    if (!r || r.slug !== slug) return json({ error: "not_found" }, 404);
+    return json(await advance(r.id));
   }
   // Help: the dealer writes to DealerVexa, HQ answers
   if (action === "help") {
