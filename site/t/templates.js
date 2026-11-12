@@ -62,5 +62,16 @@ export const TEMPLATES = {
     fonts: ["Archivo Black", "Archivo Black"], head: "'Archivo Black',Impact,sans-serif", body: "Arial,Helvetica,sans-serif", radius: "6px", heroStyle: "center", upper: true,
   },
 };
+// options a dealer can change on top of any template (Dashboard → My website → Make it yours)
+export const FONT_SETS = {
+  modern: { name: "Modern (Inter)", fonts: ["Inter:wght@400;600;800", "Inter"], head: "'Inter',Arial,sans-serif", body: "'Inter',Arial,sans-serif" },
+  strong: { name: "Strong (Oswald)", fonts: ["Oswald:wght@500;700", "Oswald"], head: "'Oswald',Impact,sans-serif", body: "Arial,Helvetica,sans-serif", upper: true },
+  elegant: { name: "Elegant (Playfair)", fonts: ["Playfair Display:wght@500;700", "Playfair Display"], head: "'Playfair Display',Georgia,serif", body: "Georgia,serif", upper: false },
+  friendly: { name: "Friendly (Nunito)", fonts: ["Nunito:wght@400;700;900", "Nunito"], head: "'Nunito',Arial,sans-serif", body: "'Nunito',Arial,sans-serif", upper: false },
+  classic: { name: "Classic (Merriweather)", fonts: ["Merriweather:wght@400;700;900", "Merriweather"], head: "'Merriweather',Georgia,serif", body: "Arial,Helvetica,sans-serif", upper: false },
+  poster: { name: "Poster (Anton)", fonts: ["Anton", "Anton"], head: "'Anton',Impact,sans-serif", body: "Arial,Helvetica,sans-serif", upper: true },
+};
+export const HERO_STYLES = { search: "Search bar", photo: "Big photo behind the headline", split: "Text left, photo right", center: "Centered, photo below" };
+export const CORNERS = { square: ["Square", "0px"], soft: ["Soft", "8px"], round: ["Round", "18px"] };
 // the 10 templates any dealer website can use (Night Lot is only for the A & S main site)
 export const DEALER_TEMPLATES = Object.keys(TEMPLATES).filter((k) => !TEMPLATES[k].original);

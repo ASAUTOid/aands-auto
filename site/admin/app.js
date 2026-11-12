@@ -4,7 +4,7 @@ import * as FEEDS from "../feeds.js";
 import { photosBox, bulkStudio } from "./photos.js";
 import { ftpPanel } from "./ftpui.js";
 import { openInspection, summary as inspSummary } from "./inspect.js";
-import { TEMPLATES } from "../t/templates.js";
+import { TEMPLATES, FONT_SETS, HERO_STYLES, CORNERS } from "../t/templates.js";
 import { thumb, bindThumbs, openPreview, demoUrl } from "../t/gallery.js";
 
 /* ================= helpers ================= */
@@ -1110,6 +1110,24 @@ function siteDesign(V) {
       <div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(s.accent || T(tpl).vars.accent)}" style="height:40px;padding:2px"></div>
       <div class="f" style="align-self:end"><button class="b sm" type="button" id="accReset">Use the template's colour</button></div></div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_insp" ${s.showInspections !== false ? "checked" : ""}> Show inspection reports on my website</label></div></div>
+  <div class="card" style="margin-bottom:14px"><h3>Make it yours</h3>
+    <div class="fg">${sel("w_font", "Lettering", s.font || "", [["", "The template's own"], ...Object.entries(FONT_SETS).map(([k, f]) => [k, f.name])])}
+      ${sel("w_hero", "Top of the page", s.heroStyle || "", [["", "The template's own"], ...Object.entries(HERO_STYLES)])}
+      ${sel("w_corn", "Corners of buttons and cards", s.corners || "", [["", "The template's own"], ...Object.entries(CORNERS).map(([k, c]) => [k, c[0]])])}</div>
+    <div class="fg" style="margin-top:10px">${fld("w_ann", "Announcement bar on top (empty = no bar)", s.announce, "text", 'wide placeholder="Tax season sale: $500 off every truck this week"')}${fld("w_annUrl", "Link for the bar (optional)", s.announceUrl, "url", 'placeholder="https://…"')}</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">
+      <label class="chk"><input type="checkbox" id="w_sWhy" ${s.showWhy !== false ? "checked" : ""}> "Why buy here" strip</label>
+      <label class="chk"><input type="checkbox" id="w_sAbout" ${s.showAbout !== false ? "checked" : ""}> About us section</label>
+      <label class="chk"><input type="checkbox" id="w_sFin" ${s.showFinancing !== false ? "checked" : ""}> Financing link (credit application)</label>
+      <label class="chk"><input type="checkbox" id="w_sCalc" ${s.showCalc !== false ? "checked" : ""}> Payment calculator on car pages</label>
+      <label class="chk"><input type="checkbox" id="w_sSold" ${s.showSold ? "checked" : ""}> Keep sold cars visible (with a Sold tag)</label></div>
+    <h4 style="margin:16px 0 6px">"Why buy here" texts</h4>
+    <div class="fg">${[0, 1, 2].map((i) => fld("w_why" + i, "Title " + (i + 1), s.why?.[i]?.[0], "text", `placeholder="${["Inspected", "Fair prices", "Financing"][i]}"`) + fld("w_whyt" + i, "Text " + (i + 1), s.why?.[i]?.[1], "text", `placeholder="${["Every vehicle is checked before it goes on the lot.", "Plain numbers, no hidden fees.", "Options for every kind of credit."][i]}"`)).join("")}</div>
+    <h4 style="margin:16px 0 6px">Your own photos</h4>
+    <div class="grid g2">${[["hero", "Top photo (behind or beside the headline)", s.heroImg], ["about", "About us photo (your building, your team)", s.aboutImg]].map(([k, l, u]) => `<div><div class="photo" id="ph_${k}" style="aspect-ratio:16/9">${u ? `<img src="${esc(u)}" alt="">` : "Uses one of your cars"}</div>
+      <div style="font-size:13px;margin-top:6px">${l}</div><div style="display:flex;gap:8px;margin-top:6px;align-items:center"><input type="file" accept="image/*" data-phf="${k}" style="font-size:13px;flex:1;min-width:0"><button class="b sm" type="button" data-phd="${k}">Remove</button></div></div>`).join("")}</div>
+    <h4 style="margin:16px 0 6px">Social links (shown at the bottom)</h4>
+    <div class="fg">${fld("w_fb", "Facebook page", s.facebook, "url", 'placeholder="https://facebook.com/…"')}${fld("w_ig", "Instagram", s.instagram, "url", 'placeholder="https://instagram.com/…"')}${fld("w_tt", "TikTok", s.tiktok, "url", 'placeholder="https://tiktok.com/@…"')}${fld("w_gg", "Google reviews link", s.google, "url", 'placeholder="https://g.page/…"')}</div></div>
   <p style="color:var(--muted);font-size:14px">Your business name, phone, address and hours are in <a href="#/settings">Settings</a>.</p>
   <div class="card" style="margin-bottom:14px"><h3>Your domain</h3><div id="domBox"><p style="color:var(--muted)">Loading…</p></div></div>
   <h2 class="sec">Design · choose a template</h2>
@@ -1126,8 +1144,17 @@ function siteDesign(V) {
   $("#accReset").onclick = () => { s.accent = ""; accTouched = false; $("#w_acc").value = T(tpl).vars.accent; toast("Template colour selected. Click Save."); };
   $("#lgFile").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; $("#lg").textContent = "Uploading…"; try { logo = await upload(f, 600); $("#lg").innerHTML = `<img src="${esc(logo)}" alt="" style="object-fit:contain">`; } catch (_) { $("#lg").textContent = "Upload failed"; } };
   if ($("#lgDel")) $("#lgDel").onclick = () => { logo = ""; $("#lg").textContent = "No logo"; };
+  const pics = { hero: s.heroImg || "", about: s.aboutImg || "" };
+  $$("[data-phf]").forEach((i) => (i.onchange = async (e) => { const f = e.target.files[0], k = i.dataset.phf, box = $("#ph_" + k); if (!f) return; box.textContent = "Uploading…";
+    try { pics[k] = await upload(f, 1600); box.innerHTML = `<img src="${esc(pics[k])}" alt="">`; } catch (_) { box.textContent = "Upload failed"; } }));
+  $$("[data-phd]").forEach((b) => (b.onclick = () => { pics[b.dataset.phd] = ""; $("#ph_" + b.dataset.phd).textContent = "Uses one of your cars"; }));
+  const link = (id) => { const u = v(id).trim(); return !u ? "" : /^https?:\/\//i.test(u) ? u : "https://" + u; };
   $("#wSave2").onclick = async () => { const before = clone(s);
-    Object.assign(s, { logo, template: tpl, heroTitle: v("w_head"), tagline: v("w_tag"), about: v("w_about"), accent: accTouched ? v("w_acc") : s.accent || "", showInspections: $("#w_insp").checked });
+    Object.assign(s, { logo, template: tpl, heroTitle: v("w_head"), tagline: v("w_tag"), about: v("w_about"), accent: accTouched ? v("w_acc") : s.accent || "", showInspections: $("#w_insp").checked,
+      font: v("w_font"), heroStyle: v("w_hero"), corners: v("w_corn"), announce: v("w_ann").trim().slice(0, 160), announceUrl: link("w_annUrl"),
+      showWhy: $("#w_sWhy").checked, showAbout: $("#w_sAbout").checked, showFinancing: $("#w_sFin").checked, showCalc: $("#w_sCalc").checked, showSold: $("#w_sSold").checked,
+      why: [0, 1, 2].map((i) => [v("w_why" + i).trim().slice(0, 40), v("w_whyt" + i).trim().slice(0, 120)]), heroImg: pics.hero, aboutImg: pics.about,
+      facebook: link("w_fb"), instagram: link("w_ig"), tiktok: link("w_tt"), google: link("w_gg") });
     try { await saveSite(); toast("Saved. Your website is updated."); start2Brand(); } catch (x) { Object.assign(s, before); toast(errMsg(x), 1); } };
 }
 // connect a domain the dealer owns (automatic, through Netlify) or buy one through DealerVexa

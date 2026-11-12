@@ -3,7 +3,7 @@
 // /w/<slug>   -> an extra website made in Dashboard → Websites
 // any domain listed on an extra website -> that website
 // ?template=<id> previews a template.
-import { TEMPLATES } from "./templates.js";
+import { TEMPLATES, FONT_SETS, HERO_STYLES, CORNERS } from "./templates.js";
 import { siteSummary, summary as inspSum } from "../admin/inspect.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -70,7 +70,11 @@ if (DEMO) {
 }
 const preview = new URLSearchParams(location.search).get("template");
 const tplId = TEMPLATES[preview] && !TEMPLATES[preview].original ? preview : TEMPLATES[site.template] && !TEMPLATES[site.template].original ? site.template : "classic";
-const T = TEMPLATES[tplId];
+const T0 = TEMPLATES[tplId], FS = !preview && FONT_SETS[site.font];
+// the dealer's own choices on top of the template (not in ?template= previews of other designs)
+const T = { ...T0, ...(FS ? { fonts: FS.fonts, head: FS.head, body: FS.body, upper: FS.upper ?? T0.upper } : {}),
+  ...(!preview && HERO_STYLES[site.heroStyle] ? { heroStyle: site.heroStyle } : {}), ...(!preview && CORNERS[site.corners] ? { radius: CORNERS[site.corners][1] } : {}) };
+const on = (k) => site[k] !== false;
 const where = [S.city, S.state].filter(Boolean).join(", ");
 const showInsp = S.showInspections !== false;
 const isDark = (() => { const h = String((T.vars || {}).bg || "#fff").replace("#", ""); const n = parseInt(h.length === 3 ? h.split("").map((x) => x + x).join("") : h, 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 < 128; })();
@@ -100,8 +104,9 @@ const title = (c) => `${c.year} ${c.name}`;
 
 const applyUrl = (carId) => "/apply" + (site.tenant ? "?d=" + site.tenant : "") + (carId ? (site.tenant ? "&" : "?") + "car=" + encodeURIComponent(carId) : "");
 function header() {
-  return `<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || ((site.main || !site.tenant) && !site.demo) ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
-    <nav class="nav"><a href="#inventory">Inventory</a><a href="${applyUrl()}">Financing</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+  const ann = String(site.announce || "").trim();
+  return `${ann ? `<div class="ann">${site.announceUrl ? `<a href="${esc(site.announceUrl)}">${esc(ann)}</a>` : esc(ann)}</div>` : ""}<header class="hd"><div class="wrap"><a class="brand" href="#top">${site.logo || ((site.main || !site.tenant) && !site.demo) ? `<img src="${esc(site.logo || "/img/logo.png")}" alt="">` : ""}<b>${esc(name)}</b></a>
+    <nav class="nav"><a href="#inventory">Inventory</a>${on("showFinancing") ? `<a href="${applyUrl()}">Financing</a>` : ""}${on("showAbout") ? '<a href="#about">About</a>' : ""}<a href="#contact">Contact</a></nav>
     ${S.phone ? `<a class="tel" href="${tel}">${esc(S.phone)}</a>` : ""}</div></header>`;
 }
 function hero() {
@@ -143,6 +148,12 @@ function about() {
     <p class="muted" style="font-size:18px">${esc(site.about || `We're a locally owned dealer${S.street ? ` at ${S.street}${S.city ? ", " + S.city : ""}` : ""}. Every car on our lot is hand-picked, inspected and detailed, with a clear price and no pressure. Many of our customers are neighbours who come back, and send their friends.`)}</p>
     <a class="btn" href="#contact">Visit us</a></div>${aboutImg ? `<img src="${esc(aboutImg)}" alt="${esc(name)}" loading="lazy">` : ""}</div></section>`;
 }
+// three short reasons to buy here (texts can be changed in the panel)
+function why() {
+  const d = [["Inspected", "Every vehicle is checked before it goes on the lot."], ["Fair prices", "Plain numbers, no hidden fees."], ["Financing", "Options for every kind of credit."]];
+  const xs = [0, 1, 2].map((i) => [(site.why && site.why[i] && site.why[i][0]) || d[i][0], (site.why && site.why[i] && site.why[i][1]) || d[i][1]]);
+  return `<section class="why"><div class="wrap">${xs.map(([t, x]) => `<div><b>${esc(t)}</b><span>${esc(x)}</span></div>`).join("")}</div></section>`;
+}
 function contact() {
   const H = S.hours || [];
   return `<section class="s" id="contact"><div class="wrap contact"><div class="info"><h2 style="margin-bottom:20px">Contact us</h2>
@@ -182,7 +193,7 @@ function detail(c) {
     <div><h1>${esc(title(c))}</h1><div class="muted">${esc(c.trim || "")}</div><div class="price">${c.status === "sold" ? "Sold" : money(c.price)}</div>${c.status === "pending" ? '<div class="muted" style="margin:-6px 0 14px;font-weight:700">Sale pending · ask us about similar cars</div>' : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${S.phone ? `<a class="btn" href="${tel}">Call ${esc(S.phone)}</a>` : ""}<a class="btn ghost" href="#book">Book a viewing</a>${c.status === "sold" ? "" : `<a class="btn ghost" href="${applyUrl(c.id)}">Get pre-approved</a>`}</div>
       ${showInsp ? siteSummary(c, `/inspection?car=${encodeURIComponent(c.id)}${site.tenant ? "&d=" + site.tenant : ""}`, isDark) : ""}
-      ${c.status === "sold" ? "" : `<div class="box calc"><h3>Payment estimate</h3>
+      ${c.status === "sold" || !on("showCalc") ? "" : `<div class="box calc"><h3>Payment estimate</h3>
         <label>Down payment <b id="cDownV"></b></label><input type="range" id="cDown" min="0" max="${Math.round(c.price * 0.5)}" step="250" value="${Math.round(c.price * 0.1 / 250) * 250}">
         <label>Term <b id="cTermV"></b></label><input type="range" id="cTerm" min="12" max="72" step="12" value="48">
         <label>APR <b id="cAprV"></b></label><input type="range" id="cApr" min="0" max="29.9" step="0.1" value="${S.apr || 12.9}">
@@ -197,9 +208,10 @@ function calc(c) {
 }
 
 const R = $("#root");
-const footer = `<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)}${where ? " · " + esc(where) : ""}</span><span>Prices exclude tax, title and fees. <a href="${site.tenant ? `/w/${esc(site.tenant)}/admin` : "/panel/"}">Staff</a></span></div></footer>`;
+const soc = [["facebook", "Facebook"], ["instagram", "Instagram"], ["tiktok", "TikTok"], ["google", "Google reviews"]].filter(([k]) => /^https?:\/\//.test(site[k] || "")).map(([k, l]) => `<a href="${esc(site[k])}" target="_blank" rel="noopener">${l}</a>`).join(" · ");
+const footer = `${soc ? `<div class="soc"><div class="wrap">Follow us: ${soc}</div></div>` : ""}<footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(name)}${where ? " · " + esc(where) : ""}</span><span>Prices exclude tax, title and fees. <a href="${site.tenant ? `/w/${esc(site.tenant)}/admin` : "/panel/"}">Staff</a></span></div></footer>`;
 function home() {
-  R.innerHTML = header() + hero() + inventory() + about() + contact() + footer;
+  R.innerHTML = header() + hero() + (on("showWhy") ? why() : "") + inventory() + (on("showAbout") ? about() : "") + contact() + footer;
   drawGrid(); bindForms(R);
   $("#fq").oninput = (e) => { fQ = e.target.value; drawGrid(); };
   $("#fsort").onchange = (e) => { fSort = e.target.value; drawGrid(); };

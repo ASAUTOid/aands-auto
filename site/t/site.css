@@ -118,3 +118,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .thumbs button{padding:0;border:2px solid transparent;border-radius:var(--r);overflow:hidden;background:none;cursor:pointer}
 .thumbs button.on{border-color:var(--accent)}
 .thumbs img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block}
+
+/* dealer's own options */
+.ann{background:var(--accent);color:var(--accentInk);text-align:center;font-weight:700;font-size:14px;padding:9px 14px}.ann a{color:inherit}
+.why{background:var(--panel);border-bottom:1px solid var(--line);padding:22px 0}.why .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px}
+.why b{display:block;font-family:var(--head);font-size:18px;color:var(--accent)}.why span{color:var(--muted);font-size:14px}
+.soc{border-top:1px solid var(--line);padding:16px 0;font-size:14px;color:var(--muted);text-align:center}.soc a{color:var(--text);font-weight:600}
