@@ -265,7 +265,7 @@ async function plans(V) {
 
 /* ---------- links ---------- */
 function links(V) {
-  const o = location.origin, L = [["Sign-up page for dealers", "/signup"], ["Template gallery", "/templates"], ["Atlantic Auto Sales panel", "/panel/"], ["A & S website", "/"], ["Online credit application (A & S)", "/apply"]];
+  const o = location.origin, L = [["Sign-up page for dealers", "/signup"], ["Template gallery", "/templates"], ["Atlantic Auto Sales panel", "/panel/"], ["Atlantic Auto Sales website", "/"], ["Online credit application (Atlantic)", "/apply"]];
   V.innerHTML = `<div class="ph"><div><h1>Pages & links</h1></div></div><div class="card">${L.map(([l, u]) => `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)"><span><b>${esc(l)}</b><br><code style="font-size:13px">${esc(o + u)}</code></span><span style="display:flex;gap:6px"><a class="b sm" href="${esc(u)}" target="_blank" rel="noopener">Open ↗</a><button class="b sm" type="button" data-c="${esc(o + u)}">Copy</button></span></div>`).join("")}</div>`;
   $$("[data-c]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText(b.dataset.c).then(() => toast("Copied"))));
 }
