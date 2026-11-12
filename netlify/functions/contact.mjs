@@ -1,5 +1,6 @@
 import { json } from "../lib/auth.mjs";
 import { readMap, writeMap, newId } from "../lib/hq.mjs";
+import { mail } from "../lib/mail.mjs";
 
 // POST /api/contact  { name, email, phone, dealer, message }  — the DealerVexa contact page.
 // Each message becomes a ticket in HQ → Support (marked as a website contact, answered by email/phone).
@@ -18,6 +19,7 @@ export default async (req) => {
   const now = new Date().toISOString(), id = newId("H");
   all[id] = { id, slug: "", contact: c, subject: "Website contact: " + (c.dealer || c.name), page: "/contact", status: "open", messages: [{ from: "visitor", text, at: now }], createdAt: now, updatedAt: now };
   await writeMap("tickets", all);
+  await mail.newTicket(all[id], text, true);
   return json({ ok: true });
 };
 

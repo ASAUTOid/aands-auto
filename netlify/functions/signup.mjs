@@ -1,4 +1,5 @@
 import { json } from "../lib/auth.mjs";
+import { mail } from "../lib/mail.mjs";
 import { tenants, getConfig, readMap, writeMap, newId, hashPw, SLUG_RE, RESERVED } from "../lib/hq.mjs";
 
 // Public DealerVexa sign-up
@@ -23,6 +24,7 @@ export default async (req, context) => {
     if (s.status !== "awaiting_payment" && s.status !== "payment_submitted") return json({ error: "closed" }, 400);
     Object.assign(s, { coin: clip(b.coin, 30), txHash: clip(b.txHash, 200), status: "payment_submitted", paidAt: new Date().toISOString() });
     await writeMap("signups", all);
+    await mail.paymentSubmitted(s);
     return json({ ok: true });
   }
   if (!cfg.signupOpen) return json({ error: "Sign-ups are closed right now." }, 403);
@@ -37,6 +39,7 @@ export default async (req, context) => {
   all[sid] = { id: sid, dealer: clip(b.dealer, 80), contact: clip(b.contact, 80), email: clip(b.email, 160), phone: clip(b.phone, 40), city: clip(b.city, 60), state: clip(b.state, 30), slug, template: clip(b.template, 30) || "classic",
     plan: plan?.id, amount: plan?.price || 0, status: "awaiting_payment", createdAt: new Date().toISOString(), auth: hashPw(String(b.password)) };
   await writeMap("signups", all);
+  await mail.signupReceived({ ...all[sid], plan: plan?.name });
   return json({ id: sid, amount: plan?.price || 0, plan: plan?.name, wallets: Object.fromEntries(Object.entries(cfg.wallets).filter(([, v]) => v)) });
 };
 

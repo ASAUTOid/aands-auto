@@ -3,6 +3,7 @@ import { tenants, hq, siteStore, getConfig, readMap, writeMap, statusOf, setStat
 import { hasNetlify, connectDomain } from "../lib/netlify.mjs";
 import { hasPorkbun } from "../lib/porkbun.mjs";
 import { advance } from "../lib/domains.mjs";
+import { mail, hasMail } from "../lib/mail.mjs";
 
 // DealerVexa HQ (owner only, HQ password)
 // GET  /api/hq/overview                 every dealer with stats
@@ -59,10 +60,10 @@ export default async (req, context) => {
     } catch (e) { return json({ error: e.message === "slug_taken" ? "That link name is taken." : "Could not create the dealer." }, 400); }
   }
   if (what === "config") {
-    if (m === "GET") return json(await getConfig());
+    if (m === "GET") return json({ ...(await getConfig()), mailOn: hasMail() });
     if (m === "PUT") { const b = (await body(req)) || {}; const cur = await getConfig();
       const next = { ...cur, ...(b.plans ? { plans: b.plans.slice(0, 10).map((p) => ({ id: String(p.id || "").slice(0, 30), name: String(p.name || "").slice(0, 40), price: +p.price || 0, desc: String(p.desc || "").slice(0, 300) })) } : {}),
-        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}), ...("subdomainBase" in b ? { subdomainBase: String(b.subdomainBase || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^\*?\.|^www\./g, "").replace(/\/.*$/, "").slice(0, 60) } : {}) };
+        ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}), ...("ownerEmail" in b ? { ownerEmail: String(b.ownerEmail || "").trim().slice(0, 160) } : {}), ...("subdomainBase" in b ? { subdomainBase: String(b.subdomainBase || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^\*?\.|^www\./g, "").replace(/\/.*$/, "").slice(0, 60) } : {}) };
       await hq().setJSON("config", next); return json(next); }
   }
   if (what === "signups") {
@@ -79,6 +80,7 @@ export default async (req, context) => {
       inv[iid] = { id: iid, slug: s.slug, plan: plan?.id, amount: plan?.price || 0, period: "First month", status: "paid", coin: s.coin, txHash: s.txHash, createdAt: s.createdAt, paidAt: new Date().toISOString() };
       await writeMap("invoices", inv);
       s.status = "approved"; s.approvedAt = new Date().toISOString(); delete s.auth; await writeMap("signups", all);
+      await mail.approved(s);
       return json({ ok: true, slug: s.slug });
     }
     if (m === "PUT") { const b = (await body(req)) || {}; if (b.status) s.status = String(b.status).slice(0, 30); if ("note" in b) s.note = String(b.note || "").slice(0, 500); if (b.slug && SLUG_RE.test(b.slug)) s.slug = b.slug; await writeMap("signups", all); const { auth, ...x } = s; return json(x); }
@@ -88,11 +90,11 @@ export default async (req, context) => {
     if (m === "GET") return json(Object.values(inv).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")));
     if (m === "POST") { const b = (await body(req)) || {}; if (!SLUG_RE.test(b.slug || "")) return json({ error: "bad_site" }, 400);
       const iid = newId("I"); inv[iid] = { id: iid, slug: b.slug, plan: String(b.plan || ""), amount: +b.amount || 0, period: String(b.period || "").slice(0, 60), note: String(b.note || "").slice(0, 300), status: "unpaid", createdAt: new Date().toISOString() };
-      await writeMap("invoices", inv); return json(inv[iid]); }
+      await writeMap("invoices", inv); await mail.invoice(inv[iid]); return json(inv[iid]); }
     if (m === "PUT" && inv[id]) { const b = (await body(req)) || {}; const i = inv[id];
       if (b.status) { i.status = b.status; if (b.status === "paid") { i.paidAt = new Date().toISOString();
         if (i.domainRequest) { const reqs = await readMap("domainRequests"); if (reqs[i.domainRequest]) { reqs[i.domainRequest].status = "paid"; await writeMap("domainRequests", reqs); await writeMap("invoices", inv); await advance(i.domainRequest); } }
-        else { const st = await statusOf(i.slug); await setStatus(i.slug, { paidUntil: addMonth(st.paidUntil, 1), suspended: false }); } } }
+        else { const st = await statusOf(i.slug), until = addMonth(st.paidUntil, 1); await setStatus(i.slug, { paidUntil: until, suspended: false }); await mail.paid(i, until); } } }
       if ("txHash" in b) i.txHash = String(b.txHash || "").slice(0, 200);
       await writeMap("invoices", inv); return json(i); }
   }
@@ -116,7 +118,7 @@ export default async (req, context) => {
     const all = await readMap("tickets");
     if (m === "GET") return json(Object.values(all).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || "")));
     if (m === "PUT" && all[id]) { const b = (await body(req)) || {}, t = all[id], now = new Date().toISOString();
-      if (b.reply) { t.messages.push({ from: "hq", text: String(b.reply).slice(0, 4000), at: now }); t.status = "answered"; }
+      if (b.reply) { t.messages.push({ from: "hq", text: String(b.reply).slice(0, 4000), at: now }); t.status = "answered"; if (t.slug) await mail.ticketAnswered(t, String(b.reply).slice(0, 4000)); }
       if (b.status) t.status = String(b.status).slice(0, 20); t.updatedAt = now;
       await writeMap("tickets", all); return json(t); }
   }

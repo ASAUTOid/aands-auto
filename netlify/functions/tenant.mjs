@@ -7,6 +7,7 @@ import { hashPw, statusOf, setStatus, readMap, writeMap, newId, getConfig, listD
 import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailable, cleanDomain, validDomain, dnsRecords } from "../lib/netlify.mjs";
 import { hasPorkbun, pbCheck, pbStartPurchase } from "../lib/porkbun.mjs";
 import { advance } from "../lib/domains.mjs";
+import { mail } from "../lib/mail.mjs";
 
 // Everything for one dealer on the platform. The owner (HQ password) can do everything; the dealer uses their own password.
 // GET    /api/t/<slug>/data              public: settings + cars (+ suspended flag)
@@ -178,10 +179,10 @@ export default async (req, context) => {
     if (m === "GET") return json(Object.values(all).filter((t) => t.slug === slug).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || "")));
     if (m === "POST") {
       const b = await body(req); const text = String(b?.text || "").trim().slice(0, 4000); if (!text) return json({ error: "empty" }, 400);
-      const now = new Date().toISOString();
+      const now = new Date().toISOString(); let newT = null;
       if (b.ticketId && all[b.ticketId] && all[b.ticketId].slug === slug) { const t = all[b.ticketId]; t.messages.push({ from: who === "owner" ? "hq" : "dealer", text, at: now }); t.status = who === "owner" ? "answered" : "open"; t.updatedAt = now; }
-      else { const tid = newId("H"); all[tid] = { id: tid, slug, subject: String(b.subject || text.slice(0, 60)).slice(0, 120), page: String(b.page || "").slice(0, 200), status: "open", messages: [{ from: "dealer", text, at: now }], createdAt: now, updatedAt: now }; }
-      await writeMap("tickets", all);
+      else { const tid = newId("H"); newT = tid; all[tid] = { id: tid, slug, subject: String(b.subject || text.slice(0, 60)).slice(0, 120), page: String(b.page || "").slice(0, 200), status: "open", messages: [{ from: "dealer", text, at: now }], createdAt: now, updatedAt: now }; }
+      await writeMap("tickets", all); if (newT && who === "dealer") await mail.newTicket(all[newT], text, false);
       return json({ ok: true });
     }
   }

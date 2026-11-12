@@ -255,11 +255,13 @@ async function plans(V) {
   <div class="card" style="margin-top:14px"><h3>Crypto wallets</h3><p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">Paste your receiving addresses. Only filled-in coins are offered to dealers. Double-check every address: crypto sent to a wrong address can't be recovered.</p>
     <div class="fg">${Object.entries(c.wallets).map(([k, a]) => `<div class="f w2"><label>${esc(k)}</label><input data-w="${esc(k)}" value="${esc(a)}" style="font-family:var(--mono);font-size:13px"></div>`).join("")}</div></div>
   <div class="card" style="margin-top:14px"><div class="fg"><div class="f"><label>Your extra on domains paid in BTC / USDT / ETH… (USD)</label><input type="number" step="0.01" id="domF" value="${esc(c.domainFee ?? 0)}"></div><div class="f"><label>Domain price if Porkbun is not linked (USD / year)</label><input type="number" id="domP" value="${esc(c.domainPrice ?? 25)}"></div><div class="f"><label>Free dealer addresses: your domain (e.g. dealervexa.com → joesautos.dealervexa.com)</label><input id="subB" placeholder="dealervexa.com" value="${esc(c.subdomainBase || "")}"></div></div>
+    <div class="fg" style="margin-top:10px"><div class="f w2"><label>Your e-mail for notifications (new sign-ups, payments, help requests, contact messages)</label><input type="email" id="ownE" value="${esc(c.ownerEmail || "")}" placeholder="you@gmail.com"></div></div>
+    <p style="font-size:13px;margin:6px 0 0;color:${c.mailOn ? "var(--ok,#18794e)" : "var(--muted)"}">${c.mailOn ? "✓ E-mails are on: dealers get their links, invoices and receipts automatically." : "E-mails are off. To turn them on, add RESEND_API_KEY in Netlify → Environment variables (see the guide)."}</p>
     <label class="chk" style="margin-top:10px"><input type="checkbox" id="open" ${c.signupOpen ? "checked" : ""}> Sign-ups are open (the /signup page takes new dealers)</label></div>`;
   $("#save").onclick = async () => {
     const pl = c.plans.map((p) => ({ ...p })); $$("[data-p]").forEach((i) => { const [n, k] = i.dataset.p.split("|"); pl[+n][k] = k === "price" ? +i.value : i.value; });
     const w = {}; $$("[data-w]").forEach((i) => (w[i.dataset.w] = i.value.trim()));
-    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value, domainFee: +$("#domF").value, subdomainBase: $("#subB").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
+    try { CFG = await api("/api/hq/config", J("PUT", { plans: pl, wallets: w, signupOpen: $("#open").checked, domainPrice: +$("#domP").value, domainFee: +$("#domF").value, subdomainBase: $("#subB").value, ownerEmail: $("#ownE").value })); toast("Saved"); } catch (x) { toast(err(x), 1); }
   };
 }
 
