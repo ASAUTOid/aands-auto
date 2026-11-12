@@ -26,7 +26,7 @@ export default async (req) => {
         for (const c of data.cars) if (typeof c.desc === "string") c.desc = fix(c.desc);
       }
       if (seeded < 5) data.cars = [];
-      if (seeded < 6) { const have = new Set(data.cars.map((c) => c.id)); data.cars = [...data.cars, ...ATLANTIC_CARS.filter((c) => !have.has(c.id)).map((c) => ({ ...c }))]; }
+      if (seeded < 7) { const have = new Set(data.cars.map((c) => c.id)); data.cars = [...data.cars, ...ATLANTIC_CARS.filter((c) => !have.has(c.id)).map((c) => ({ ...c }))]; }
       await store.set("backup-" + new Date().toISOString(), JSON.stringify(await store.get("data", { type: "json" })));
       await store.set("data", JSON.stringify(data));
       await store.set("seed-version", String(SEED_VERSION));
