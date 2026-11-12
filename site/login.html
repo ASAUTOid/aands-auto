@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Log in · DealerVexa</title><meta name="description" content="Log in to your DealerVexa dealer panel.">
+<link rel="icon" href="/img/dealervexa-logo.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="/dealervexa/page.css"></head><body>
+<header><div class="w"><a href="/dealervexa/" aria-label="DealerVexa home"><img class="dvlogo" src="/img/dealervexa-logo.svg" alt="DealerVexa"></a>
+<nav><a href="/dealervexa/#pricing">Pricing</a><a href="/templates">Designs</a><a href="/contact">Contact</a><a href="/login">Log in</a><a href="/signup">Sign up</a></nav></div></header>
+<main class="w">
+<h1>Log in</h1><p class="lead">Open your dealer panel: inventory, leads, deals, website and marketing.</p>
+<form class="card" id="f" novalidate style="max-width:460px">
+<label>Your website link<input id="slug" autocomplete="username" placeholder="joes-autos" autocapitalize="off" spellcheck="false"><span class="muted">The name in your link: /w/<b>joes-autos</b></span></label>
+<label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+<button class="btn" id="go">Log in →</button><p class="err" id="err"></p>
+<p class="muted">Forgot your password? <a href="/contact">Contact us</a> and we'll set a new one for you. No account yet? <a href="/signup">Sign up</a>.</p></form>
+<script>
+const $=s=>document.querySelector(s); try{$('#slug').value=localStorage.getItem('dvxSlug')||''}catch(_){}
+const clean=v=>v.trim().toLowerCase().replace(/^https?:\/\/[^/]+/,'').replace(/^\/?w\//,'').replace(/\/.*$/,'').replace(/[^a-z0-9-]/g,'');
+$('#f').onsubmit=async e=>{e.preventDefault(); const s=clean($('#slug').value), pw=$('#pw').value; $('#err').textContent='';
+  if(!s||!pw) return $('#err').textContent='Type your website link and your password.';
+  $('#go').disabled=true;
+  try{ const r=await fetch('/api/t/'+encodeURIComponent(s)+'/login',{method:'POST',headers:{'x-admin-password':pw}});
+    if(r.status===401||r.status===404||r.status===400){ $('#err').textContent='That link or password is not right.'; return }
+    if(!r.ok) throw 0; try{sessionStorage.setItem('tpw:'+s,pw); localStorage.setItem('dvxSlug',s)}catch(_){}
+    location.href='/w/'+s+'/admin';
+  }catch(_){ $('#err').textContent='Could not reach the server. Try again in a moment.' } finally{ $('#go').disabled=false } };
+</script>
+</main><footer><div class="w"><span>© 2026 DealerVexa · Dealership Management Platform</span><span><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/login">Log in</a></span></div></footer>
+</body></html>
