@@ -70,7 +70,7 @@ header.top.solid{background:color-mix(in srgb,var(--asphalt) 82%,transparent);ba
 header.top.hide{transform:translateY(-110%)}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:20px;height:76px}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
-.brand img{height:46px;width:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
+.brand img{height:64px;width:auto;background:#fff;border-radius:10px;padding:3px 8px;box-shadow:0 2px 10px rgba(0,0,0,.5)}
 .brand b{font:800 20px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
 .brand small{display:block;font:500 10px/1.4 var(--mono);letter-spacing:.2em;color:var(--steel)}
 .links{display:flex;gap:6px;align-items:center}
@@ -291,6 +291,7 @@ footer .legal{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap
 .cmp.on{background:var(--sodium);color:var(--asphalt);border-color:var(--sodium)}
 .empty{grid-column:1/-1;padding:60px 0;text-align:center;color:var(--steel)}
 .links a,.navcta a,.navcta .btn,.brand small{white-space:nowrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .callfab{position:fixed;z-index:41;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;background:var(--crimson);color:#fff;text-decoration:none;padding:10px 18px 10px 12px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.45);font:600 14px var(--mono);letter-spacing:.04em;transition:transform .25s}
 .callfab:hover{transform:translateY(-3px)}.callfab .ic{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:16px;animation:ring 2.6s infinite}
 .callfab small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}.callfab b{font-weight:700}
@@ -491,7 +492,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <header class="top" id="top">
   <div class="rail nav">
-    <a class="brand" href="#home" data-mag><img src="img/logo.png" alt="Atlantic Auto Sales logo"><span><b>Atlantic</b><small>AUTO SALES · IA</small></span></a>
+    <a class="brand" href="#home" data-mag><img src="img/logo.png" alt="Atlantic Auto Sales"><span class="sr"><b>Atlantic Auto Sales</b></span></a>
     <nav class="links" aria-label="Main">
       <a href="#inventory" data-scr>Used cars</a><a href="#compare" data-scr>Compare</a><a href="#heritage" data-scr>Heritage</a><a href="#sold" data-scr>Sold</a><a href="#trade" data-scr>Trade-in</a><a href="/apply">Financing</a><a href="#contact" data-scr>Contact</a>
     </nav>
@@ -707,7 +708,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <footer>
   <div class="rail">
     <div class="g">
-      <div><img src="img/logo.png" alt="Atlantic Auto Sales" style="height:70px;width:auto"><p style="margin-top:16px;color:var(--steel);max-width:34ch">Hand-picked used cars, trucks and SUVs. Locally owned in Des Moines, Iowa.</p></div>
+      <div><img src="img/logo.png" alt="Atlantic Auto Sales" style="height:84px;width:auto;background:#fff;border-radius:12px;padding:6px 14px"><p style="margin-top:16px;color:var(--steel);max-width:34ch">Hand-picked used cars, trucks and SUVs. Locally owned in Des Moines, Iowa.</p></div>
       <div><h4>Lot</h4><p><span data-s="street">5390 NW 2nd St</span><br><span data-s="city">Des Moines</span>, <span data-s="state">IA</span> <span data-s="zip">50313-1708</span></p><p style="margin-top:8px" data-s="phone">(208) 227-8651</p></div>
       <div><h4>Hours</h4><p id="ftHours">Mon–Fri 9:00 AM–7:00 PM<br>Sat 10:00 AM–5:00 PM<br>Sun Closed</p></div>
       <div><h4>Explore</h4><ul><li><a href="#inventory">Used cars</a></li><li><a href="#compare">Compare</a></li><li><a href="#trade">Trade-in</a></li><li><a href="#heritage">Heritage</a></li><li><a href="#contact">Contact</a></li><li><a href="#admin" style="color:var(--dim)">Staff</a></li></ul></div>
