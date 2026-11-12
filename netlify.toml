@@ -2,6 +2,19 @@
   publish = "site"
   functions = "netlify/functions"
 
+# DealerVexa's own domain: the company website at the root, www goes to the bare domain
+[[redirects]]
+  from = "https://www.dealervexa.com/*"
+  to = "https://dealervexa.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://dealervexa.com/"
+  to = "/dealervexa/index.html"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/w/:slug/admin"
   to = "/panel/index.html"
