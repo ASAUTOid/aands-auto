@@ -3,7 +3,7 @@
 // Each listing site confirms its exact column format when you sign up as a dealer;
 // if one asks for different columns, use the custom export to match it.
 
-export const SITE_URL = "https://aands-auto.com";
+export const SITE_URL = "https://atlanticautosalesia.com";
 
 // Every value a column can take. key -> [label, getter(car, settings, siteUrl)]
 const abs = (u, base) => (!u ? "" : /^https?:\/\//.test(u) ? u : new URL("/" + String(u).replace(/^\//, ""), base).href);

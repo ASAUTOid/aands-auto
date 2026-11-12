@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { sendFeed } from "../lib/ftp.mjs";
 
 // Every day: send each feed that has "send automatically every day" ticked, for A & S and for every dealer website.
-const BASE = process.env.URL || "https://aands-auto.com";
+const BASE = process.env.URL || "https://atlanticautosalesia.com";
 
 export default async () => {
   const dms = getStore({ name: "dms", consistency: "strong" }), tenants = getStore({ name: "tenants", consistency: "strong" });
