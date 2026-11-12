@@ -168,6 +168,7 @@ main>section[data-view]{min-height:60vh}
 .show .pin{overflow:hidden;display:flex;flex-direction:column;gap:34px;padding-block:clamp(70px,9vw,120px)}
 .show .trk{animation:belt 55s linear infinite;width:max-content}
 .show .trk:hover{animation-play-state:paused}
+.show.still .trk{animation:none;width:auto;flex-wrap:nowrap;overflow-x:auto;padding-right:var(--gutr);scrollbar-width:thin}.show.still .prog{display:none}
 .show .trk{gap:0;padding-left:0}.show .slide{margin-right:28px}
 @keyframes belt{to{transform:translateX(-50%)}}
 .show .head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
@@ -898,7 +899,9 @@ addEventListener('scroll',()=>$('#top').classList.toggle('solid',scrollY>40),{pa
 
 /* ---------- horizontal showcase ---------- */
 const showIds=LOT.slice(0,8).map(c=>c.id);
-$('#showTrk').innerHTML=[...showIds,...showIds].map((id,i)=>{const c=byId[id];return `<a class="slide" href="#car-${id}" data-cursor="VIEW"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="idx">${String(i%showIds.length+1).padStart(2,'0')}</span></div><div class="meta"><div><h3>${c.name}</h3><span class="sub">${c.year}${c.trim?' · '+c.trim:''}${c.miles?' · '+c.miles.toLocaleString()+' mi':''}</span></div><span class="pr">${money(c.price)}</span></div></a>`}).join('');
+const LOOP=showIds.length>=8; // a looping belt needs every car twice: only when there are enough cars
+if(!LOOP)$('#show').classList.add('still');
+$('#showTrk').innerHTML=(LOOP?[...showIds,...showIds]:showIds).map((id,i)=>{const c=byId[id];return `<a class="slide" href="#car-${id}" data-cursor="VIEW"><div class="ph"><img src="${img(c)}" alt="${full(c)}" loading="lazy"><span class="idx">${String(i%showIds.length+1).padStart(2,'0')}</span></div><div class="meta"><div><h3>${c.name}</h3><span class="sub">${c.year}${c.trim?' · '+c.trim:''}${c.miles?' · '+c.miles.toLocaleString()+' mi':''}</span></div><span class="pr">${money(c.price)}</span></div></a>`}).join('');
 
 
 /* ---------- body styles list ---------- */
