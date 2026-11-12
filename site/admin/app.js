@@ -292,7 +292,7 @@ async function upload(file, max) {
 }
 
 // photo tools: upload, background library (ours + the dealer's own), bulk save
-const photoEnv = () => ({ upload: (f, max) => upload(f, max), settings: S, library: () => S().bgLibrary || [], toast, cars: () => SITE.cars, saveAll: saveSite,
+const photoEnv = () => ({ api, slug: TSLUG || "", saveSettings: saveSite, upload: (f, max) => upload(f, max), settings: S, library: () => S().bgLibrary || [], toast, cars: () => SITE.cars, saveAll: saveSite,
   addBackground: async (file) => { const url = await upload(file, 1800);
     const e = { id: uid("bg"), name: file.name.replace(/\.\w+$/, "").slice(0, 30) || "My background", url, cat: "Yours", floor: 0.86, reflect: false };
     S().bgLibrary = [...(S().bgLibrary || []), e]; await saveSite(); toast("Background saved to your library"); return e; } });

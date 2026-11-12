@@ -1,5 +1,6 @@
 // Photos of one car (main photo + more photos) and the bulk background changer. Shared by the main dashboard and the dealer admin.
 import { openStudio, processPhoto, DEFAULTS } from "./studio.js";
+import { openAIScene } from "./aiscene.js";
 import { BACKGROUNDS } from "./backgrounds.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -10,9 +11,9 @@ export function photosBox(el, car, env, onChange) {
   const draw = () => {
     const ps = allPhotos(car);
     el.innerHTML = `<div class="ph-grid">${ps.map((u, i) => `<div class="ph-it"><img src="${esc(u)}" alt="">${i === 0 ? '<span class="ph-main">Main photo</span>' : ""}
-      <div class="ph-act"><button class="b sm primary" type="button" data-st="${i}" title="AI photo studio">✨ Studio</button>${i ? `<button class="b sm" type="button" data-mk="${i}" title="Make this the main photo">★</button>` : ""}<button class="b sm" type="button" data-rm="${i}" title="Remove">✕</button></div></div>`).join("")}
+      <div class="ph-act"><button class="b sm primary" type="button" data-st="${i}" title="AI photo studio">✨ Studio</button><button class="b sm" type="button" data-ai="${i}" title="AI scene: put this car on your own lot">🪄 AI scene</button>${i ? `<button class="b sm" type="button" data-mk="${i}" title="Make this the main photo">★</button>` : ""}<button class="b sm" type="button" data-rm="${i}" title="Remove">✕</button></div></div>`).join("")}
       <label class="ph-add"><input type="file" accept="image/*" multiple hidden data-add><span>＋<br>Add photos</span></label></div>
-      <p style="color:var(--muted);font-size:13px;margin:8px 0 0">The first photo is the main one (cards, exports). ✨ Studio changes the background, covers the plate, adds your banner.</p>`;
+      <p style="color:var(--muted);font-size:13px;margin:8px 0 0">The first photo is the main one (cards, exports). ✨ Studio changes the background, covers the plate, adds your banner. 🪄 AI scene puts the car on your own lot.</p>`;
     el.querySelector("[data-add]").onchange = async (e) => {
       const fs = [...e.target.files]; if (!fs.length) return; env.toast(`Uploading ${fs.length} photo${fs.length > 1 ? "s" : ""}…`);
       for (const f of fs) { try { const u = await env.upload(f, 1600); if (!car.img) car.img = u; else (car.photos = car.photos || []).push(u); } catch (_) { env.toast("Could not upload " + f.name, 1); } }
@@ -20,6 +21,9 @@ export function photosBox(el, car, env, onChange) {
     };
     el.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { const i = +b.dataset.rm; if (!confirm("Remove this photo?")) return; const ps2 = allPhotos(car); ps2.splice(i, 1); car.img = ps2[0] || ""; car.photos = ps2.slice(1); onChange(); draw(); }));
     el.querySelectorAll("[data-mk]").forEach((b) => (b.onclick = () => { const i = +b.dataset.mk, ps2 = allPhotos(car); const [x] = ps2.splice(i, 1); ps2.unshift(x); car.img = ps2[0]; car.photos = ps2.slice(1); onChange(); draw(); }));
+    el.querySelectorAll("[data-ai]").forEach((b) => (b.onclick = () => { const i = +b.dataset.ai, src = allPhotos(car)[i];
+      openAIScene({ src, env, onUse: async (u) => { car.originals = { ...(car.originals || {}), [u]: (car.originals || {})[src] || src }; if (i === 0) car.img = u; else car.photos[i - 1] = u;
+        onChange(); draw(); env.toast("Photo updated. Click Save to put it on the website."); } }); }));
     el.querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const i = +b.dataset.st, src = allPhotos(car)[i];
       openStudio({ src, settings: env.settings(), price: car.price, library: env.library(), onAddBackground: env.addBackground,
         onSave: async (blob, kind) => { const u = await env.upload(blob, kind === "cut" ? 900 : 1600);

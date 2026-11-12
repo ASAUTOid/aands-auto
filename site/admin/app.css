@@ -215,3 +215,13 @@ table.t{width:100%;border-collapse:collapse;font-size:14px}
 .bulk-car img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block}
 .bulk-car span{display:block;padding:6px 8px;font-size:13px;font-weight:600}
 .bulk-car small{display:block;color:var(--muted);font-weight:400}
+/* AI scene */
+.ai-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ai-cmp small{display:block;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.ai-cmp img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:6px;display:block}
+.ai-res{aspect-ratio:3/2;border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:10px;overflow:hidden}.ai-res img{margin:-10px;width:calc(100% + 20px);max-width:none}
+.ai-spin{animation:aipulse 1.2s ease-in-out infinite alternate}@keyframes aipulse{from{opacity:.45}to{opacity:1}}
+.ai-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;padding:2px}
+.ai-t{border:2px solid var(--line);border-radius:8px;background:var(--panel);padding:0;overflow:hidden;cursor:pointer;text-align:left;color:inherit}.ai-t.on{border-color:var(--brand)}
+.ai-t img,.ai-t .ai-p{display:grid;place-items:center;width:100%;aspect-ratio:3/2;object-fit:cover;background:var(--panel-2);font-size:11px;text-align:center;padding:4px}.ai-t img{padding:0}
+.ai-t small{display:block;padding:4px 6px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:760px){.ai-cmp{grid-template-columns:1fr}}

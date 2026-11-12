@@ -3,7 +3,7 @@
 // plus three clean studio backdrops drawn by tools/make_backgrounds.py.
 // floor = where the tyres stand (0 = top, 1 = bottom); reflect = glossy floor that mirrors the car.
 export const BACKGROUNDS = [
-  { id: "photo-as-lot", name: "A & S lot (Burley)", cat: "Outside", floor: 0.91, reflect: false, credit: "A & S Auto" },
+  { id: "photo-as-lot", name: "Brick dealer lot", cat: "Outside", floor: 0.91, reflect: false, credit: "DealerVexa" },
   { id: "photo-modern-showroom", name: "Modern showroom", cat: "Inside", floor: 0.88, reflect: true, credit: "Pexels #36217325" },
   { id: "photo-glass-lobby", name: "Glass lobby", cat: "Inside", floor: 0.9, reflect: true, credit: "Pexels #32674962" },
   { id: "photo-steel-garage", name: "Steel garage", cat: "Inside", floor: 0.9, reflect: false, credit: "Kevin Chuang · Pexels #12771407" },
