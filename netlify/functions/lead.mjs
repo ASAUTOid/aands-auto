@@ -45,7 +45,7 @@ async function mailOut(req, lead) {
   const site = process.env.URL || new URL(req.url).origin;
   const label = { contact: "Contact message", trade: "Trade-in request", viewing: "Viewing / test drive", credit: "Credit application" }[lead.type] || "Message";
   const credit = lead.credit ? Object.entries(lead.credit).map(([k, v]) => `${k}: ${v}`).join("\n") : "";
-  const f = { "form-name": "lead", subject: `A & S website: ${label} from ${lead.name}`, type: label, name: lead.name, phone: lead.phone, email: lead.email,
+  const f = { "form-name": "lead", subject: `Atlantic Auto Sales website: ${label} from ${lead.name}`, type: label, name: lead.name, phone: lead.phone, email: lead.email,
     message: [lead.message, credit].filter(Boolean).join("\n\n"), vin: lead.vin, miles: lead.miles, car: lead.carId };
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);

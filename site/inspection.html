@@ -8,7 +8,7 @@ const q = new URLSearchParams(location.search), id = q.get("car"), dealer = (q.g
 let S = {}, cars = [];
 try {
   if (dealer) { const d = await (await fetch(`/api/t/${dealer}/data`)).json(); S = d.settings || {}; cars = d.cars || []; }
-  else { const r = await fetch("/api/data"); const d = r.status === 200 ? await r.json() : JSON.parse(new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html").getElementById("site-data").textContent); S = { name: "A & S Auto", logo: "/img/logo.png", street: "1038 Overland Ave", city: "Burley", state: "ID", ...d.settings }; cars = d.cars || []; }
+  else { const r = await fetch("/api/data"); const d = r.status === 200 ? await r.json() : JSON.parse(new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html").getElementById("site-data").textContent); S = { name: "Atlantic Auto Sales", logo: "/img/logo.png", street: "5390 NW 2nd St", city: "Des Moines", state: "IA", ...d.settings }; cars = d.cars || []; }
 } catch (_) {}
 const c = cars.find((x) => x.id === id && !["draft", "hidden"].includes(x.status));
 if (c && c.inspection && c.inspection.public !== false) { document.open(); document.write(reportPage(c, S)); document.close(); }

@@ -1,11 +1,11 @@
-// Online credit application. /apply = A & S; /apply?d=<slug> = a dealer website made in the dashboard.
+// Online credit application. /apply = main site (Atlantic Auto Sales); /apply?d=<slug> = a dealer website made in the dashboard.
 const q = new URLSearchParams(location.search), dealer = (q.get("d") || "").replace(/[^a-z0-9-]/g, "");
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let S = {}, cars = [];
 try {
   if (dealer) { const d = await (await fetch(`/api/t/${dealer}/data`)).json(); S = d.settings || {}; cars = d.cars || []; $("#back").href = `/w/${dealer}`; }
-  else { const r = await fetch("/api/data"); const d = r.status === 200 ? await r.json() : JSON.parse(new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html").getElementById("site-data").textContent); S = { name: "A & S Auto", logo: "/img/logo.png", ...d.settings }; cars = d.cars || []; }
+  else { const r = await fetch("/api/data"); const d = r.status === 200 ? await r.json() : JSON.parse(new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html").getElementById("site-data").textContent); S = { name: "Atlantic Auto Sales", logo: "/img/logo.png", ...d.settings }; cars = d.cars || []; }
 } catch (_) {}
 $("#dn").textContent = S.name || "Dealer"; document.title = "Get pre-approved · " + (S.name || "");
 if (S.logo) { $("#logo").src = S.logo; $("#logo").hidden = false; }

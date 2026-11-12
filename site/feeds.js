@@ -154,7 +154,7 @@ export function adText(c, s, base = SITE_URL) {
     .forEach(([k, v]) => v && L.push(`${k}: ${v}`));
   if ((c.equip || []).length) { L.push("", "Equipment:"); c.equip.forEach((e) => L.push("• " + e)); }
   if (c.desc) L.push("", c.desc);
-  L.push("", `${s.name || "A & S Auto"} – ${[s.street, s.city, s.state].filter(Boolean).join(", ")}`);
+  L.push("", `${s.name || "Atlantic Auto Sales"} – ${[s.street, s.city, s.state].filter(Boolean).join(", ")}`);
   if (s.phone) L.push(`Call or text: ${s.phone}`);
   L.push(`More photos and details: ${base}/#car-${c.id}`, "Price excludes tax, title and fees.");
   return { title, price: c.price || 0, text: L.join("\n") };
@@ -174,7 +174,7 @@ export const DEFAULT_CUSTOM = {
   title: "My export",
   delimiter: ",",
   onlyLot: true,
-  cols: [P("VIN", "vin"), P("Year", "year"), P("Make", "make"), P("Model", "model"), P("Price", "price"), P("Mileage", "miles"), { h: "Location", src: "fixed", val: "Burley, ID" }],
+  cols: [P("VIN", "vin"), P("Year", "year"), P("Make", "make"), P("Model", "model"), P("Price", "price"), P("Mileage", "miles"), { h: "Location", src: "fixed", val: "Des Moines, IA" }],
 };
 
 const cell = (v, delim) => {

@@ -75,7 +75,7 @@ async function loadSite() {
 async function loadAll() {
   const [site, ...cols] = await Promise.all([loadSite(), ...Object.keys(DB).map((c) => api(P.db(c)))]);
   SITE = site;
-  SITE.settings = Object.assign(TSLUG ? { name: "", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] } : { name: "A & S Auto", street: "1038 Overland Ave", city: "Burley", state: "ID", zip: "83318", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] }, SITE.settings);
+  SITE.settings = Object.assign(TSLUG ? { name: "", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] } : { name: "Atlantic Auto Sales", street: "5390 NW 2nd St", city: "Des Moines", state: "IA", zip: "50313-1708", taxRate: 6, docFee: 0, titleFee: 0, apr: 18, salespeople: [] }, SITE.settings);
   Object.keys(DB).forEach((c, i) => (DB[c] = cols[i] || []));
   // photo paths from the original site are relative ("img/v17.webp"); make them work from every page
   const absP = (u) => (u && !/^(\/|https?:|data:|blob:)/.test(u) ? "/" + u : u);
@@ -111,7 +111,7 @@ const dealNo = (d) => d.number ? "#" + d.number : "#—";
 function calc(d) {
   const price = n0(d.price), doc = n0(d.docFee), title = n0(d.titleFee), rate = n0(d.taxRate) / 100;
   const allow = n0(d.trade?.allowance), payoff = n0(d.trade?.payoff), down = n0(d.down);
-  const taxable = Math.max(0, price + doc - allow); // Idaho taxes the price after the trade-in credit
+  const taxable = Math.max(0, price + doc - allow); // taxed on the price after the trade-in credit (Iowa: 5% one-time registration fee)
   const tax = r2(taxable * rate);
   const total = r2(price + doc + title + tax);
   const netTrade = r2(allow - payoff);
@@ -991,7 +991,7 @@ function websites(V) {
       <div class="f"><label for="w_acc">Main colour</label><input id="w_acc" type="color" value="${esc(W.accent || (TEMPLATES[W.template] || TEMPLATES.classic).vars.accent)}" style="height:40px;padding:2px"></div>
       ${fld("w_head", "Headline", W.heroTitle, "text", 'wide placeholder="Find your next truck"')}${area("w_tag", "Short intro under the headline", W.tagline)}${area("w_about", "About us text", W.about)}
       ${sel("w_body", "Which cars", W.filter?.body || "", [["", "All body types"], ...BODY_TYPES.map((b) => [b, "Only " + b])])}${fld("w_min", "Min price", W.filter?.minPrice, "number")}${fld("w_max", "Max price", W.filter?.maxPrice, "number")}
-      ${fld("w_dom", "Own domain (optional)", W.domain, "text", 'wide placeholder="cheaptrucksburley.com"')}</div>
+      ${fld("w_dom", "Own domain (optional)", W.domain, "text", 'wide placeholder="cheaptrucksdesmoines.com"')}</div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="w_sold" ${W.showSold ? "checked" : ""}> Also show sold cars</label>
       <div class="formft"><button class="b" type="button" id="wCancel">Cancel</button><button class="b primary" type="button" id="wSave">Save website</button></div></div>` : ""}
   <h2 class="sec">Dealer websites · own cars, own login</h2>
