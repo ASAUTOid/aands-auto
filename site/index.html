@@ -292,6 +292,7 @@ footer .legal{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap
 .empty{grid-column:1/-1;padding:60px 0;text-align:center;color:var(--steel)}
 .links a,.navcta a,.navcta .btn,.brand small{white-space:nowrap}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.lotgal{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));padding-bottom:100px}.lotgal img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
 .callfab{position:fixed;z-index:41;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;background:var(--crimson);color:#fff;text-decoration:none;padding:10px 18px 10px 12px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.45);font:600 14px var(--mono);letter-spacing:.04em;transition:transform .25s}
 .callfab:hover{transform:translateY(-3px)}.callfab .ic{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:16px;animation:ring 2.6s infinite}
 .callfab small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}.callfab b{font-weight:700}
@@ -547,7 +548,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   </div>
 
   <div class="her">
-    <div class="bg" id="herBg" style="background-image:url(img/showroom.webp)"></div>
+    <div class="bg" id="herBg" style="background-image:url(img/lot-front.webp)"></div>
     <div class="rail">
       <div class="eyebrow">Since day one · <span data-s="street">5390 NW 2nd St</span></div>
       <blockquote class="rv">Big-city selection with <em>small-town honesty.</em></blockquote>
@@ -638,6 +639,11 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
     <div><h3>Honest deals</h3><p>Transparent pricing and real trade-in values, every single time.</p></div>
     <div><h3>Customer for life</h3><p>We're here after the sale for questions, service referrals and your next upgrade.</p></div>
   </div></div>
+  <div class="rail lotgal">
+    <img src="img/lot-building.webp" alt="Atlantic Auto Sales showroom entrance" loading="lazy">
+    <img src="img/lot-road.webp" alt="Atlantic Auto Sales lot from NW 2nd St" loading="lazy">
+    <img src="img/lot-front.webp" alt="Atlantic Auto Sales building and lot" loading="lazy">
+  </div>
 </section>
 
 <!-- ================= TRADE ================= -->
