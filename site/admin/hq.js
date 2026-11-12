@@ -77,7 +77,7 @@ async function overview(V) {
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>Sign-ups to handle <a href="#/signups">All →</a></h3>${tbl([{ h: "Dealer", f: (s) => `<b>${esc(s.dealer)}</b><span class="sub">${esc(s.contact)} · ${esc(s.phone)}</span>` }, { h: "Plan", f: (s) => esc(planOf(s.plan)?.name || s.plan) }, { h: "", f: (s) => s.status === "payment_submitted" ? pill("Paid · check", "info") : pill("Waiting for payment", "warn") }], pending.slice(0, 6))}</div>
     <div class="card"><h3>Dealers who may need help</h3><p style="color:var(--muted);font-size:13px;margin:-6px 0 10px">No activity for 2 weeks: give them a call.</p>${tbl([{ h: "Dealer", f: (d) => `<b>${esc(d.name)}</b><span class="sub">${esc(d.phone || d.email || "")}</span>` }, { h: "Last active", f: (d) => ago(d.lastActive || d.lastLogin) }, { h: "", f: (d) => `<button class="b sm" type="button" data-open="${esc(d.slug)}">Open panel</button>` }], quiet.slice(0, 6))}</div></div>
-  <div class="card" style="margin-top:14px"><h3>A & S Auto (your own lot)</h3><p style="margin:0">${o.main.cars} cars for sale · <a href="/panel/" target="_blank" rel="noopener">Open the A & S panel ↗</a> · <a href="/" target="_blank" rel="noopener">aands-auto.com ↗</a></p></div>`;
+  <div class="card" style="margin-top:14px"><h3>Atlantic Auto Sales (your own lot)</h3><p style="margin:0">${o.main.cars} cars for sale · <a href="/panel/" target="_blank" rel="noopener">Open the A & S panel ↗</a> · <a href="/" target="_blank" rel="noopener">aands-auto.com ↗</a></p></div>`;
   $$("[data-open]").forEach((b) => (b.onclick = () => openPanel(b.dataset.open)));
 }
 
@@ -265,7 +265,7 @@ async function plans(V) {
 
 /* ---------- links ---------- */
 function links(V) {
-  const o = location.origin, L = [["Sign-up page for dealers", "/signup"], ["Template gallery", "/templates"], ["A & S panel", "/panel/"], ["A & S website", "/"], ["Online credit application (A & S)", "/apply"]];
+  const o = location.origin, L = [["Sign-up page for dealers", "/signup"], ["Template gallery", "/templates"], ["Atlantic Auto Sales panel", "/panel/"], ["A & S website", "/"], ["Online credit application (A & S)", "/apply"]];
   V.innerHTML = `<div class="ph"><div><h1>Pages & links</h1></div></div><div class="card">${L.map(([l, u]) => `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)"><span><b>${esc(l)}</b><br><code style="font-size:13px">${esc(o + u)}</code></span><span style="display:flex;gap:6px"><a class="b sm" href="${esc(u)}" target="_blank" rel="noopener">Open ↗</a><button class="b sm" type="button" data-c="${esc(o + u)}">Copy</button></span></div>`).join("")}</div>`;
   $$("[data-c]").forEach((b) => (b.onclick = () => navigator.clipboard?.writeText(b.dataset.c).then(() => toast("Copied"))));
 }
