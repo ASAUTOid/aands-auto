@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { checkPassword, json } from "../lib/auth.mjs";
-import { SEED_VERSION, OLD_IDS, ADD_FRONT, ADD_BACK, SETTINGS_UPDATE, REBRAND, ATLANTIC_CARS } from "../lib/seed-cars.mjs";
+import { SEED_VERSION, OLD_IDS, ADD_FRONT, ADD_BACK, SETTINGS_UPDATE, REBRAND, ATLANTIC_CARS, REMOVED_CARS } from "../lib/seed-cars.mjs";
 
 // GET  /api/data  -> the saved site data (cars + business details), or 204 if nothing saved yet
 // PUT  /api/data  -> save new site data (admin password required)
@@ -27,6 +27,7 @@ export default async (req) => {
       }
       if (seeded < 5) data.cars = [];
       if (seeded < 8) { const have = new Set(data.cars.map((c) => c.id)); data.cars = [...data.cars, ...ATLANTIC_CARS.filter((c) => !have.has(c.id)).map((c) => ({ ...c }))]; }
+      if (seeded < 9) data.cars = data.cars.filter((c) => !REMOVED_CARS.includes(c.id));
       await store.set("backup-" + new Date().toISOString(), JSON.stringify(await store.get("data", { type: "json" })));
       await store.set("data", JSON.stringify(data));
       await store.set("seed-version", String(SEED_VERSION));
