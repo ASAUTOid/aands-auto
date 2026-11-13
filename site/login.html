@@ -11,7 +11,7 @@
 <label>Your website link<input id="slug" autocomplete="username" placeholder="joes-autos" autocapitalize="off" spellcheck="false"><span class="muted">The name in your link: /w/<b>joes-autos</b></span></label>
 <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
 <button class="btn" id="go">Log in →</button><p class="err" id="err"></p>
-<p class="muted">Forgot your password? <a href="/contact">Contact us</a> or write to <a href="mailto:dealervexa@pm.me">dealervexa@pm.me</a> and we'll set a new one for you. No account yet? <a href="/signup">Sign up</a>.</p></form>
+<p class="muted">Forgot your password? <a href="/contact">Contact us</a> and we'll set a new one for you. No account yet? <a href="/signup">Sign up</a>.</p></form>
 <script>
 const $=s=>document.querySelector(s); try{$('#slug').value=localStorage.getItem('dvxSlug')||''}catch(_){}
 const clean=v=>v.trim().toLowerCase().replace(/^https?:\/\/[^/]+/,'').replace(/^\/?w\//,'').replace(/\/.*$/,'').replace(/[^a-z0-9-]/g,'');
