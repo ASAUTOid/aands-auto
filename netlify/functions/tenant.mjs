@@ -8,6 +8,7 @@ import { hasNetlify, connectDomain, disconnectDomain, checkDomain, domainAvailab
 import { hasPorkbun, pbCheck, pbStartPurchase } from "../lib/porkbun.mjs";
 import { advance } from "../lib/domains.mjs";
 import { mail } from "../lib/mail.mjs";
+import { hasPay, createPayLink } from "../lib/pay.mjs";
 
 // Everything for one dealer on the platform. The owner (HQ password) can do everything; the dealer uses their own password.
 // GET    /api/t/<slug>/data              public: settings + cars (+ suspended flag)
@@ -188,11 +189,16 @@ export default async (req, context) => {
   }
   if (action === "billing") {
     const cfg = await getConfig(), inv = await readMap("invoices"), st = await statusOf(slug);
-    if (m === "GET") return json({ status: { plan: st.plan, paidUntil: st.paidUntil || null, suspended: !!st.suspended }, plans: cfg.plans, wallets: cfg.wallets, invoices: Object.values(inv).filter((i) => i.slug === slug).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")) });
+    if (m === "GET") return json({ status: { plan: st.plan, paidUntil: st.paidUntil || null, suspended: !!st.suspended }, plans: cfg.plans, wallets: cfg.wallets, autoPay: hasPay(), invoices: Object.values(inv).filter((i) => i.slug === slug).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")) });
     if (m === "POST") {
       const b = await body(req); const i = inv[String(b?.invoiceId || "")];
       if (!i || i.slug !== slug) return json({ error: "not_found" }, 404);
       if (i.status === "paid") return json({ error: "already_paid" }, 400);
+      if (b.auto) { // automatic crypto payment page
+        if (!hasPay()) return json({ error: "Automatic payments are not turned on." }, 400);
+        if (!i.payUrl) { try { const p = await createPayLink({ kind: "I", id: i.id, amount: i.amount, desc: `DealerVexa invoice: ${i.period || i.plan || slug}`, back: `/w/${slug}/admin#/billing` }); i.payUrl = p.payUrl; i.payId = p.payId; await writeMap("invoices", inv); } catch (e) { return json({ error: "Could not open the payment page. Try again or pay to a wallet below." }, 502); } }
+        return json({ payUrl: i.payUrl });
+      }
       Object.assign(i, { status: "submitted", coin: String(b.coin || "").slice(0, 30), txHash: String(b.txHash || "").trim().slice(0, 200), submittedAt: new Date().toISOString() });
       await writeMap("invoices", inv);
       return json(i);

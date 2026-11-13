@@ -4,6 +4,9 @@ import { hasNetlify, connectDomain } from "../lib/netlify.mjs";
 import { hasPorkbun } from "../lib/porkbun.mjs";
 import { advance } from "../lib/domains.mjs";
 import { mail, hasMail } from "../lib/mail.mjs";
+import { approveSignup, markInvoicePaid } from "../lib/billing.mjs";
+import { hasPay } from "../lib/pay.mjs";
+import { hasAI } from "../lib/ai.mjs";
 
 // DealerVexa HQ (owner only, HQ password)
 // GET  /api/hq/overview                 every dealer with stats
@@ -17,7 +20,6 @@ import { mail, hasMail } from "../lib/mail.mjs";
 // POST /api/hq/invoices                 { slug, plan, amount, period, note } new invoice
 // PUT  /api/hq/invoices/<id>            { status: "paid" | "unpaid" | "void", txHash }
 const body = async (req) => { try { return await req.json(); } catch { return undefined; } };
-const addMonth = (d, n = 1) => { const x = d ? new Date(d) : new Date(); if (x < new Date()) x.setTime(Date.now()); x.setMonth(x.getMonth() + n); return x.toISOString().slice(0, 10); };
 
 export default async (req, context) => {
   if (!(await checkPassword(req))) return json({ error: "unauthorized" }, 401);
@@ -60,7 +62,7 @@ export default async (req, context) => {
     } catch (e) { return json({ error: e.message === "slug_taken" ? "That link name is taken." : "Could not create the dealer." }, 400); }
   }
   if (what === "config") {
-    if (m === "GET") return json({ ...(await getConfig()), mailOn: hasMail() });
+    if (m === "GET") return json({ ...(await getConfig()), mailOn: hasMail(), payOn: hasPay(), aiOn: hasAI() });
     if (m === "PUT") { const b = (await body(req)) || {}; const cur = await getConfig();
       const next = { ...cur, ...(b.plans ? { plans: b.plans.slice(0, 10).map((p) => ({ id: String(p.id || "").slice(0, 30), name: String(p.name || "").slice(0, 40), price: +p.price || 0, desc: String(p.desc || "").slice(0, 300) })) } : {}),
         ...(b.wallets ? { wallets: Object.fromEntries(Object.entries(b.wallets).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), String(v || "").trim().slice(0, 120)])) } : {}), ...("signupOpen" in b ? { signupOpen: !!b.signupOpen } : {}), ...("domainPrice" in b ? { domainPrice: +b.domainPrice || 0 } : {}), ...("domainFee" in b ? { domainFee: +b.domainFee || 0 } : {}), ...("ownerEmail" in b ? { ownerEmail: String(b.ownerEmail || "").trim().slice(0, 160) } : {}), ...("subdomainBase" in b ? { subdomainBase: String(b.subdomainBase || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^\*?\.|^www\./g, "").replace(/\/.*$/, "").slice(0, 60) } : {}) };
@@ -71,16 +73,7 @@ export default async (req, context) => {
     if (m === "GET" && !id) return json(Object.values(all).map(({ auth, ...x }) => x).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")));
     const s = all[id]; if (!s) return json({ error: "not_found" }, 404);
     if (op === "approve" && m === "POST") {
-      try {
-        await createDealer({ slug: s.slug, plan: s.plan, auth: s.auth, createdBy: "signup", settings: { name: s.dealer, phone: s.phone, email: s.email, city: s.city, state: s.state, template: s.template || "classic" } });
-      } catch (e) { return json({ error: e.message === "slug_taken" ? "That link name is taken. Change it on the sign-up first." : "Could not create the dealer." }, 400); }
-      const cfg = await getConfig(), plan = cfg.plans.find((p) => p.id === s.plan) || cfg.plans[0];
-      await setStatus(s.slug, { paidUntil: addMonth(null, 1), contact: s.contact });
-      const inv = await readMap("invoices"), iid = newId("I");
-      inv[iid] = { id: iid, slug: s.slug, plan: plan?.id, amount: plan?.price || 0, period: "First month", status: "paid", coin: s.coin, txHash: s.txHash, createdAt: s.createdAt, paidAt: new Date().toISOString() };
-      await writeMap("invoices", inv);
-      s.status = "approved"; s.approvedAt = new Date().toISOString(); delete s.auth; await writeMap("signups", all);
-      await mail.approved(s);
+      const r = await approveSignup(id); if (r.error) return json({ error: r.error }, r.error === "not_found" ? 404 : 400);
       return json({ ok: true, slug: s.slug });
     }
     if (m === "PUT") { const b = (await body(req)) || {}; if (b.status) s.status = String(b.status).slice(0, 30); if ("note" in b) s.note = String(b.note || "").slice(0, 500); if (b.slug && SLUG_RE.test(b.slug)) s.slug = b.slug; await writeMap("signups", all); const { auth, ...x } = s; return json(x); }
@@ -92,9 +85,8 @@ export default async (req, context) => {
       const iid = newId("I"); inv[iid] = { id: iid, slug: b.slug, plan: String(b.plan || ""), amount: +b.amount || 0, period: String(b.period || "").slice(0, 60), note: String(b.note || "").slice(0, 300), status: "unpaid", createdAt: new Date().toISOString() };
       await writeMap("invoices", inv); await mail.invoice(inv[iid]); return json(inv[iid]); }
     if (m === "PUT" && inv[id]) { const b = (await body(req)) || {}; const i = inv[id];
-      if (b.status) { i.status = b.status; if (b.status === "paid") { i.paidAt = new Date().toISOString();
-        if (i.domainRequest) { const reqs = await readMap("domainRequests"); if (reqs[i.domainRequest]) { reqs[i.domainRequest].status = "paid"; await writeMap("domainRequests", reqs); await writeMap("invoices", inv); await advance(i.domainRequest); } }
-        else { const st = await statusOf(i.slug), until = addMonth(st.paidUntil, 1); await setStatus(i.slug, { paidUntil: until, suspended: false }); await mail.paid(i, until); } } }
+      if (b.status === "paid") { const r = await markInvoicePaid(id, { txHash: "txHash" in b ? String(b.txHash || "").slice(0, 200) : undefined }); return json(r); }
+      if (b.status) i.status = String(b.status).slice(0, 20);
       if ("txHash" in b) i.txHash = String(b.txHash || "").slice(0, 200);
       await writeMap("invoices", inv); return json(i); }
   }

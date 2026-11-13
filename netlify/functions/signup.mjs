@@ -1,5 +1,6 @@
 import { json } from "../lib/auth.mjs";
 import { mail } from "../lib/mail.mjs";
+import { hasPay, createPayLink } from "../lib/pay.mjs";
 import { tenants, getConfig, readMap, writeMap, newId, hashPw, SLUG_RE, RESERVED } from "../lib/hq.mjs";
 
 // Public DealerVexa sign-up
@@ -38,9 +39,11 @@ export default async (req, context) => {
   const sid = newId("S");
   all[sid] = { id: sid, dealer: clip(b.dealer, 80), contact: clip(b.contact, 80), email: clip(b.email, 160), phone: clip(b.phone, 40), city: clip(b.city, 60), state: clip(b.state, 30), slug, template: clip(b.template, 30) || "classic",
     plan: plan?.id, amount: plan?.price || 0, status: "awaiting_payment", createdAt: new Date().toISOString(), auth: hashPw(String(b.password)) };
+  let payUrl = "";
+  if (hasPay() && plan?.price > 0) { try { const p = await createPayLink({ kind: "S", id: sid, amount: plan.price, desc: `DealerVexa ${plan.name}: first month (${all[sid].dealer})`, back: "/login" }); payUrl = p.payUrl; all[sid].payUrl = p.payUrl; all[sid].payId = p.payId; } catch (e) { console.error("pay link", e.message); } }
   await writeMap("signups", all);
   await mail.signupReceived({ ...all[sid], plan: plan?.name });
-  return json({ id: sid, amount: plan?.price || 0, plan: plan?.name, wallets: Object.fromEntries(Object.entries(cfg.wallets).filter(([, v]) => v)) });
+  return json({ payUrl, id: sid, amount: plan?.price || 0, plan: plan?.name, wallets: Object.fromEntries(Object.entries(cfg.wallets).filter(([, v]) => v)) });
 };
 
 export const config = { path: ["/api/signup", "/api/signup/:id"] };
