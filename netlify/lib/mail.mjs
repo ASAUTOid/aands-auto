@@ -16,7 +16,7 @@ function layout(title, body, cta) {
 <tr><td style="background:#0a0a0c;padding:20px 28px"><span style="font:800 22px Arial,sans-serif;color:#e5e7eb">Dealer</span><span style="font:800 22px Arial,sans-serif;color:#e11d2a">Vexa</span></td></tr>
 <tr><td style="padding:28px"><h1 style="font-size:22px;margin:0 0 14px">${esc(title)}</h1>${body}
 ${cta ? `<p style="margin:26px 0 6px"><a href="${esc(cta.url)}" style="background:#e11d2a;color:#fff;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:8px;display:inline-block">${esc(cta.label)}</a></p>` : ""}</td></tr>
-<tr><td style="padding:18px 28px;border-top:1px solid #eee;color:#777;font-size:12px">DealerVexa · Dealership Management Platform · <a href="${SITE()}/contact" style="color:#777">Contact us</a></td></tr>
+<tr><td style="padding:18px 28px;border-top:1px solid #eee;color:#777;font-size:12px">DealerVexa · Dealership Management Platform · <a href="${SITE()}/contact" style="color:#777">Contact us</a> · <a href="mailto:dealervexa@pm.me" style="color:#777">dealervexa@pm.me</a></td></tr>
 </table></td></tr></table></body></html>`;
 }
 const p = (t) => `<p style="margin:0 0 12px;line-height:1.55">${t}</p>`;
@@ -28,13 +28,13 @@ export async function sendMail({ to, subject, html, replyTo }) {
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { authorization: "Bearer " + process.env.RESEND_API_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ from: process.env.MAIL_FROM || "DealerVexa <hello@dealervexa.com>", to: list, subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from: process.env.MAIL_FROM || "DealerVexa <hello@dealervexa.com>", to: list, subject, html, reply_to: replyTo || (await owner()) || undefined }),
     });
     if (!r.ok) console.error("mail failed", r.status, (await r.text()).slice(0, 300));
     return { ok: r.ok };
   } catch (e) { console.error("mail error", e.message); return { ok: false }; }
 }
-const owner = async () => (await getConfig()).ownerEmail || process.env.OWNER_EMAIL || "";
+async function owner() { return (await getConfig()).ownerEmail || process.env.OWNER_EMAIL || ""; }
 export async function dealerEmail(slug) { const d = await tenants().get("site/" + slug, { type: "json" }); return d?.settings?.email || ""; }
 const wallets = (cfg) => rows(Object.entries(cfg.wallets || {}).filter(([, v]) => v).map(([k, v]) => [k, `<code>${esc(v)}</code>`]));
 

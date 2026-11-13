@@ -10,6 +10,7 @@ export const RESERVED = new Set(["admin", "panel", "api", "hq", "signup", "apply
 
 export const DEFAULT_CONFIG = {
   signupOpen: true,
+  ownerEmail: "dealervexa@pm.me", // owner notifications and the reply address of every e-mail
   plans: [
     { id: "starter", name: "Starter", price: 49, desc: "Website, inventory, leads, AI photo studio, inspections." },
     { id: "pro", name: "Pro", price: 99, desc: "Everything in Starter + deals, buy-here-pay-here collections, exports to every listing site, FTP." },
